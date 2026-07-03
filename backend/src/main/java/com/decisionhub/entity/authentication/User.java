@@ -115,4 +115,20 @@ public class User {
 
     @OneToMany(mappedBy = "requestedBy", fetch = FetchType.LAZY)
     private List<ReportExport> reportExports;
+    
+    
+    @PrePersist
+    public void prePersist() {
+        this.createdAt = LocalDateTime.now();
+        this.updatedAt = LocalDateTime.now();
+
+        if (this.status == null) {
+            this.status = UserStatus.ACTIVE;
+        }
+    }
+
+    @PreUpdate
+    public void preUpdate() {
+        this.updatedAt = LocalDateTime.now();
+    }
 }
