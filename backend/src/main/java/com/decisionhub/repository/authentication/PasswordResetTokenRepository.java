@@ -1,4 +1,4 @@
-package com.decisionhub.repository;
+package com.decisionhub.repository.authentication;
 
 import java.util.Optional;
 

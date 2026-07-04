@@ -12,7 +12,7 @@ import com.decisionhub.dto.response.RegisterResponse;
 import com.decisionhub.entity.authentication.User;
 import com.decisionhub.enums.authentication.PlatformRole;
 import com.decisionhub.enums.authentication.UserStatus;
-import com.decisionhub.repository.UserRepository;
+import com.decisionhub.repository.authentication.UserRepository;
 import com.decisionhub.service.interfaces.AuthService;
 import com.decisionhub.config.JwtService;
 import org.springframework.security.core.userdetails.UserDetails;

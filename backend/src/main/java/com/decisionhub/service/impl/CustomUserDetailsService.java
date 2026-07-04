@@ -1,7 +1,8 @@
 package com.decisionhub.service.impl;
 
 import com.decisionhub.entity.authentication.User;
-import com.decisionhub.repository.UserRepository;
+import com.decisionhub.repository.authentication.UserRepository;
+
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.userdetails.*;
 import org.springframework.stereotype.Service;
