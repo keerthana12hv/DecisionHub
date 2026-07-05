@@ -1,0 +1,63 @@
+body{
+    margin:0;
+    font-family:Arial,sans-serif;
+    background:#eef2ff;
+}
+
+.create-container{
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    height:100vh;
+}
+
+.create-card{
+    width:550px;
+    background:white;
+    padding:40px;
+    border-radius:15px;
+    box-shadow:0 10px 25px rgba(0,0,0,.2);
+    text-align:center;
+}
+
+.create-card h1{
+    color:#2563eb;
+    font-size:42px;
+    margin-bottom:10px;
+}
+
+.create-card h2{
+    margin-bottom:25px;
+    color:#333;
+}
+
+.create-card input,
+.create-card textarea{
+    width:100%;
+    padding:12px;
+    margin:12px 0;
+    border:1px solid #ccc;
+    border-radius:8px;
+    font-size:16px;
+    box-sizing:border-box;
+}
+
+.create-card textarea{
+    resize:none;
+}
+
+.create-card button{
+    width:100%;
+    padding:14px;
+    background:#2563eb;
+    color:white;
+    border:none;
+    border-radius:8px;
+    font-size:16px;
+    cursor:pointer;
+    transition:.3s;
+}
+
+.create-card button:hover{
+    background:#1d4ed8;
+}
