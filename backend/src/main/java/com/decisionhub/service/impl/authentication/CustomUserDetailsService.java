@@ -1,4 +1,4 @@
-package com.decisionhub.service.impl;
+package com.decisionhub.service.impl.authentication;
 
 import com.decisionhub.entity.authentication.User;
 import com.decisionhub.repository.authentication.UserRepository;

@@ -1,19 +1,19 @@
-package com.decisionhub.service.impl;
+package com.decisionhub.service.impl.authentication;
 
 import java.time.LocalDateTime;
 
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
-import com.decisionhub.dto.request.LoginRequest;
-import com.decisionhub.dto.request.RegisterRequest;
-import com.decisionhub.dto.response.LoginResponse;
-import com.decisionhub.dto.response.RegisterResponse;
+import com.decisionhub.dto.request.authentication.LoginRequest;
+import com.decisionhub.dto.request.authentication.RegisterRequest;
+import com.decisionhub.dto.response.authentication.LoginResponse;
+import com.decisionhub.dto.response.authentication.RegisterResponse;
 import com.decisionhub.entity.authentication.User;
 import com.decisionhub.enums.authentication.PlatformRole;
 import com.decisionhub.enums.authentication.UserStatus;
 import com.decisionhub.repository.authentication.UserRepository;
-import com.decisionhub.service.interfaces.AuthService;
+import com.decisionhub.service.interfaces.authentication.AuthService;
 import com.decisionhub.config.JwtService;
 import org.springframework.security.core.userdetails.UserDetails;
 import lombok.RequiredArgsConstructor;

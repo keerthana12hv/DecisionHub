@@ -1,4 +1,4 @@
-package com.decisionhub.dto.response;
+package com.decisionhub.dto.response.authentication;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;

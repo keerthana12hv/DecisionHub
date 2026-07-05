@@ -1,4 +1,4 @@
-package com.decisionhub.dto.request;
+package com.decisionhub.dto.request.authentication;
 
 import jakarta.validation.constraints.NotBlank;
 import lombok.Getter;

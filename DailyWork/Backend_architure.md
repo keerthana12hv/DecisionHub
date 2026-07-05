@@ -4,138 +4,218 @@ backend
         ├── java
         │   └── com
         │       └── decisionhub
+        │
         │           ├── config
         │           │   ├── CorsConfig.java
+        │           │   ├── JwtAuthenticationFilter.java
+        │           │   ├── JwtService.java
+        │           │   ├── PasswordConfig.java
+        │           │   ├── SecurityConfig.java
         │           │   └── OpenApiConfig.java (Optional)
+        │
         │           ├── controller
         │           │   ├── AuthController.java
-        │           │   ├── UserController.java
         │           │   ├── CommunityController.java
         │           │   ├── DecisionController.java
-        │           │   ├── PollController.java
         │           │   ├── VoteController.java
+        │           │   ├── PollController.java
         │           │   ├── CommentController.java
         │           │   ├── NotificationController.java
         │           │   ├── ReportController.java
+        │           │   ├── UserController.java
         │           │   └── AdminController.java
+        │
         │           ├── dto
+        │           │
         │           │   ├── request
-        │           │   │   ├── LoginRequest.java
-        │           │   │   ├── RegisterRequest.java
-        │           │   │   ├── CreateCommunityRequest.java
-        │           │   │   ├── CreateDecisionRequest.java
-        │           │   │   ├── VoteRequest.java
-        │           │   │   ├── CommentRequest.java
-        │           │   │   ├── PollRequest.java
-        │           │   │   └── NotificationRequest.java
+        │           │   │
+        │           │   │   ├── authentication
+        │           │   │   │   ├── LoginRequest.java
+        │           │   │   │   └── RegisterRequest.java
+        │           │   │   │
+        │           │   │   ├── community
+        │           │   │   │   ├── CreateCommunityRequest.java
+        │           │   │   │   └── UpdateCommunityRequest.java
+        │           │   │   │
+        │           │   │   ├── decision
+        │           │   │   │   ├── CreateDecisionRequest.java
+        │           │   │   │   └── UpdateDecisionRequest.java
+        │           │   │   │
+        │           │   │   ├── voting
+        │           │   │   │   ├── VoteRequest.java
+        │           │   │   │   └── PollRequest.java
+        │           │   │   │
+        │           │   │   ├── discussion
+        │           │   │   │   └── CommentRequest.java
+        │           │   │   │
+        │           │   │   └── notification
+        │           │   │       └── NotificationRequest.java
+        │           │
         │           │   └── response
-        │           │       ├── LoginResponse.java
-        │           │       ├── UserResponse.java
-        │           │       ├── CommunityResponse.java
-        │           │       ├── DecisionResponse.java
-        │           │       ├── VoteResponse.java
-        │           │       ├── CommentResponse.java
-        │           │       ├── PollResponse.java
+        │           │
+        │           │       ├── authentication
+        │           │       │   ├── LoginResponse.java
+        │           │       │   └── RegisterResponse.java
+        │           │       │
+        │           │       ├── community
+        │           │       │   └── CommunityResponse.java
+        │           │       │
+        │           │       ├── decision
+        │           │       │   └── DecisionResponse.java
+        │           │       │
+        │           │       ├── voting
+        │           │       │   ├── VoteResponse.java
+        │           │       │   └── PollResponse.java
+        │           │       │
+        │           │       ├── discussion
+        │           │       │   └── CommentResponse.java
+        │           │       │
+        │           │       ├── user
+        │           │       │   └── UserResponse.java
+        │           │       │
         │           │       └── ApiResponse.java
+        │
         │           ├── entity
+        │           │
         │           │   ├── authentication
-        │           │   │   ├── User
-        │           │   │   ├── OAuthAccount
-        │           │   │   └── PasswordResetToken
+        │           │   │   ├── User.java
+        │           │   │   ├── OAuthAccount.java
+        │           │   │   └── PasswordResetToken.java
+        │           │
         │           │   ├── community
-        │           │   │   ├── Category
-        │           │   │   ├── Community
-        │           │   │   ├── CommunityMember
-        │           │   │   └── UserInterest
+        │           │   │   ├── Category.java
+        │           │   │   ├── Community.java
+        │           │   │   ├── CommunityMember.java
+        │           │   │   └── UserInterest.java
+        │           │
         │           │   ├── decision
-        │           │   │   ├── Decision
-        │           │   │   ├── DecisionOption
-        │           │   │   ├── ComparisonFactor
-        │           │   │   ├── ComparisonFactorTemplate
-        │           │   │   ├── OptionFactorScore
-        │           │   │   └── ProsCons
+        │           │   │   ├── Decision.java
+        │           │   │   ├── DecisionOption.java
+        │           │   │   ├── ComparisonFactor.java
+        │           │   │   ├── ComparisonFactorTemplate.java
+        │           │   │   ├── OptionFactorScore.java
+        │           │   │   └── ProsCons.java
+        │           │
         │           │   ├── voting
-        │           │   │   ├── Poll
-        │           │   │   └── Vote
+        │           │   │   ├── Poll.java
+        │           │   │   └── Vote.java
+        │           │
         │           │   ├── discussion
-        │           │   │   └── Comment
+        │           │   │   └── Comment.java
+        │           │
         │           │   ├── notification
-        │           │   │   ├── Notification
-        │           │   │   └── NotificationPreference
+        │           │   │   ├── Notification.java
+        │           │   │   └── NotificationPreference.java
+        │           │
         │           │   ├── reports
-        │           │   │   └── ReportExport
+        │           │   │   └── ReportExport.java
+        │           │
         │           │   └── administration
-        │           │       ├── AuditLog
-        │           │       └── ModerationAction
+        │           │       ├── AuditLog.java
+        │           │       └── ModerationAction.java
+        │
         │           ├── enums
+        │           │
         │           │   ├── authentication
-        │           │   │   ├── PlatformRole
-        │           │   │   └── UserStatus
+        │           │   │   ├── PlatformRole.java
+        │           │   │   └── UserStatus.java
+        │           │
         │           │   ├── community
-        │           │   │   ├── CommunityVisibility
-        │           │   │   ├── CommunityMemberRole
-        │           │   │   └── MembershipStatus
+        │           │   │   ├── CommunityVisibility.java
+        │           │   │   ├── CommunityMemberRole.java
+        │           │   │   └── MembershipStatus.java
+        │           │
         │           │   ├── decision
-        │           │   │   ├── DecisionStatus
-        │           │   │   ├── DecisionVisibility
-        │           │   │   └── ProsConsType
+        │           │   │   ├── DecisionStatus.java
+        │           │   │   ├── DecisionVisibility.java
+        │           │   │   └── ProsConsType.java
+        │           │
         │           │   ├── voting
-        │           │   │   ├── PollStatus
-        │           │   │   └── PollType
+        │           │   │   ├── PollStatus.java
+        │           │   │   └── PollType.java
+        │           │
         │           │   ├── notification
-        │           │   │   └── NotificationType
+        │           │   │   └── NotificationType.java
+        │           │
         │           │   ├── reports
-        │           │   │   └── ReportType
+        │           │   │   └── ReportType.java
+        │           │
         │           │   └── administration
-        │           │       ├── AuditActionType
-        │           │       └── ModerationActionType
+        │           │       ├── AuditActionType.java
+        │           │       └── ModerationActionType.java
+        │
         │           ├── exception
+        │           │   ├── ApiErrorResponse.java
         │           │   ├── GlobalExceptionHandler.java
         │           │   ├── ResourceNotFoundException.java
-        │           │   ├── BadRequestException.java
-        │           │   ├── UnauthorizedException.java
-        │           │   └── ForbiddenException.java
+        │           │   ├── ResourceAlreadyExistsException.java
+        │           │   ├── UnauthorizedActionException.java
+        │           │   └── BadRequestException.java
+        │
+        │           ├── mapper
+        │           │
+        │           │   ├── community
+        │           │   │   └── CommunityMapper.java
+        │           │
+        │           │   ├── decision
+        │           │   ├── voting
+        │           │   ├── discussion
+        │           │   ├── notification
+        │           │   └── reports
+        │
         │           ├── repository
-        │           │   ├── UserRepository.java
-        │           │   ├── CommunityRepository.java
-        │           │   ├── DecisionRepository.java
-        │           │   ├── VoteRepository.java
-        │           │   ├── CommentRepository.java
-        │           │   ├── PollRepository.java
-        │           │   ├── NotificationRepository.java
-        │           │   └── ReportRepository.java
-        │           ├── security
-        │           │   ├── JwtAuthenticationFilter.java
-        │           │   ├── JwtService.java
-        │           │   ├── SecurityConfig.java
-        │           │   ├── CustomUserDetailsService.java
-        │           │   └── PasswordConfig.java
+        │           │
+        │           │   ├── authentication
+        │           │   │   └── UserRepository.java
+        │           │
+        │           │   ├── community
+        │           │   │   ├── CategoryRepository.java
+        │           │   │   ├── CommunityRepository.java
+        │           │   │   ├── CommunityMemberRepository.java
+        │           │   │   └── UserInterestRepository.java
+        │           │
+        │           │   ├── decision
+        │           │   ├── voting
+        │           │   ├── discussion
+        │           │   ├── notification
+        │           │   └── reports
+        │
         │           ├── service
+        │           │
         │           │   ├── interfaces
-        │           │   │   ├── AuthService.java
-        │           │   │   ├── UserService.java
-        │           │   │   ├── CommunityService.java
-        │           │   │   ├── DecisionService.java
-        │           │   │   ├── VoteService.java
-        │           │   │   ├── CommentService.java
-        │           │   │   ├── PollService.java
-        │           │   │   ├── NotificationService.java
-        │           │   │   └── ReportService.java
+        │           │   │
+        │           │   │   ├── authentication
+        │           │   │   │   └── AuthService.java
+        │           │   │   │
+        │           │   │   ├── community
+        │           │   │   │   └── CommunityService.java
+        │           │   │   │
+        │           │   │   ├── decision
+        │           │   │   ├── voting
+        │           │   │   ├── discussion
+        │           │   │   ├── notification
+        │           │   │   └── reports
+        │           │
         │           │   └── impl
-        │           │       ├── AuthServiceImpl.java
-        │           │       ├── UserServiceImpl.java
-        │           │       ├── CommunityServiceImpl.java
-        │           │       ├── DecisionServiceImpl.java
-        │           │       ├── VoteServiceImpl.java
-        │           │       ├── CommentServiceImpl.java
-        │           │       ├── PollServiceImpl.java
-        │           │       ├── NotificationServiceImpl.java
-        │           │       └── ReportServiceImpl.java
+        │           │
+        │           │       ├── authentication
+        │           │       │   ├── AuthServiceImpl.java
+        │           │       │   └── CustomUserDetailsService.java
+        │           │       │
+        │           │       ├── community
+        │           │       │   └── CommunityServiceImpl.java
+        │           │       │
+        │           │       ├── decision
+        │           │       ├── voting
+        │           │       ├── discussion
+        │           │       ├── notification
+        │           │       └── reports
+        │
         │           ├── util
         │           │   ├── Constants.java
-        │           │   ├── JwtUtil.java
         │           │   ├── DateUtil.java
         │           │   └── ValidationUtil.java
+        │
         │           └── BackendApplication.java
         │
         └── resources

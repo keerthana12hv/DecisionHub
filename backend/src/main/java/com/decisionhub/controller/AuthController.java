@@ -4,11 +4,11 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
-import com.decisionhub.dto.request.LoginRequest;
-import com.decisionhub.dto.request.RegisterRequest;
-import com.decisionhub.dto.response.LoginResponse;
-import com.decisionhub.dto.response.RegisterResponse;
-import com.decisionhub.service.interfaces.AuthService;
+import com.decisionhub.dto.request.authentication.LoginRequest;
+import com.decisionhub.dto.request.authentication.RegisterRequest;
+import com.decisionhub.dto.response.authentication.LoginResponse;
+import com.decisionhub.dto.response.authentication.RegisterResponse;
+import com.decisionhub.service.interfaces.authentication.AuthService;
 
 import jakarta.validation.Valid;
 
