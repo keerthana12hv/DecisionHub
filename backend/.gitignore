@@ -31,3 +31,6 @@ build/
 
 ### VS Code ###
 .vscode/
+/.apt_generated_tests/
+
+*application-local.properties

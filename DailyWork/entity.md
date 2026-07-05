@@ -1,40 +1,53 @@
-entity
+├── entity
+│   ├── authentication
+│   │   ├── User
+│   │   ├── OAuthAccount
+│   │   └── PasswordResetToken
+│   ├── community
+│   │   ├── Category
+│   │   ├── Community
+│   │   ├── CommunityMember
+│   │   └── UserInterest
+│   ├── decision
+│   │   ├── Decision
+│   │   ├── DecisionOption
+│   │   ├── ComparisonFactor
+│   │   ├── ComparisonFactorTemplate
+│   │   ├── OptionFactorScore
+│   │   └── ProsCons
+│   ├── voting
+│   │   ├── Poll
+│   │   └── Vote
+│   ├── discussion
+│   │   └── Comment
+│   ├── notification
+│   │   ├── Notification
+│   │   └── NotificationPreference
+│   ├── reports
+│   │   └── ReportExport
+│   └── administration
+│       ├── AuditLog
+│       └── ModerationAction
 │
-├── Authentication
-│   ├── PlatformRole.java
-│   ├── User.java
-│   ├── OAuthAccount.java
-│   └── PasswordResetToken.java
-│
-├── Community
-│   ├── Category.java
-│   ├── UserInterest.java
-│   ├── Community.java
-│   └── CommunityMember.java
-│
-├── Decision
-│   ├── Decision.java
-│   ├── DecisionOption.java
-│   ├── ComparisonFactor.java
-│   ├── ComparisonFactorTemplate.java
-│   ├── OptionFactorScore.java
-│   └── ProsCons.java
-│
-├── Voting
-│   ├── Poll.java
-│   └── Vote.java
-│
-├── Discussion
-│   └── Comment.java
-│
-├── Notification
-│   ├── Notification.java
-│   ├── NotificationType.java
-│   └── NotificationPreference.java
-│
-├── Reports
-│   └── ReportExport.java
-│
-└── Administration
-    ├── AuditLog.java
-    └── ModerationAction.java
+└── enums
+    ├── authentication
+    │   ├── PlatformRole
+    │   └── UserStatus
+    ├── community
+    │   ├── CommunityVisibility
+    │   ├── CommunityMemberRole
+    │   └── MembershipStatus
+    ├── decision
+    │   ├── DecisionStatus
+    │   ├── DecisionVisibility
+    │   └── ProsConsType
+    ├── voting
+    │   ├── PollStatus
+    │   └── PollType
+    ├── notification
+    │   └── NotificationType
+    ├── reports
+    │   └── ReportType
+    └── administration
+        ├── AuditActionType
+        └── ModerationActionType
