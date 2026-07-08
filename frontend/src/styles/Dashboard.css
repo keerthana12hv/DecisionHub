@@ -1,33 +1,29 @@
 body{
-    margin:0;
-    font-family:Arial,sans-serif;
-    background:#eef2ff;
+    background:#f5f7fb;
 }
 
 .dashboard-container{
+    height:100vh;
     display:flex;
     justify-content:center;
     align-items:center;
-    height:100vh;
 }
 
 .dashboard-card{
-    width:500px;
+    width:450px;
     background:white;
     padding:40px;
-    border-radius:15px;
+    border-radius:20px;
     text-align:center;
-    box-shadow:0 10px 25px rgba(0,0,0,.2);
+    box-shadow:0 10px 25px rgba(0,0,0,.15);
 }
 
 .dashboard-card h1{
-    color:#2563eb;
-    font-size:42px;
+    color:#6C63FF;
     margin-bottom:10px;
 }
 
 .dashboard-card h2{
-    color:#333;
     margin-bottom:15px;
 }
 
@@ -39,29 +35,106 @@ body{
 .dashboard-buttons{
     display:flex;
     flex-direction:column;
-    gap:15px;
+    gap:18px;
 }
 
 .dashboard-buttons button{
     width:100%;
     padding:14px;
     border:none;
-    border-radius:8px;
-    background:#2563eb;
+    border-radius:10px;
+    background:#6C63FF;
     color:white;
-    font-size:16px;
     cursor:pointer;
+    font-size:16px;
     transition:.3s;
 }
 
 .dashboard-buttons button:hover{
-    background:#1d4ed8;
+    background:#564fd8;
 }
 
 .logout-btn{
-    background:#dc3545 !important;
+    background:#ef4444 !important;
 }
 
 .logout-btn:hover{
-    background:#b02a37 !important;
+    background:#dc2626 !important;
+}
+.dashboard{
+    display:flex;
+    background:#f5f7fb;
+    min-height:100vh;
+}
+
+.dashboard-main{
+    margin-left:260px;
+    width:calc(100% - 260px);
+}
+
+.dashboard-content{
+    padding:35px;
+}
+
+.dashboard-content h1{
+    color:#222;
+    margin-bottom:10px;
+}
+
+.dashboard-content p{
+    color:#777;
+    margin-bottom:20px;
+}
+.welcome-banner{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    padding:35px;
+    border-radius:22px;
+    background:linear-gradient(135deg,#6C63FF,#8B5CF6);
+    color:white;
+    margin-bottom:35px;
+    box-shadow:0 15px 35px rgba(108,99,255,.25);
+}
+
+.welcome-text{
+    max-width:60%;
+}
+
+.welcome-banner h1{
+    font-size:34px;
+    margin-bottom:12px;
+}
+
+.welcome-banner p{
+    color:#f5f5f5;
+    margin-bottom:20px;
+    line-height:1.7;
+}
+
+.banner-btn{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    background:white;
+    color:#6C63FF;
+    border:none;
+    padding:14px 22px;
+    border-radius:12px;
+    font-size:15px;
+    font-weight:600;
+    cursor:pointer;
+    transition:.3s;
+}
+
+.banner-btn:hover{
+    transform:translateY(-3px);
+}
+
+.welcome-image img{
+    width:150px;
+    height:150px;
+    border-radius:50%;
+    background:white;
+    padding:8px;
 }

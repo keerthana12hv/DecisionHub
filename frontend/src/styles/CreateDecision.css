@@ -1,63 +1,129 @@
-body{
-    margin:0;
-    font-family:Arial,sans-serif;
-    background:#eef2ff;
-}
-
 .create-container{
+    min-height:100vh;
     display:flex;
     justify-content:center;
     align-items:center;
-    height:100vh;
+    background:linear-gradient(135deg,#eef2ff,#dbeafe);
+    padding:40px;
 }
 
 .create-card{
-    width:550px;
+    width:650px;
     background:white;
     padding:40px;
-    border-radius:15px;
-    box-shadow:0 10px 25px rgba(0,0,0,.2);
-    text-align:center;
+    border-radius:20px;
+    box-shadow:0 15px 35px rgba(0,0,0,.1);
 }
 
 .create-card h1{
-    color:#2563eb;
-    font-size:42px;
+    color:#6C63FF;
+    text-align:center;
     margin-bottom:10px;
 }
 
 .create-card h2{
-    margin-bottom:25px;
-    color:#333;
+    text-align:center;
+    margin-bottom:10px;
+}
+
+.create-card p{
+    text-align:center;
+    color:#666;
+    margin-bottom:30px;
+}
+
+.create-card label{
+    display:block;
+    font-weight:600;
+    margin-bottom:8px;
+    margin-top:18px;
 }
 
 .create-card input,
-.create-card textarea{
+.create-card textarea,
+.create-card select{
     width:100%;
-    padding:12px;
-    margin:12px 0;
-    border:1px solid #ccc;
-    border-radius:8px;
-    font-size:16px;
+    padding:14px;
+    border:1px solid #ddd;
+    border-radius:10px;
+    font-size:15px;
+    outline:none;
+    transition:.3s;
     box-sizing:border-box;
 }
 
-.create-card textarea{
-    resize:none;
+.create-card input:focus,
+.create-card textarea:focus,
+.create-card select:focus{
+    border-color:#6C63FF;
+    box-shadow:0 0 8px rgba(108,99,255,.2);
 }
 
-.create-card button{
-    width:100%;
-    padding:14px;
-    background:#2563eb;
-    color:white;
+.options-list{
+    display:flex;
+    flex-direction:column;
+    gap:10px;
+    margin-top:10px;
+}
+
+.option-row{
+    display:flex;
+    gap:10px;
+}
+
+.remove-option-btn,
+.add-option-btn{
     border:none;
-    border-radius:8px;
-    font-size:16px;
+    border-radius:10px;
+    padding:10px 14px;
     cursor:pointer;
-    transition:.3s;
+    font-weight:600;
 }
 
-.create-card button:hover{
-    background:#1d4ed8;
+.remove-option-btn{
+    background:#fee2e2;
+    color:#b91c1c;
+}
+
+.add-option-btn{
+    margin-top:12px;
+    background:#ede9fe;
+    color:#5b21b6;
+}
+
+.button-group{
+    display:flex;
+    justify-content:space-between;
+    margin-top:30px;
+}
+
+.back-btn,
+.create-btn{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    border:none;
+    padding:14px 24px;
+    border-radius:10px;
+    cursor:pointer;
+    font-size:15px;
+    font-weight:600;
+}
+
+.back-btn{
+    background:#e5e7eb;
+    color:#333;
+}
+
+.back-btn:hover{
+    background:#d1d5db;
+}
+
+.create-btn{
+    background:#6C63FF;
+    color:white;
+}
+
+.create-btn:hover{
+    background:#564fd8;
 }

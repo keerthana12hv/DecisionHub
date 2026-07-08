@@ -1,0 +1,83 @@
+.community-page{
+    margin-left:260px;
+    padding:35px;
+    background:#f5f7fb;
+    min-height:100vh;
+}
+
+.community-header{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    margin-bottom:30px;
+}
+
+.community-header h1{
+    color:#222;
+}
+
+.create-btn{
+    background:#6C63FF;
+    color:white;
+    border:none;
+    padding:14px 25px;
+    border-radius:10px;
+    cursor:pointer;
+}
+
+.community-grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(300px,1fr));
+    gap:25px;
+}
+
+.community-card{
+    background:white;
+    border-radius:20px;
+    padding:30px;
+    box-shadow:0 10px 25px rgba(0,0,0,.08);
+    transition:.3s;
+}
+
+.community-card:hover{
+    transform:translateY(-6px);
+}
+
+.community-icon{
+    font-size:45px;
+    color:#6C63FF;
+    margin-bottom:20px;
+}
+
+.community-card h2{
+    margin-bottom:12px;
+}
+
+.community-card p{
+    color:#666;
+    margin:8px 0;
+}
+
+.community-buttons{
+    display:flex;
+    gap:15px;
+    margin-top:25px;
+}
+
+.community-buttons button{
+    flex:1;
+    border:none;
+    padding:12px;
+    border-radius:10px;
+    cursor:pointer;
+}
+
+.view-btn{
+    background:#6C63FF;
+    color:white;
+}
+
+.invite-btn{
+    background:#eef2ff;
+    color:#6C63FF;
+}

@@ -1,85 +1,145 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import "../styles/VotingPage.css";
+
+const STORAGE_KEY = "decisionhub-decisions";
 
 const VotingPage = () => {
-  const [voted, setVoted] = useState(false);
-  const [selectedOption, setSelectedOption] = useState(null);
+  const [polls, setPolls] = useState([]);
+  const [commentInputs, setCommentInputs] = useState({});
 
-  const decision = {
-    title: "MBA vs Job",
-    description: "Which option is better after graduation?",
-    options: [
-      { id: 1, name: "MBA", votes: 12 },
-      { id: 2, name: "Job", votes: 8 },
-    ],
+  useEffect(() => {
+    const storedDecisions = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
+    setPolls(storedDecisions);
+  }, []);
+
+  const persistPolls = (nextPolls) => {
+    setPolls(nextPolls);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(nextPolls));
   };
 
-  const totalVotes = decision.options.reduce((sum, o) => sum + o.votes, 0);
+  const handleVote = (pollId, optionId) => {
+    setPolls((prevPolls) => {
+      const nextPolls = prevPolls.map((poll) => {
+        const hasVoted = poll.userVoteOptionId != null;
 
-  const handleVote = (optionId) => {
-    setSelectedOption(optionId);
-    setVoted(true);
+        if (poll.id !== pollId || hasVoted) {
+          return poll;
+        }
+
+        return {
+          ...poll,
+          userVoteOptionId: optionId,
+          options: poll.options.map((option) =>
+            option.id === optionId ? { ...option, votes: option.votes + 1 } : option
+          ),
+        };
+      });
+
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(nextPolls));
+      return nextPolls;
+    });
+  };
+
+  const handleCommentSubmit = (pollId, event) => {
+    event.preventDefault();
+    const commentText = commentInputs[pollId]?.trim();
+
+    if (!commentText) return;
+
+    setPolls((prevPolls) => {
+      const nextPolls = prevPolls.map((poll) =>
+        poll.id === pollId
+          ? {
+              ...poll,
+              comments: [...(poll.comments || []), { id: Date.now(), user: "You", text: commentText }],
+            }
+          : poll
+      );
+
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(nextPolls));
+      return nextPolls;
+    });
+
+    setCommentInputs((prev) => ({ ...prev, [pollId]: "" }));
   };
 
   return (
-    <div className="min-h-screen bg-gray-100 flex items-center justify-center p-6">
-      <div className="bg-white rounded-2xl shadow-lg p-8 w-full max-w-lg">
-
-        {/* Title */}
-        <h1 className="text-2xl font-bold text-purple-700 mb-2">
-          {decision.title}
-        </h1>
-        <p className="text-gray-500 mb-6">{decision.description}</p>
-
-        {/* Options */}
-        {decision.options.map((option) => {
-          const percentage = Math.round((option.votes / totalVotes) * 100);
-          return (
-            <div key={option.id} className="mb-4">
-              <div className="flex justify-between mb-1">
-                <span className="font-medium text-gray-700">{option.name}</span>
-                {voted && (
-                  <span className="text-sm text-gray-500">{percentage}%</span>
-                )}
-              </div>
-
-              {/* Progress Bar - shows after voting */}
-              {voted && (
-                <div className="w-full bg-gray-200 rounded-full h-3 mb-2">
-                  <div
-                    className="bg-purple-500 h-3 rounded-full"
-                    style={{ width: `${percentage}%` }}
-                  ></div>
-                </div>
-              )}
-
-              {/* Vote Button */}
-              {!voted && (
-                <button
-                  onClick={() => handleVote(option.id)}
-                  className="w-full border-2 border-purple-400 text-purple-600 py-2 rounded-lg hover:bg-purple-50 transition"
-                >
-                  Vote for {option.name}
-                </button>
-              )}
-
-              {/* Selected badge */}
-              {voted && selectedOption === option.id && (
-                <span className="text-green-500 text-sm">✅ You voted this</span>
-              )}
-            </div>
-          );
-        })}
-
-        {/* Total Votes */}
-        <p className="text-gray-400 text-sm mt-4 text-center">
-          Total votes: {totalVotes}
-        </p>
-
-        {/* Thank you message */}
-        {voted && (
-          <div className="mt-4 bg-purple-50 text-purple-700 text-center py-3 rounded-lg font-medium">
-            🎉 Thank you for voting!
+    <div className="voting-container">
+      <div className="polls-list">
+        {polls.length === 0 ? (
+          <div className="voting-card">
+            <h1>No polls yet</h1>
+            <p className="decision-description">Create a decision first and it will appear here.</p>
           </div>
+        ) : (
+          polls.map((poll) => {
+          const totalVotes = poll.options.reduce((sum, option) => sum + option.votes, 0);
+          const hasVoted = poll.userVoteOptionId != null;
+
+          return (
+            <div key={poll.id} className="voting-card">
+              <h1>{poll.title}</h1>
+              <p className="decision-description">{poll.description}</p>
+
+              {poll.options.map((option) => {
+                const percentage = totalVotes === 0 ? 0 : Math.round((option.votes / totalVotes) * 100);
+
+                return (
+                  <div key={option.id} className="option-block">
+                    <div className="option-row">
+                      <span>{option.name}</span>
+                      {hasVoted && <span className="percentage">{percentage}%</span>}
+                    </div>
+
+                    {hasVoted && (
+                      <div className="progress-bar">
+                        <div className="progress-fill" style={{ width: `${percentage}%` }}></div>
+                      </div>
+                    )}
+
+                    {!hasVoted && (
+                      <button onClick={() => handleVote(poll.id, option.id)} className="vote-btn-card">
+                        Vote for {option.name}
+                      </button>
+                    )}
+
+                    {hasVoted && poll.userVoteOptionId === option.id && (
+                      <span className="selected-badge">✅ You voted this</span>
+                    )}
+                  </div>
+                );
+              })}
+
+              <p className="total-votes">Total votes: {totalVotes}</p>
+
+              {hasVoted && <div className="thanks-box">🎉 Thank you for voting!</div>}
+
+              <div className="comments-section">
+                <h3>Comments</h3>
+                <form onSubmit={(event) => handleCommentSubmit(poll.id, event)} className="comment-form">
+                  <textarea
+                    rows="3"
+                    value={commentInputs[poll.id] || ""}
+                    onChange={(event) =>
+                      setCommentInputs((prev) => ({ ...prev, [poll.id]: event.target.value }))
+                    }
+                    placeholder="Share your thoughts..."
+                  />
+                  <button type="submit">Post Comment</button>
+                </form>
+
+                <div className="comment-list">
+                  {(poll.comments || []).map((comment) => (
+                    <div key={comment.id} className="comment-item">
+                      <strong>{comment.user}</strong>
+                      <p>{comment.text}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+            );
+          })
         )}
       </div>
     </div>

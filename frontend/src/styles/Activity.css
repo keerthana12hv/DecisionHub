@@ -1,0 +1,36 @@
+.activity-card{
+    background:white;
+    border-radius:18px;
+    margin-top:20px;
+    padding:25px;
+    box-shadow:0 10px 25px rgba(0,0,0,.08);
+}
+
+.activity-item{
+    display:flex;
+    align-items:center;
+    gap:18px;
+    padding:16px 0;
+    border-bottom:1px solid #eee;
+}
+
+.activity-item:last-child{
+    border-bottom:none;
+}
+
+.activity-icon{
+    width:45px;
+    height:45px;
+    background:#6C63FF;
+    color:white;
+    border-radius:50%;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    font-size:18px;
+}
+
+.activity-item span{
+    color:#444;
+    font-size:15px;
+}
