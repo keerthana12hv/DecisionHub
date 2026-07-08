@@ -1,0 +1,20 @@
+$kind: http-request
+name: login-a
+url: http://localhost:8080/api/auth/login
+method: POST
+body:
+  type: json
+  content: "{\r
+
+    \  \"email\":\"a@gmail.com\",\r
+
+    \  \"password\":\"123456\"\r
+
+    }"
+scripts:
+  - type: afterResponse
+    code: "const response = pm.response.json();\r
+
+      pm.globals.set(\"authToken\", response.token);"
+    language: text/javascript
+order: 3000

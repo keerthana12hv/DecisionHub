@@ -181,7 +181,7 @@ Factors - Pros & Cons Management
 
 **Objective:** Implement user engagement and collaboration features.
 
-### Phase 4 -- Voting
+### Phase 4 -- Voting and Polling 
 
 **Modules**
 
@@ -220,7 +220,7 @@ Factors - Pros & Cons Management
 
 ------------------------------------------------------------------------
 
-### Phase 5 -- Discussion
+### Phase 5 -- Discussion and Feedback system
 
 **Modules** - Comment
 
@@ -318,42 +318,449 @@ Download
 
 ------------------------------------------------------------------------
 
-### Phase 8 -- Administration
+# Phase 8 – Administration
 
-**Modules**
+## Overview
 
-**Enums** - AuditActionType - ModerationActionType
+The Administration module provides platform-wide management features that are not handled by normal users or community owners.
 
-**Entities** - AuditLog - ModerationAction
+It enables administrators to manage users, communities, categories, decisions, reports, moderation, audit logs, and overall platform operations.
 
-**Java Files**
+This module completes the backend by providing administrative control over all major modules implemented in previous phases.
 
--   **Entity**
-    -   `AuditLog.java`
-    -   `ModerationAction.java`
--   **Repository**
-    -   `AuditLogRepository.java`
-    -   `ModerationActionRepository.java`
--   **Service**
-    -   `AdminService.java`
-    -   `AdminServiceImpl.java`
--   **Controller**
-    -   `AdminController.java`
+---
 
-**REST APIs** - GET /admin/audit-logs - DELETE /admin/decisions/{id} -
-DELETE /admin/users/{id} - POST /admin/moderation-actions
+# Modules
 
-**Deliverables** - Audit Logs - Moderation Features - Administration
-Features
+## Enums
 
-### ✅ Milestone 3 Deliverables
+- `AuditActionType`
+- `ModerationActionType`
 
--   Report Generation
--   Administration Module
--   Audit Logs
--   Moderation Features
--   Backend Testing
--   Bug Fixes
--   Performance Optimization
--   Backend Ready for Deployment
+---
 
+## Entities
+
+- `AuditLog`
+- `ModerationAction`
+
+---
+
+# Java Files
+
+## Entity
+
+- `AuditLog.java`
+- `ModerationAction.java`
+
+---
+
+## Repository
+
+- `AuditLogRepository.java`
+- `ModerationActionRepository.java`
+
+---
+
+## Service
+
+- `AdminService.java`
+- `AdminServiceImpl.java`
+
+---
+
+## Controller
+
+- `AdminController.java`
+
+---
+
+# Features
+
+---
+
+# 1. Admin Dashboard
+
+Provides a centralized dashboard for monitoring the platform.
+
+### Dashboard Information
+
+- Total Users
+- Total Communities
+- Total Decisions
+- Total Polls
+- Total Comments
+- Total Votes
+- Active Users
+- Active Communities
+- Recent Activities
+
+---
+
+# 2. User Management
+
+Administrators manage platform users.
+
+### Features
+
+- View all users
+- View user profile
+- Search users
+- Filter users
+- Suspend users
+- Activate users
+- Soft delete users
+- Restore users (Optional)
+- Change user roles (USER ↔ MODERATOR)
+
+---
+
+# 3. Community Management
+
+Administrators manage communities across the platform.
+
+### Features
+
+- View all communities
+- View community details
+- Search communities
+- Delete inappropriate communities
+- Restore deleted communities (Optional)
+- View community members
+
+> Community owners manage only their own communities.  
+> Administrators can manage every community on the platform.
+
+---
+
+# 4. Category Management
+
+Categories are master data used by the Community module.
+
+Only administrators can create or manage categories.
+
+### Features
+
+- Create Category
+- View Categories
+- View Category Details
+- Update Category
+- Delete Category (Soft Delete if required)
+
+> Community creators do **not** create categories.  
+> While creating a community they simply select an existing category.
+
+Example Categories:
+
+- Technology
+- Sports
+- Education
+- Gaming
+- Business
+- Entertainment
+
+---
+
+# 5. Decision Management
+
+Administrators manage platform decisions.
+
+### Features
+
+- View all decisions
+- Delete inappropriate decisions
+- Restore deleted decisions (Optional)
+- Moderate reported decisions
+
+---
+
+# 6. Comment Moderation
+
+Administrators moderate discussions.
+
+### Features
+
+- View comments
+- Delete offensive comments
+- Moderate reported comments
+
+---
+
+# 7. Moderation
+
+Perform moderation actions across the platform.
+
+### Features
+
+- Warn users
+- Suspend users
+- Ban users
+- Remove inappropriate communities
+- Remove inappropriate decisions
+- Remove offensive comments
+
+All moderation actions are recorded.
+
+---
+
+# 8. Audit Logs
+
+Maintain complete audit history of administrative operations.
+
+### Logged Events
+
+- User Login
+- User Registration
+- Community Creation
+- Community Update
+- Community Deletion
+- Decision Creation
+- Decision Deletion
+- Category Creation
+- Category Update
+- Category Deletion
+- Moderation Actions
+- Admin Activities
+
+Audit logs help with:
+
+- Monitoring
+- Security
+- Debugging
+- Compliance
+
+---
+
+# 9. Reports
+
+Generate reports for platform administration.
+
+### Features
+
+- Generate Reports
+- Export Reports
+- Download Reports
+
+Supported Formats
+
+- PDF
+- CSV
+- Excel
+
+---
+
+# 10. Platform Analytics
+
+Provide statistics about the platform.
+
+### Statistics
+
+- Total Users
+- Total Communities
+- Total Decisions
+- Total Polls
+- Total Comments
+- Total Votes
+- Community Growth
+- User Growth
+- Most Active Communities
+
+---
+
+# 11. Admin Authorization
+
+Only administrators can access administration APIs.
+
+Platform Roles
+
+```text
+USER
+MODERATOR
+ADMIN
+```
+
+Security Rules
+
+- USER → Normal platform access
+- MODERATOR → Moderation features only (if required)
+- ADMIN → Full administrative access
+
+All Admin APIs must verify that the logged-in user has the `ADMIN` role before executing administrative operations.
+
+---
+
+# REST APIs
+
+## Dashboard
+
+```http
+GET /api/admin/dashboard
+```
+
+---
+
+## User Management
+
+```http
+GET    /api/admin/users
+
+GET    /api/admin/users/{id}
+
+PUT    /api/admin/users/{id}/status
+
+PUT    /api/admin/users/{id}/role
+
+DELETE /api/admin/users/{id}
+```
+
+---
+
+## Community Management
+
+```http
+GET    /api/admin/communities
+
+GET    /api/admin/communities/{id}
+
+DELETE /api/admin/communities/{id}
+```
+
+---
+
+## Category Management
+
+```http
+POST   /api/admin/categories
+
+GET    /api/admin/categories
+
+GET    /api/admin/categories/{id}
+
+PUT    /api/admin/categories/{id}
+
+DELETE /api/admin/categories/{id}
+```
+
+---
+
+## Decision Management
+
+```http
+GET    /api/admin/decisions
+
+DELETE /api/admin/decisions/{id}
+```
+
+---
+
+## Comment Moderation
+
+```http
+GET    /api/admin/comments
+
+DELETE /api/admin/comments/{id}
+```
+
+---
+
+## Moderation
+
+```http
+POST   /api/admin/moderation-actions
+```
+
+---
+
+## Audit Logs
+
+```http
+GET /api/admin/audit-logs
+```
+
+---
+
+## Reports
+
+```http
+GET /api/admin/reports
+
+GET /api/admin/reports/{id}
+```
+
+---
+
+## Platform Statistics
+
+```http
+GET /api/admin/statistics
+```
+
+---
+
+# Deliverables
+
+- Admin Dashboard
+- User Management
+- Community Management
+- Category Management
+- Decision Management
+- Comment Moderation
+- Moderation Features
+- Audit Logs
+- Platform Analytics
+- Report Management
+- Admin Authorization
+
+---
+
+# Milestone 3 Deliverables
+
+- Report Generation
+- Administration Module
+- User Management
+- Community Management
+- Category Management
+- Decision Management
+- Moderation Features
+- Audit Logs
+- Platform Analytics
+- Backend Testing
+- Bug Fixes
+- Performance Optimization
+- Backend Ready for Deployment
+
+---
+
+# Relationship with Previous Phases
+
+| Phase | Responsibility | Managed By |
+|--------|----------------|------------|
+| Authentication | Register/Login Users | Users |
+| Community | Create & Manage Communities | Community Owner |
+| Decisions | Create Decisions | Decision Creator |
+| Voting | Vote on Polls | Users |
+| Discussion | Comments | Users |
+| Notifications | Notifications | System |
+| Reports | Generate Reports | Users/Admin |
+| Administration | Manage Entire Platform | **Administrator** |
+
+---
+
+# Administration Responsibilities
+
+The Administration module acts as the central management layer of the platform.
+
+Administrators are responsible for:
+
+- Managing Users
+- Managing Communities
+- Managing Categories
+- Managing Decisions
+- Moderating Comments
+- Performing Moderation Actions
+- Viewing Audit Logs
+- Monitoring Platform Analytics
+- Generating Reports
+- Managing Overall Platform Operations
+
+This separation follows industry-standard architecture, where normal users create and interact with platform content, while administrators oversee, moderate, and maintain the entire system.

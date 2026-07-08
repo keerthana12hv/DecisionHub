@@ -52,6 +52,27 @@ Obtain the token by logging in:
 
 # API Testing Guide
 
+## Registration
+
+Now your database is perfectly clean! Let's register Keerthi as the first user.
+
+Open your Register tab in Postman.
+
+Method: POST 
+
+URL: http://localhost:8080/api/auth/register 
+
+Authorization: Set to No Auth.
+
+Body (raw -> JSON):
+
+JSON
+{
+    "username": "keerthi",
+    "email": "keerthi@gmail.com",
+    "password": "Password@123"
+}
+Hit Send. You will get a 200 OK response.
 ## 1. Login
 
     POST http://localhost:8080/api/auth/login
