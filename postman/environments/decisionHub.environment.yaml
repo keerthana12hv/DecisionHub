@@ -1,0 +1,4 @@
+name: decisionHub
+values:
+  - key: baseUrl
+    value: ''

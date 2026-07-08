@@ -34,3 +34,4 @@ build/
 /.apt_generated_tests/
 
 *application-local.properties
+postman/

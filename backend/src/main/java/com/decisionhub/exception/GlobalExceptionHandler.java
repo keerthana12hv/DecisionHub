@@ -2,6 +2,7 @@ package com.decisionhub.exception;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
@@ -27,7 +28,7 @@ public class GlobalExceptionHandler {
             ResourceAlreadyExistsException ex, HttpServletRequest request) {
         
         ApiErrorResponse response = new ApiErrorResponse(
-                HttpStatus.CONFLICT.value(), // 409 Conflict is standard for duplicates
+                HttpStatus.CONFLICT.value(), 
                 ex.getMessage(),
                 request.getRequestURI()
         );
@@ -39,7 +40,7 @@ public class GlobalExceptionHandler {
             UnauthorizedActionException ex, HttpServletRequest request) {
         
         ApiErrorResponse response = new ApiErrorResponse(
-                HttpStatus.FORBIDDEN.value(), // 403 Forbidden
+                HttpStatus.FORBIDDEN.value(), 
                 ex.getMessage(),
                 request.getRequestURI()
         );
@@ -58,16 +59,28 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
     }
 
-    // The Fallback: Catches any old RuntimeExceptions you haven't migrated yet
-    @ExceptionHandler(RuntimeException.class)
-    public ResponseEntity<ApiErrorResponse> handleRuntimeException(
-            RuntimeException ex, HttpServletRequest request) {
+    @ExceptionHandler(BadCredentialsException.class)
+    public ResponseEntity<ApiErrorResponse> handleBadCredentialsException(
+            BadCredentialsException ex, HttpServletRequest request) {
         
         ApiErrorResponse response = new ApiErrorResponse(
-                HttpStatus.BAD_REQUEST.value(),
-                ex.getMessage(),
+                HttpStatus.UNAUTHORIZED.value(), 
+                "Invalid email or password", 
                 request.getRequestURI()
         );
-        return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
+        return new ResponseEntity<>(response, HttpStatus.UNAUTHORIZED);
+    }
+
+    // THE FALLBACK: Upgraded to catch all generic Exceptions and return a 500 status code
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<ApiErrorResponse> handleException(
+            Exception ex, HttpServletRequest request) {
+        
+        ApiErrorResponse response = new ApiErrorResponse(
+                HttpStatus.INTERNAL_SERVER_ERROR.value(),
+                "An unexpected server error occurred", // Hides raw stack traces from end users
+                request.getRequestURI()
+        );
+        return new ResponseEntity<>(response, HttpStatus.INTERNAL_SERVER_ERROR);
     }
 }

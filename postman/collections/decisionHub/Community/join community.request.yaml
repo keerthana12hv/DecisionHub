@@ -1,0 +1,12 @@
+$kind: http-request
+name: join community
+url: http://localhost:8080/api/communities/1/join
+method: POST
+body:
+  type: json
+  content: ""
+auth:
+  type: bearer
+  credentials:
+    token: "{{authToken}}"
+order: 90303057044007

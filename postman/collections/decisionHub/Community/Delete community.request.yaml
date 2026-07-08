@@ -1,0 +1,8 @@
+$kind: http-request
+url: http://localhost:8080/api/communities/1
+method: DELETE
+auth:
+  type: bearer
+  credentials:
+    token: "{{authToken}}"
+order: 1193254636464978

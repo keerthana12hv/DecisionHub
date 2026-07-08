@@ -1,0 +1,19 @@
+$kind: http-request
+url: http://localhost:8080/api/auth/login
+method: POST
+body:
+  type: json
+  content: "{\r
+
+    \  \"email\":\"b@gmail.com\",\r
+
+    \  \"password\":\"123456\"\r
+
+    }"
+scripts:
+  - type: afterResponse
+    code: "const response = pm.response.json();\r
+
+      pm.globals.set(\"authToken\", response.token);"
+    language: text/javascript
+order: 2078

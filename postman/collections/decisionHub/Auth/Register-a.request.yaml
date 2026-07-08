@@ -1,0 +1,16 @@
+$kind: http-request
+name: Register-a
+url: http://localhost:8080/api/auth/register
+method: POST
+body:
+  type: json
+  content: "{\r
+
+    \    \"username\": \"keerthi\",\r
+
+    \    \"email\": \"a@gmail.com\",\r
+
+    \    \"password\": \"123456\"\r
+
+    }"
+order: 1000
