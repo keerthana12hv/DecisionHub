@@ -1,4 +1,0 @@
-$kind: collection
-name: auth-pr
-variables:
-  jwt_token: ""

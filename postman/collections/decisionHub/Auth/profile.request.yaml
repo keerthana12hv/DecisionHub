@@ -1,0 +1,16 @@
+$kind: http-request
+name: profile
+url: http://localhost:8080/api/auth/profile
+method: GET
+auth:
+  type: bearer
+  credentials:
+    token: "{{authToken}}"
+scripts:
+  - type: beforeRequest
+    code: ""
+    language: text/javascript
+  - type: afterResponse
+    code: ""
+    language: text/javascript
+order: 1248610364689226
