@@ -1,10 +1,10 @@
 package com.decisionhub.validator;
 
 import com.decisionhub.dto.ComparisonScoreRequest;
-import com.decisionhub.entity.DecisionBoard;
-import com.decisionhub.entity.DecisionOption;
-import com.decisionhub.entity.ComparisonFactor;
-import com.decisionhub.entity.DecisionStatus;
+import com.decisionhub.entity.decision.Decision;
+import com.decisionhub.entity.decision.DecisionOption;
+import com.decisionhub.entity.decision.ComparisonFactor;
+import com.decisionhub.enums.decision.DecisionStatus;
 import com.decisionhub.exception.BadRequestException;
 import org.springframework.stereotype.Component;
 
@@ -17,19 +17,15 @@ public class ComparisonScoreValidator {
     /**
      * Validates a comparison score submission.
      *
-     * @param board   The parent decision board.
+     * @param board   The parent decision.
      * @param option  The decision option being scored.
      * @param factor  The comparison factor being scored.
      * @param request The score request data.
      */
-    public void validateSubmit(DecisionBoard board, DecisionOption option, ComparisonFactor factor, ComparisonScoreRequest request) {
+    public void validateSubmit(Decision board, DecisionOption option, ComparisonFactor factor, ComparisonScoreRequest request) {
         // 1. Decision State Validation
         if (board.getStatus() != DecisionStatus.ACTIVE) {
-            throw new BadRequestException("Scores can only be submitted or updated when the decision board is in ACTIVE status");
-        }
-
-        if (board.isDeleted()) {
-            throw new BadRequestException("Decision board is soft-deleted and cannot accept scores");
+            throw new BadRequestException("Scores can only be submitted or updated when the decision is in ACTIVE status");
         }
 
         // 2. Score Range Validation
@@ -38,16 +34,13 @@ public class ComparisonScoreValidator {
         }
 
         // 3. Option Association Validation
-        if (option.isDeleted()) {
-            throw new BadRequestException("Selected option is soft-deleted");
-        }
         if (!option.getDecision().getId().equals(board.getId())) {
-            throw new BadRequestException("Option with ID " + option.getId() + " does not belong to decision board " + board.getId());
+            throw new BadRequestException("Option with ID " + option.getId() + " does not belong to decision " + board.getId());
         }
 
         // 4. Factor Association Validation
         if (!factor.getDecision().getId().equals(board.getId())) {
-            throw new BadRequestException("Comparison factor with ID " + factor.getId() + " does not belong to decision board " + board.getId());
+            throw new BadRequestException("Comparison factor with ID " + factor.getId() + " does not belong to decision " + board.getId());
         }
     }
 }

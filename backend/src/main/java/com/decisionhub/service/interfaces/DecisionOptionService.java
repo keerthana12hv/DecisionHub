@@ -3,8 +3,6 @@ package com.decisionhub.service;
 import com.decisionhub.dto.OptionCreateDto;
 import com.decisionhub.dto.OptionResponseDto;
 
-import java.util.UUID;
-
 /**
  * Service interface managing DecisionOption lifecycle and operations.
  */
@@ -19,7 +17,7 @@ public interface DecisionOptionService {
      * @param userAgent  Client user agent for audit logging.
      * @return OptionResponseDto representing the created option.
      */
-    OptionResponseDto createOption(UUID decisionId, OptionCreateDto dto, String ipAddress, String userAgent);
+    OptionResponseDto createOption(Long decisionId, OptionCreateDto dto, String ipAddress, String userAgent);
 
     /**
      * Updates an existing option's metadata.
@@ -31,7 +29,7 @@ public interface DecisionOptionService {
      * @param userAgent  Client user agent.
      * @return OptionResponseDto representing the updated option.
      */
-    OptionResponseDto updateOption(UUID decisionId, UUID optionId, OptionCreateDto dto, String ipAddress, String userAgent);
+    OptionResponseDto updateOption(Long decisionId, Long optionId, OptionCreateDto dto, String ipAddress, String userAgent);
 
     /**
      * Soft deletes an option from a draft decision board.
@@ -41,5 +39,5 @@ public interface DecisionOptionService {
      * @param ipAddress  Client IP address.
      * @param userAgent  Client user agent.
      */
-    void deleteOption(UUID decisionId, UUID optionId, String ipAddress, String userAgent);
+    void deleteOption(Long decisionId, Long optionId, String ipAddress, String userAgent);
 }

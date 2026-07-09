@@ -17,6 +17,8 @@ public interface CommunityMemberRepository
             User user
     );
 
+    Optional<CommunityMember> findByCommunityIdAndUserId(Long communityId, Long userId);
+
     List<CommunityMember> findByCommunity(Community community);
 
     List<CommunityMember> findByUser(User user);

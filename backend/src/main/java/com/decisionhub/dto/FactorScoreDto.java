@@ -1,9 +1,7 @@
 package com.decisionhub.dto;
 
-import java.util.UUID;
-
 public record FactorScoreDto(
-    UUID factorId,
+    Long factorId,
     String factorName,
     double averageScore,
     double weight,

@@ -4,7 +4,6 @@ import com.decisionhub.dto.ComparisonScoreRequest;
 import com.decisionhub.dto.ComparisonScoreResponse;
 
 import java.util.List;
-import java.util.UUID;
 
 /**
  * Service interface managing ComparisonScore lifecycle and operations.
@@ -20,7 +19,7 @@ public interface ComparisonScoreService {
      * @param userAgent  Client user agent.
      * @return ComparisonScoreResponse representing the created/updated score.
      */
-    ComparisonScoreResponse submitScore(UUID decisionId, ComparisonScoreRequest request, String ipAddress, String userAgent);
+    ComparisonScoreResponse submitScore(Long decisionId, ComparisonScoreRequest request, String ipAddress, String userAgent);
 
     /**
      * Updates an existing comparison score by key.
@@ -32,7 +31,7 @@ public interface ComparisonScoreService {
      * @param userAgent  Client user agent.
      * @return ComparisonScoreResponse representing the updated score.
      */
-    ComparisonScoreResponse updateScore(UUID decisionId, String scoreId, ComparisonScoreRequest request, String ipAddress, String userAgent);
+    ComparisonScoreResponse updateScore(Long decisionId, String scoreId, ComparisonScoreRequest request, String ipAddress, String userAgent);
 
     /**
      * Retrieves all comparison scores for a decision board.
@@ -40,7 +39,7 @@ public interface ComparisonScoreService {
      * @param decisionId ID of the decision board.
      * @return List of all comparison scores.
      */
-    List<ComparisonScoreResponse> getScoresByDecisionId(UUID decisionId);
+    List<ComparisonScoreResponse> getScoresByDecisionId(Long decisionId);
 
     /**
      * Retrieves comparison scores submitted by the current authenticated user.
@@ -48,7 +47,7 @@ public interface ComparisonScoreService {
      * @param decisionId ID of the decision board.
      * @return List of current user's comparison scores.
      */
-    List<ComparisonScoreResponse> getMyScoresByDecisionId(UUID decisionId);
+    List<ComparisonScoreResponse> getMyScoresByDecisionId(Long decisionId);
 
     /**
      * Deletes a comparison score submitted by the current user on a decision board.
@@ -59,5 +58,5 @@ public interface ComparisonScoreService {
      * @param ipAddress  Client IP address.
      * @param userAgent  Client user agent.
      */
-    void deleteScore(UUID decisionId, UUID optionId, UUID factorId, String ipAddress, String userAgent);
+    void deleteScore(Long decisionId, Long optionId, Long factorId, String ipAddress, String userAgent);
 }

@@ -1,16 +1,13 @@
 package com.decisionhub.validator;
  
 import com.decisionhub.dto.ComparisonFactorRequest;
-import com.decisionhub.entity.DecisionBoard;
-import com.decisionhub.entity.ComparisonFactor;
-import com.decisionhub.entity.DecisionStatus;
+import com.decisionhub.entity.decision.Decision;
+import com.decisionhub.entity.decision.ComparisonFactor;
+import com.decisionhub.enums.decision.DecisionStatus;
 import com.decisionhub.exception.BadRequestException;
 import com.decisionhub.repository.ComparisonFactorRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
-
-import java.util.List;
-import java.util.UUID;
 
 /**
  * Validator class enforcing business rules for the Comparison Factor module.
@@ -22,12 +19,12 @@ public class ComparisonFactorValidator {
     private final ComparisonFactorRepository comparisonFactorRepository;
 
     /**
-     * Validates factor creation within a decision board.
+     * Validates factor creation within a decision.
      *
-     * @param board   The target decision board.
+     * @param board   The target decision.
      * @param request The factor creation request data.
      */
-    public void validateCreate(DecisionBoard board, ComparisonFactorRequest request) {
+    public void validateCreate(Decision board, ComparisonFactorRequest request) {
         validateBoardStatus(board);
         
         String trimmedName = validateAndTrimName(request.name());
@@ -35,18 +32,18 @@ public class ComparisonFactorValidator {
         // Enforce factor name uniqueness within the same board
         boolean exists = comparisonFactorRepository.existsByDecisionIdAndNameIgnoreCase(board.getId(), trimmedName);
         if (exists) {
-            throw new BadRequestException("A comparison factor with the name '" + trimmedName + "' already exists in this decision board");
+            throw new BadRequestException("A comparison factor with the name '" + trimmedName + "' already exists in this decision");
         }
     }
 
     /**
      * Validates factor updates.
      *
-     * @param board          The target decision board.
+     * @param board          The target decision.
      * @param existingFactor The factor to be updated.
      * @param request        The new factor data.
      */
-    public void validateUpdate(DecisionBoard board, ComparisonFactor existingFactor, ComparisonFactorRequest request) {
+    public void validateUpdate(Decision board, ComparisonFactor existingFactor, ComparisonFactorRequest request) {
         validateBoardStatus(board);
 
         String trimmedName = validateAndTrimName(request.name());
@@ -55,7 +52,7 @@ public class ComparisonFactorValidator {
         if (!existingFactor.getName().equalsIgnoreCase(trimmedName)) {
             boolean exists = comparisonFactorRepository.existsByDecisionIdAndNameIgnoreCase(board.getId(), trimmedName);
             if (exists) {
-                throw new BadRequestException("A comparison factor with the name '" + trimmedName + "' already exists in this decision board");
+                throw new BadRequestException("A comparison factor with the name '" + trimmedName + "' already exists in this decision");
             }
         }
     }
@@ -63,15 +60,15 @@ public class ComparisonFactorValidator {
     /**
      * Validates factor deletions.
      *
-     * @param board The target decision board.
+     * @param board The target decision.
      */
-    public void validateDelete(DecisionBoard board) {
+    public void validateDelete(Decision board) {
         validateBoardStatus(board);
     }
 
-    private void validateBoardStatus(DecisionBoard board) {
+    private void validateBoardStatus(Decision board) {
         if (board.getStatus() != DecisionStatus.DRAFT) {
-            throw new BadRequestException("Comparison factors can only be managed when the decision board is in DRAFT status");
+            throw new BadRequestException("Comparison factors can only be managed when the decision is in DRAFT status");
         }
     }
 

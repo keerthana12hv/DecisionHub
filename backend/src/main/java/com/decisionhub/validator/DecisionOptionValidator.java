@@ -1,16 +1,15 @@
 package com.decisionhub.validator;
 
 import com.decisionhub.dto.OptionCreateDto;
-import com.decisionhub.entity.DecisionBoard;
-import com.decisionhub.entity.DecisionOption;
-import com.decisionhub.entity.DecisionStatus;
+import com.decisionhub.entity.decision.Decision;
+import com.decisionhub.entity.decision.DecisionOption;
+import com.decisionhub.enums.decision.DecisionStatus;
 import com.decisionhub.exception.BadRequestException;
 import com.decisionhub.repository.DecisionOptionRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
-import java.util.UUID;
 
 /**
  * Validator class enforcing business rules for the Decision Option module.
@@ -22,44 +21,44 @@ public class DecisionOptionValidator {
     private final DecisionOptionRepository decisionOptionRepository;
 
     /**
-     * Validates Option creation within a decision board.
+     * Validates Option creation within a decision.
      *
-     * @param board The target decision board.
+     * @param board The target decision.
      * @param dto   The option creation data.
      */
-    public void validateCreate(DecisionBoard board, OptionCreateDto dto) {
+    public void validateCreate(Decision board, OptionCreateDto dto) {
         validateBoardStatus(board);
         
         String trimmedTitle = validateAndTrimTitle(dto.title());
         
-        // Enforce option title uniqueness within the same board
-        boolean exists = decisionOptionRepository.existsByDecisionIdAndTitleIgnoreCaseAndDeletedAtIsNull(
+        // Enforce option title uniqueness within the same decision
+        boolean exists = decisionOptionRepository.existsByDecisionIdAndOptionNameIgnoreCase(
                 board.getId(), trimmedTitle
         );
         if (exists) {
-            throw new BadRequestException("An option with the title '" + trimmedTitle + "' already exists in this decision board");
+            throw new BadRequestException("An option with the title '" + trimmedTitle + "' already exists in this decision");
         }
     }
 
     /**
      * Validates Option updates.
      *
-     * @param board          The target decision board.
+     * @param board          The target decision.
      * @param existingOption The option to be updated.
      * @param dto            The new option data.
      */
-    public void validateUpdate(DecisionBoard board, DecisionOption existingOption, OptionCreateDto dto) {
+    public void validateUpdate(Decision board, DecisionOption existingOption, OptionCreateDto dto) {
         validateBoardStatus(board);
 
         String trimmedTitle = validateAndTrimTitle(dto.title());
 
         // Enforce option title uniqueness excluding the option being updated
-        if (!existingOption.getTitle().equalsIgnoreCase(trimmedTitle)) {
-            boolean exists = decisionOptionRepository.existsByDecisionIdAndTitleIgnoreCaseAndDeletedAtIsNull(
+        if (!existingOption.getOptionName().equalsIgnoreCase(trimmedTitle)) {
+            boolean exists = decisionOptionRepository.existsByDecisionIdAndOptionNameIgnoreCase(
                     board.getId(), trimmedTitle
             );
             if (exists) {
-                throw new BadRequestException("An option with the title '" + trimmedTitle + "' already exists in this decision board");
+                throw new BadRequestException("An option with the title '" + trimmedTitle + "' already exists in this decision");
             }
         }
     }
@@ -67,21 +66,21 @@ public class DecisionOptionValidator {
     /**
      * Validates Option deletions.
      *
-     * @param board The target decision board.
+     * @param board The target decision.
      */
-    public void validateDelete(DecisionBoard board) {
+    public void validateDelete(Decision board) {
         validateBoardStatus(board);
 
-        // A decision board must maintain a minimum of 2 active options.
-        List<DecisionOption> activeOptions = decisionOptionRepository.findByDecisionIdAndDeletedAtIsNull(board.getId());
+        // A decision must maintain a minimum of 2 options.
+        List<DecisionOption> activeOptions = decisionOptionRepository.findByDecisionId(board.getId());
         if (activeOptions.size() <= 2) {
-            throw new BadRequestException("Cannot delete option. A decision board must have at least two active options");
+            throw new BadRequestException("Cannot delete option. A decision must have at least two options");
         }
     }
 
-    private void validateBoardStatus(DecisionBoard board) {
+    private void validateBoardStatus(Decision board) {
         if (board.getStatus() != DecisionStatus.DRAFT) {
-            throw new BadRequestException("Options can only be managed when the decision board is in DRAFT status");
+            throw new BadRequestException("Options can only be managed when the decision is in DRAFT status");
         }
     }
 

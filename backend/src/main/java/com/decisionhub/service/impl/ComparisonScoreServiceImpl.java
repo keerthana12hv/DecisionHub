@@ -2,22 +2,21 @@ package com.decisionhub.service.impl;
 
 import com.decisionhub.dto.ComparisonScoreRequest;
 import com.decisionhub.dto.ComparisonScoreResponse;
-import com.decisionhub.entity.DecisionBoard;
-import com.decisionhub.entity.DecisionOption;
-import com.decisionhub.entity.ComparisonFactor;
-import com.decisionhub.entity.ComparisonScore;
-import com.decisionhub.entity.ComparisonScoreId;
-import com.decisionhub.entity.User;
+import com.decisionhub.entity.decision.Decision;
+import com.decisionhub.entity.decision.DecisionOption;
+import com.decisionhub.entity.decision.ComparisonFactor;
+import com.decisionhub.entity.decision.ComparisonScore;
+import com.decisionhub.entity.decision.ComparisonScoreId;
+import com.decisionhub.entity.authentication.User;
 import com.decisionhub.exception.BadRequestException;
-import com.decisionhub.exception.ForbiddenException;
 import com.decisionhub.exception.ResourceNotFoundException;
-import com.decisionhub.exception.UnauthorizedException;
+import com.decisionhub.exception.UnauthorizedActionException;
 import com.decisionhub.mapper.ComparisonMapper;
-import com.decisionhub.repository.DecisionBoardRepository;
+import com.decisionhub.repository.DecisionRepository;
 import com.decisionhub.repository.DecisionOptionRepository;
 import com.decisionhub.repository.ComparisonFactorRepository;
 import com.decisionhub.repository.ComparisonScoreRepository;
-import com.decisionhub.repository.UserRepository;
+import com.decisionhub.repository.authentication.UserRepository;
 import com.decisionhub.security.AuthenticationFacade;
 import com.decisionhub.security.DecisionAuthorizationService;
 import com.decisionhub.service.AuditService;
@@ -32,7 +31,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Optional;
-import java.util.UUID;
 import java.util.stream.Collectors;
 
 /**
@@ -43,7 +41,7 @@ import java.util.stream.Collectors;
 @Slf4j
 public class ComparisonScoreServiceImpl implements ComparisonScoreService {
 
-    private final DecisionBoardRepository decisionBoardRepository;
+    private final DecisionRepository decisionRepository;
     private final DecisionOptionRepository decisionOptionRepository;
     private final ComparisonFactorRepository comparisonFactorRepository;
     private final ComparisonScoreRepository comparisonScoreRepository;
@@ -58,15 +56,15 @@ public class ComparisonScoreServiceImpl implements ComparisonScoreService {
 
     @Override
     @Transactional
-    public ComparisonScoreResponse submitScore(UUID decisionId, ComparisonScoreRequest request, String ipAddress, String userAgent) {
+    public ComparisonScoreResponse submitScore(Long decisionId, ComparisonScoreRequest request, String ipAddress, String userAgent) {
         log.info("Attempting to submit comparison score on board: {}", decisionId);
 
-        DecisionBoard board = getActiveBoardOrThrow(decisionId);
-        UUID currentUserId = getCurrentUserIdOrThrow();
+        Decision board = getActiveBoardOrThrow(decisionId);
+        Long currentUserId = getCurrentUserIdOrThrow();
 
         // 1. Authorization
         if (!decisionAuthorizationService.canSubmitScore(decisionId, currentUserId)) {
-            throw new ForbiddenException("Not authorized to submit scores for this decision board");
+            throw new UnauthorizedActionException("Not authorized to submit scores for this decision");
         }
 
         User currentUser = userRepository.findById(currentUserId)
@@ -123,15 +121,15 @@ public class ComparisonScoreServiceImpl implements ComparisonScoreService {
 
     @Override
     @Transactional
-    public ComparisonScoreResponse updateScore(UUID decisionId, String scoreId, ComparisonScoreRequest request, String ipAddress, String userAgent) {
+    public ComparisonScoreResponse updateScore(Long decisionId, String scoreId, ComparisonScoreRequest request, String ipAddress, String userAgent) {
         log.info("Attempting to update comparison score on board: {}", decisionId);
 
-        DecisionBoard board = getActiveBoardOrThrow(decisionId);
-        UUID currentUserId = getCurrentUserIdOrThrow();
+        Decision board = getActiveBoardOrThrow(decisionId);
+        Long currentUserId = getCurrentUserIdOrThrow();
 
         // 1. Authorization
         if (!decisionAuthorizationService.canSubmitScore(decisionId, currentUserId)) {
-            throw new ForbiddenException("Not authorized to manage scores for this decision board");
+            throw new UnauthorizedActionException("Not authorized to manage scores for this decision");
         }
 
         User currentUser = userRepository.findById(currentUserId)
@@ -169,15 +167,15 @@ public class ComparisonScoreServiceImpl implements ComparisonScoreService {
 
     @Override
     @Transactional
-    public void deleteScore(UUID decisionId, UUID optionId, UUID factorId, String ipAddress, String userAgent) {
+    public void deleteScore(Long decisionId, Long optionId, Long factorId, String ipAddress, String userAgent) {
         log.info("Attempting to delete comparison score on board: {} for option: {} and factor: {}", decisionId, optionId, factorId);
 
-        DecisionBoard board = getActiveBoardOrThrow(decisionId);
-        UUID currentUserId = getCurrentUserIdOrThrow();
+        getActiveBoardOrThrow(decisionId);
+        Long currentUserId = getCurrentUserIdOrThrow();
 
         // 1. Authorization
         if (!decisionAuthorizationService.canSubmitScore(decisionId, currentUserId)) {
-            throw new ForbiddenException("Not authorized to manage scores for this decision board");
+            throw new UnauthorizedActionException("Not authorized to manage scores for this decision");
         }
 
         User currentUser = userRepository.findById(currentUserId)
@@ -203,15 +201,15 @@ public class ComparisonScoreServiceImpl implements ComparisonScoreService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<ComparisonScoreResponse> getScoresByDecisionId(UUID decisionId) {
+    public List<ComparisonScoreResponse> getScoresByDecisionId(Long decisionId) {
         log.info("Retrieving all comparison scores for board: {}", decisionId);
 
         getActiveBoardOrThrow(decisionId);
-        UUID currentUserId = authenticationFacade.getCurrentUserId().orElse(null);
+        Long currentUserId = authenticationFacade.getCurrentUserId().orElse(null);
 
         // Authorization to view decision details
         if (!decisionAuthorizationService.canViewDecision(decisionId, currentUserId)) {
-            throw new ForbiddenException("Not authorized to view decision board details");
+            throw new UnauthorizedActionException("Not authorized to view decision details");
         }
 
         return comparisonScoreRepository.findByOptionDecisionId(decisionId).stream()
@@ -221,15 +219,15 @@ public class ComparisonScoreServiceImpl implements ComparisonScoreService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<ComparisonScoreResponse> getMyScoresByDecisionId(UUID decisionId) {
+    public List<ComparisonScoreResponse> getMyScoresByDecisionId(Long decisionId) {
         log.info("Retrieving current user's comparison scores for board: {}", decisionId);
 
         getActiveBoardOrThrow(decisionId);
-        UUID currentUserId = getCurrentUserIdOrThrow();
+        Long currentUserId = getCurrentUserIdOrThrow();
 
         // Authorization to view decision details
         if (!decisionAuthorizationService.canViewDecision(decisionId, currentUserId)) {
-            throw new ForbiddenException("Not authorized to view decision board details");
+            throw new UnauthorizedActionException("Not authorized to view decision details");
         }
 
         return comparisonScoreRepository.findByOptionDecisionIdAndUserId(decisionId, currentUserId).stream()
@@ -237,17 +235,13 @@ public class ComparisonScoreServiceImpl implements ComparisonScoreService {
                 .collect(Collectors.toList());
     }
 
-    private DecisionBoard getActiveBoardOrThrow(UUID id) {
-        DecisionBoard board = decisionBoardRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Decision board not found with ID: " + id));
-        if (board.isDeleted()) {
-            throw new ResourceNotFoundException("Decision board not found with ID: " + id);
-        }
-        return board;
+    private Decision getActiveBoardOrThrow(Long id) {
+        return decisionRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Decision not found with ID: " + id));
     }
 
-    private UUID getCurrentUserIdOrThrow() {
+    private Long getCurrentUserIdOrThrow() {
         return authenticationFacade.getCurrentUserId()
-                .orElseThrow(() -> new UnauthorizedException("User is not authenticated"));
+                .orElseThrow(() -> new UnauthorizedActionException("User is not authenticated"));
     }
 }

@@ -1,9 +1,7 @@
 package com.decisionhub.dto;
 
-import java.util.UUID;
-
 public record OptionSummaryRankingDto(
-    UUID optionId,
+    Long optionId,
     String optionTitle,
     int rank,
     double score

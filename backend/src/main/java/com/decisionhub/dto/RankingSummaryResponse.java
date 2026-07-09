@@ -1,12 +1,11 @@
 package com.decisionhub.dto;
 
-import com.decisionhub.entity.DecisionStatus;
+import com.decisionhub.enums.decision.DecisionStatus;
 import java.time.Instant;
 import java.util.List;
-import java.util.UUID;
 
 public record RankingSummaryResponse(
-    UUID decisionId,
+    Long decisionId,
     String decisionTitle,
     DecisionStatus status,
     Instant rankingTimestamp,

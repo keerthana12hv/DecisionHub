@@ -5,17 +5,17 @@ import com.decisionhub.dto.OptionRankingDto;
 import com.decisionhub.dto.OptionSummaryRankingDto;
 import com.decisionhub.dto.RankingResponse;
 import com.decisionhub.dto.RankingSummaryResponse;
-import com.decisionhub.entity.ComparisonFactor;
-import com.decisionhub.entity.ComparisonScore;
-import com.decisionhub.entity.DecisionBoard;
-import com.decisionhub.entity.DecisionOption;
-import com.decisionhub.entity.DecisionStatus;
+import com.decisionhub.entity.decision.ComparisonFactor;
+import com.decisionhub.entity.decision.ComparisonScore;
+import com.decisionhub.entity.decision.Decision;
+import com.decisionhub.entity.decision.DecisionOption;
+import com.decisionhub.enums.decision.DecisionStatus;
 import com.decisionhub.exception.BadRequestException;
-import com.decisionhub.exception.ForbiddenException;
 import com.decisionhub.exception.ResourceNotFoundException;
+import com.decisionhub.exception.UnauthorizedActionException;
 import com.decisionhub.repository.ComparisonFactorRepository;
 import com.decisionhub.repository.ComparisonScoreRepository;
-import com.decisionhub.repository.DecisionBoardRepository;
+import com.decisionhub.repository.DecisionRepository;
 import com.decisionhub.repository.DecisionOptionRepository;
 import com.decisionhub.security.AuthenticationFacade;
 import com.decisionhub.security.DecisionAuthorizationService;
@@ -31,10 +31,8 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 import java.util.stream.Collectors;
 
 /**
@@ -46,7 +44,7 @@ import java.util.stream.Collectors;
 @Slf4j
 public class RankingServiceImpl implements RankingService {
 
-    private final DecisionBoardRepository decisionBoardRepository;
+    private final DecisionRepository decisionRepository;
     private final DecisionOptionRepository decisionOptionRepository;
     private final ComparisonFactorRepository comparisonFactorRepository;
     private final ComparisonScoreRepository comparisonScoreRepository;
@@ -55,8 +53,8 @@ public class RankingServiceImpl implements RankingService {
 
     @Override
     @Transactional(readOnly = true)
-    public RankingResponse getRanking(UUID decisionId) {
-        log.info("Calculating decision board rankings for ID: {}", decisionId);
+    public RankingResponse getRanking(Long decisionId) {
+        log.info("Calculating decision rankings for ID: {}", decisionId);
         List<IntermediateOptionRank> intermediateList = computeIntermediateRankings(decisionId);
 
         List<OptionRankingDto> optionDtos = intermediateList.stream()
@@ -70,7 +68,7 @@ public class RankingServiceImpl implements RankingService {
                 ))
                 .collect(Collectors.toList());
 
-        DecisionBoard board = getBoardOrThrow(decisionId);
+        Decision board = getBoardOrThrow(decisionId);
 
         return new RankingResponse(
                 board.getId(),
@@ -83,8 +81,8 @@ public class RankingServiceImpl implements RankingService {
 
     @Override
     @Transactional(readOnly = true)
-    public RankingSummaryResponse getRankingSummary(UUID decisionId) {
-        log.info("Calculating decision board summary rankings for ID: {}", decisionId);
+    public RankingSummaryResponse getRankingSummary(Long decisionId) {
+        log.info("Calculating decision summary rankings for ID: {}", decisionId);
         List<IntermediateOptionRank> intermediateList = computeIntermediateRankings(decisionId);
 
         List<OptionSummaryRankingDto> optionDtos = intermediateList.stream()
@@ -96,7 +94,7 @@ public class RankingServiceImpl implements RankingService {
                 ))
                 .collect(Collectors.toList());
 
-        DecisionBoard board = getBoardOrThrow(decisionId);
+        Decision board = getBoardOrThrow(decisionId);
 
         return new RankingSummaryResponse(
                 board.getId(),
@@ -107,37 +105,37 @@ public class RankingServiceImpl implements RankingService {
         );
     }
 
-    private List<IntermediateOptionRank> computeIntermediateRankings(UUID decisionId) {
-        // 1. Fetch & Validate DecisionBoard
-        DecisionBoard board = getBoardOrThrow(decisionId);
+    private List<IntermediateOptionRank> computeIntermediateRankings(Long decisionId) {
+        // 1. Fetch & Validate Decision
+        Decision board = getBoardOrThrow(decisionId);
 
         // 2. Authorize requester
-        UUID currentUserId = authenticationFacade.getCurrentUserId().orElse(null);
+        Long currentUserId = authenticationFacade.getCurrentUserId().orElse(null);
         if (!decisionAuthorizationService.canViewDecision(decisionId, currentUserId)) {
-            throw new ForbiddenException("Not authorized to view this decision board ranking");
+            throw new UnauthorizedActionException("Not authorized to view this decision ranking");
         }
 
         // 3. Reject if not ACTIVE
         if (board.getStatus() != DecisionStatus.ACTIVE) {
-            throw new BadRequestException("Ranking can only be generated for ACTIVE decision boards");
+            throw new BadRequestException("Ranking can only be generated for ACTIVE decisions");
         }
 
         // 4. Fetch Options & Factors
-        List<DecisionOption> options = decisionOptionRepository.findByDecisionIdAndDeletedAtIsNull(decisionId);
+        List<DecisionOption> options = decisionOptionRepository.findByDecisionId(decisionId);
         if (options.isEmpty()) {
-            throw new BadRequestException("Decision board has no active options");
+            throw new BadRequestException("Decision has no active options");
         }
 
         List<ComparisonFactor> factors = comparisonFactorRepository.findByDecisionId(decisionId);
         if (factors.isEmpty()) {
-            throw new BadRequestException("Decision board has no comparison factors configured");
+            throw new BadRequestException("Decision has no comparison factors configured");
         }
 
-        // 5. Fetch all comparison scores (Batch retrieve O(1) query count to prevent N+1)
+        // 5. Fetch all comparison scores
         List<ComparisonScore> scores = comparisonScoreRepository.findByOptionDecisionId(decisionId);
 
         // Group scores by Option ID and Factor ID
-        Map<UUID, Map<UUID, List<ComparisonScore>>> scoresMap = scores.stream()
+        Map<Long, Map<Long, List<ComparisonScore>>> scoresMap = scores.stream()
                 .collect(Collectors.groupingBy(
                         s -> s.getOption().getId(),
                         Collectors.groupingBy(s -> s.getFactor().getId())
@@ -152,7 +150,7 @@ public class RankingServiceImpl implements RankingService {
             double totalWeightedScore = 0.0;
             List<FactorScoreDto> breakdown = new ArrayList<>();
 
-            Map<UUID, List<ComparisonScore>> optionScores = scoresMap.getOrDefault(option.getId(), Collections.emptyMap());
+            Map<Long, List<ComparisonScore>> optionScores = scoresMap.getOrDefault(option.getId(), Collections.emptyMap());
 
             for (ComparisonFactor factor : factors) {
                 List<ComparisonScore> factorScores = optionScores.getOrDefault(factor.getId(), Collections.emptyList());
@@ -182,8 +180,7 @@ public class RankingServiceImpl implements RankingService {
 
             intermediateList.add(new IntermediateOptionRank(
                     option.getId(),
-                    option.getTitle(),
-                    option.getCreatedAt() != null ? option.getCreatedAt() : Instant.EPOCH,
+                    option.getOptionName(),
                     totalWeightedScore,
                     breakdown,
                     1,
@@ -194,18 +191,13 @@ public class RankingServiceImpl implements RankingService {
         // 6. Stable Sorting (Complexity O(N log N))
         // Tie-breaking order:
         //   1. Weighted Score descending
-        //   2. Option createdAt ascending (oldest first)
-        //   3. Option UUID ascending (lexicographical stable ordering)
+        //   2. Option ID ascending (older first since IDs are auto-incrementing)
         intermediateList.sort((a, b) -> {
             int cmp = Double.compare(b.getScore(), a.getScore()); // descending
             if (cmp != 0) {
                 return cmp;
             }
-            cmp = a.getCreatedAt().compareTo(b.getCreatedAt()); // oldest first
-            if (cmp != 0) {
-                return cmp;
-            }
-            return a.getOptionId().compareTo(b.getOptionId()); // lexicographical stable UUID ordering
+            return a.getOptionId().compareTo(b.getOptionId()); // stable ordering by auto-increment ID
         });
 
         // 7. Standard Competition Ranking (1-2-2-4)
@@ -232,22 +224,17 @@ public class RankingServiceImpl implements RankingService {
         return intermediateList;
     }
 
-    private DecisionBoard getBoardOrThrow(UUID id) {
-        DecisionBoard board = decisionBoardRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Decision board not found with ID: " + id));
-        if (board.isDeleted()) {
-            throw new ResourceNotFoundException("Decision board not found with ID: " + id);
-        }
-        return board;
+    private Decision getBoardOrThrow(Long id) {
+        return decisionRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Decision not found with ID: " + id));
     }
 
     @Getter
     @Setter
     @AllArgsConstructor
     private static class IntermediateOptionRank {
-        private final UUID optionId;
+        private final Long optionId;
         private final String optionTitle;
-        private final Instant createdAt;
         private final double score;
         private final List<FactorScoreDto> factorBreakdown;
         private int rank;

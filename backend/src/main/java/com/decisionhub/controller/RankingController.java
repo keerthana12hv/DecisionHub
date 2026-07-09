@@ -14,8 +14,6 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.util.UUID;
-
 /**
  * REST controller exposing endpoints for the Collaborative Decision Ranking Engine.
  */
@@ -31,9 +29,9 @@ public class RankingController {
     @GetMapping
     @Operation(summary = "Get final collaborative ranking", description = "Calculates and retrieves the full collaborative decision ranking with factor breakdowns (requires view authorization)", security = @SecurityRequirement(name = "bearerAuth"))
     public ResponseEntity<RankingResponse> getRanking(
-            @PathVariable UUID decisionId
+            @PathVariable Long decisionId
     ) {
-        log.info("REST request to calculate full ranking for decision board: {}", decisionId);
+        log.info("REST request to calculate full ranking for decision: {}", decisionId);
         RankingResponse response = rankingService.getRanking(decisionId);
         return ResponseEntity.ok(response);
     }
@@ -41,9 +39,9 @@ public class RankingController {
     @GetMapping("/summary")
     @Operation(summary = "Get condensed collaborative ranking summary", description = "Calculates and retrieves a condensed summary of the decision ranking (requires view authorization)", security = @SecurityRequirement(name = "bearerAuth"))
     public ResponseEntity<RankingSummaryResponse> getRankingSummary(
-            @PathVariable UUID decisionId
+            @PathVariable Long decisionId
     ) {
-        log.info("REST request to calculate summary ranking for decision board: {}", decisionId);
+        log.info("REST request to calculate summary ranking for decision: {}", decisionId);
         RankingSummaryResponse response = rankingService.getRankingSummary(decisionId);
         return ResponseEntity.ok(response);
     }

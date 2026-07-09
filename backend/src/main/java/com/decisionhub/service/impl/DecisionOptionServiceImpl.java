@@ -2,17 +2,16 @@ package com.decisionhub.service.impl;
 
 import com.decisionhub.dto.OptionCreateDto;
 import com.decisionhub.dto.OptionResponseDto;
-import com.decisionhub.entity.DecisionBoard;
-import com.decisionhub.entity.DecisionOption;
-import com.decisionhub.entity.User;
+import com.decisionhub.entity.decision.Decision;
+import com.decisionhub.entity.decision.DecisionOption;
+import com.decisionhub.entity.authentication.User;
 import com.decisionhub.exception.BadRequestException;
-import com.decisionhub.exception.ForbiddenException;
 import com.decisionhub.exception.ResourceNotFoundException;
-import com.decisionhub.exception.UnauthorizedException;
+import com.decisionhub.exception.UnauthorizedActionException;
 import com.decisionhub.mapper.DecisionMapper;
-import com.decisionhub.repository.DecisionBoardRepository;
+import com.decisionhub.repository.DecisionRepository;
 import com.decisionhub.repository.DecisionOptionRepository;
-import com.decisionhub.repository.UserRepository;
+import com.decisionhub.repository.authentication.UserRepository;
 import com.decisionhub.security.AuthenticationFacade;
 import com.decisionhub.security.DecisionAuthorizationService;
 import com.decisionhub.service.AuditService;
@@ -23,8 +22,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.UUID;
-
 /**
  * Service implementation for managing decision options.
  */
@@ -33,7 +30,7 @@ import java.util.UUID;
 @Slf4j
 public class DecisionOptionServiceImpl implements DecisionOptionService {
 
-    private final DecisionBoardRepository decisionBoardRepository;
+    private final DecisionRepository decisionRepository;
     private final DecisionOptionRepository decisionOptionRepository;
     private final UserRepository userRepository;
     
@@ -45,15 +42,15 @@ public class DecisionOptionServiceImpl implements DecisionOptionService {
 
     @Override
     @Transactional
-    public OptionResponseDto createOption(UUID decisionId, OptionCreateDto dto, String ipAddress, String userAgent) {
+    public OptionResponseDto createOption(Long decisionId, OptionCreateDto dto, String ipAddress, String userAgent) {
         log.info("Attempting to create decision option on board: {}", decisionId);
 
-        DecisionBoard board = getActiveBoardOrThrow(decisionId);
-        UUID currentUserId = getCurrentUserIdOrThrow();
+        Decision board = getActiveBoardOrThrow(decisionId);
+        Long currentUserId = getCurrentUserIdOrThrow();
 
         // 1. Authorization
         if (!decisionAuthorizationService.canManageOptions(decisionId, currentUserId)) {
-            throw new ForbiddenException("Not authorized to manage options for this decision board");
+            throw new UnauthorizedActionException("Not authorized to manage options for this decision");
         }
 
         User currentUser = userRepository.findById(currentUserId)
@@ -64,30 +61,30 @@ public class DecisionOptionServiceImpl implements DecisionOptionService {
 
         // 3. Map & Associate Option
         DecisionOption option = decisionMapper.toEntity(dto);
-        board.addOption(option);
+        option.setDecision(board);
 
         // 4. Save
         DecisionOption savedOption = decisionOptionRepository.saveAndFlush(option);
 
         // 5. Audit Logging
-        String newValueJson = String.format("{\"title\":\"%s\"}", savedOption.getTitle());
+        String newValueJson = String.format("{\"title\":\"%s\"}", savedOption.getOptionName());
         auditService.log(currentUser, "OPTION_CREATED", "decision_options", savedOption.getId(), null, newValueJson, ipAddress, userAgent);
 
-        log.info("Option '{}' created successfully with ID '{}'", savedOption.getTitle(), savedOption.getId());
+        log.info("Option '{}' created successfully with ID '{}'", savedOption.getOptionName(), savedOption.getId());
         return decisionMapper.toResponseDto(savedOption);
     }
 
     @Override
     @Transactional
-    public OptionResponseDto updateOption(UUID decisionId, UUID optionId, OptionCreateDto dto, String ipAddress, String userAgent) {
+    public OptionResponseDto updateOption(Long decisionId, Long optionId, OptionCreateDto dto, String ipAddress, String userAgent) {
         log.info("Attempting to update option: {} on board: {}", optionId, decisionId);
 
-        DecisionBoard board = getActiveBoardOrThrow(decisionId);
-        UUID currentUserId = getCurrentUserIdOrThrow();
+        Decision board = getActiveBoardOrThrow(decisionId);
+        Long currentUserId = getCurrentUserIdOrThrow();
 
         // 1. Authorization
         if (!decisionAuthorizationService.canManageOptions(decisionId, currentUserId)) {
-            throw new ForbiddenException("Not authorized to manage options for this decision board");
+            throw new UnauthorizedActionException("Not authorized to manage options for this decision");
         }
 
         User currentUser = userRepository.findById(currentUserId)
@@ -95,41 +92,41 @@ public class DecisionOptionServiceImpl implements DecisionOptionService {
 
         DecisionOption option = getActiveOptionOrThrow(optionId);
         
-        // Verify option belongs to the decision board
+        // Verify option belongs to the decision
         if (!option.getDecision().getId().equals(decisionId)) {
-            throw new BadRequestException("Option with ID " + optionId + " does not belong to decision board " + decisionId);
+            throw new BadRequestException("Option with ID " + optionId + " does not belong to decision " + decisionId);
         }
 
         // 2. Business Validation
         decisionOptionValidator.validateUpdate(board, option, dto);
 
         // 3. Keep old values for audit log
-        String oldValueJson = String.format("{\"title\":\"%s\",\"description\":\"%s\"}", option.getTitle(), option.getDescription());
+        String oldValueJson = String.format("{\"title\":\"%s\",\"description\":\"%s\"}", option.getOptionName(), option.getDescription());
 
         // 4. Update
-        option.setTitle(dto.title().trim());
+        option.setOptionName(dto.title().trim());
         option.setDescription(dto.description());
         DecisionOption updatedOption = decisionOptionRepository.save(option);
 
         // 5. Audit Logging
-        String newValueJson = String.format("{\"title\":\"%s\",\"description\":\"%s\"}", updatedOption.getTitle(), updatedOption.getDescription());
+        String newValueJson = String.format("{\"title\":\"%s\",\"description\":\"%s\"}", updatedOption.getOptionName(), updatedOption.getDescription());
         auditService.log(currentUser, "OPTION_UPDATED", "decision_options", optionId, oldValueJson, newValueJson, ipAddress, userAgent);
 
-        log.info("Option '{}' updated successfully", updatedOption.getTitle());
+        log.info("Option '{}' updated successfully", updatedOption.getOptionName());
         return decisionMapper.toResponseDto(updatedOption);
     }
 
     @Override
     @Transactional
-    public void deleteOption(UUID decisionId, UUID optionId, String ipAddress, String userAgent) {
+    public void deleteOption(Long decisionId, Long optionId, String ipAddress, String userAgent) {
         log.info("Attempting to delete option: {} on board: {}", optionId, decisionId);
 
-        DecisionBoard board = getActiveBoardOrThrow(decisionId);
-        UUID currentUserId = getCurrentUserIdOrThrow();
+        Decision board = getActiveBoardOrThrow(decisionId);
+        Long currentUserId = getCurrentUserIdOrThrow();
 
         // 1. Authorization
         if (!decisionAuthorizationService.canManageOptions(decisionId, currentUserId)) {
-            throw new ForbiddenException("Not authorized to manage options for this decision board");
+            throw new UnauthorizedActionException("Not authorized to manage options for this decision");
         }
 
         User currentUser = userRepository.findById(currentUserId)
@@ -137,19 +134,18 @@ public class DecisionOptionServiceImpl implements DecisionOptionService {
 
         DecisionOption option = getActiveOptionOrThrow(optionId);
 
-        // Verify option belongs to the decision board
+        // Verify option belongs to the decision
         if (!option.getDecision().getId().equals(decisionId)) {
-            throw new BadRequestException("Option with ID " + optionId + " does not belong to decision board " + decisionId);
+            throw new BadRequestException("Option with ID " + optionId + " does not belong to decision " + decisionId);
         }
 
         // 2. Business Validation
         decisionOptionValidator.validateDelete(board);
 
         // 3. Keep old value for audit
-        String oldValueJson = String.format("{\"title\":\"%s\"}", option.getTitle());
+        String oldValueJson = String.format("{\"title\":\"%s\"}", option.getOptionName());
 
-        // 4. Soft delete
-        board.removeOption(option);
+        // 4. Delete
         decisionOptionRepository.delete(option);
 
         // 5. Audit Logging
@@ -158,26 +154,18 @@ public class DecisionOptionServiceImpl implements DecisionOptionService {
         log.info("Option with ID '{}' deleted successfully", optionId);
     }
 
-    private DecisionBoard getActiveBoardOrThrow(UUID decisionId) {
-        DecisionBoard board = decisionBoardRepository.findById(decisionId)
-                .orElseThrow(() -> new ResourceNotFoundException("Decision board not found with ID: " + decisionId));
-        if (board.isDeleted()) {
-            throw new ResourceNotFoundException("Decision board not found with ID: " + decisionId);
-        }
-        return board;
+    private Decision getActiveBoardOrThrow(Long decisionId) {
+        return decisionRepository.findById(decisionId)
+                .orElseThrow(() -> new ResourceNotFoundException("Decision not found with ID: " + decisionId));
     }
 
-    private DecisionOption getActiveOptionOrThrow(UUID optionId) {
-        DecisionOption option = decisionOptionRepository.findById(optionId)
+    private DecisionOption getActiveOptionOrThrow(Long optionId) {
+        return decisionOptionRepository.findById(optionId)
                 .orElseThrow(() -> new ResourceNotFoundException("Option not found with ID: " + optionId));
-        if (option.isDeleted()) {
-            throw new ResourceNotFoundException("Option not found with ID: " + optionId);
-        }
-        return option;
     }
 
-    private UUID getCurrentUserIdOrThrow() {
+    private Long getCurrentUserIdOrThrow() {
         return authenticationFacade.getCurrentUserId()
-                .orElseThrow(() -> new UnauthorizedException("User is not authenticated"));
+                .orElseThrow(() -> new UnauthorizedActionException("User is not authenticated"));
     }
 }
