@@ -8,6 +8,7 @@ import VotingPage from "./pages/VotingPage";
 import Communities from "./pages/Communities";
 import DecisionList from "./pages/DecisionList";
 import Profile from "./pages/Profile";
+import Notifications from "./pages/Notifications";
 
 function App() {
   return (
@@ -23,6 +24,7 @@ function App() {
         <Route path="/communities" element={<Communities />} />
         <Route path="/profile" element={<Profile />} />
         <Route path="/decisions" element={<DecisionList />} />
+        <Route path="/notifications" element={<Notifications />} />
       </Routes>
     </BrowserRouter>
   );
