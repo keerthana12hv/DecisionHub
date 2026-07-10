@@ -1,22 +1,24 @@
 package com.decisionhub.service;
 
-import com.decisionhub.dto.OptionCreateDto;
-import com.decisionhub.dto.OptionResponseDto;
+import com.decisionhub.dto.request.decision.OptionCreateDto;
+import com.decisionhub.dto.response.decision.OptionResponseDto;
 import com.decisionhub.entity.decision.Decision;
 import com.decisionhub.entity.decision.DecisionOption;
 import com.decisionhub.enums.decision.DecisionStatus;
 import com.decisionhub.entity.authentication.User;
 import com.decisionhub.exception.BadRequestException;
 import com.decisionhub.exception.UnauthorizedActionException;
+import com.decisionhub.mapper.decision.DecisionMapper;
 import com.decisionhub.exception.ResourceNotFoundException;
-import com.decisionhub.mapper.DecisionMapper;
-import com.decisionhub.repository.DecisionRepository;
-import com.decisionhub.repository.DecisionOptionRepository;
 import com.decisionhub.repository.authentication.UserRepository;
-import com.decisionhub.security.AuthenticationFacade;
-import com.decisionhub.security.DecisionAuthorizationService;
-import com.decisionhub.service.impl.DecisionOptionServiceImpl;
-import com.decisionhub.validator.DecisionOptionValidator;
+import com.decisionhub.repository.decision.DecisionOptionRepository;
+import com.decisionhub.repository.decision.DecisionRepository;
+import com.decisionhub.security.decision.DecisionAuthorizationService;
+import com.decisionhub.security.decision.AuthenticationFacade;
+import com.decisionhub.service.impl.decision.DecisionOptionServiceImpl;
+import com.decisionhub.service.interfaces.audit.AuditService;
+import com.decisionhub.validator.decision.DecisionOptionValidator;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;

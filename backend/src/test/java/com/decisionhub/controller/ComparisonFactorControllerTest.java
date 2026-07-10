@@ -1,10 +1,12 @@
 package com.decisionhub.controller;
 
-import com.decisionhub.dto.ComparisonFactorRequest;
-import com.decisionhub.dto.ComparisonFactorResponse;
-import com.decisionhub.service.ComparisonFactorService;
+import com.decisionhub.dto.request.decision.ComparisonFactorRequest;
+import com.decisionhub.dto.response.decision.ComparisonFactorResponse;
 import com.decisionhub.config.JwtService;
+import com.decisionhub.controller.decision.ComparisonFactorController;
 import com.decisionhub.service.impl.authentication.CustomUserDetailsService;
+import com.decisionhub.service.interfaces.decision.ComparisonFactorService;
+
 import org.springframework.security.crypto.password.PasswordEncoder;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;

@@ -1,11 +1,11 @@
 package com.decisionhub.controller;
 
-import com.decisionhub.dto.OptionRankingDto;
-import com.decisionhub.dto.OptionSummaryRankingDto;
-import com.decisionhub.dto.RankingResponse;
-import com.decisionhub.dto.RankingSummaryResponse;
+import com.decisionhub.dto.response.decision.OptionRankingDto;
+import com.decisionhub.dto.response.decision.OptionSummaryRankingDto;
+import com.decisionhub.dto.response.decision.RankingResponse;
+import com.decisionhub.dto.response.decision.RankingSummaryResponse;
 import com.decisionhub.enums.decision.DecisionStatus;
-import com.decisionhub.service.RankingService;
+
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration;
@@ -27,7 +27,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.decisionhub.config.JwtService;
+import com.decisionhub.controller.decision.RankingController;
 import com.decisionhub.service.impl.authentication.CustomUserDetailsService;
+import com.decisionhub.service.interfaces.decision.RankingService;
+
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 @WebMvcTest(

@@ -1,8 +1,7 @@
 package com.decisionhub.controller;
 
-import com.decisionhub.dto.ComparisonScoreRequest;
-import com.decisionhub.dto.ComparisonScoreResponse;
-import com.decisionhub.service.ComparisonScoreService;
+import com.decisionhub.dto.request.decision.ComparisonScoreRequest;
+import com.decisionhub.dto.response.decision.ComparisonScoreResponse;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -29,7 +28,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.decisionhub.config.JwtService;
+import com.decisionhub.controller.decision.ComparisonScoreController;
 import com.decisionhub.service.impl.authentication.CustomUserDetailsService;
+import com.decisionhub.service.interfaces.decision.ComparisonScoreService;
+
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 @WebMvcTest(

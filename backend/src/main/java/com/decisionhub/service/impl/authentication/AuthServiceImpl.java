@@ -34,7 +34,6 @@ import com.decisionhub.enums.authentication.UserStatus;
 import com.decisionhub.repository.authentication.PasswordResetTokenRepository;
 import com.decisionhub.repository.authentication.UserRepository;
 import com.decisionhub.service.interfaces.authentication.AuthService;
-
 import com.decisionhub.exception.ResourceAlreadyExistsException; 
 import com.decisionhub.exception.ResourceNotFoundException;
 import com.decisionhub.exception.BadRequestException;

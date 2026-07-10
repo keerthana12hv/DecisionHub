@@ -1,22 +1,24 @@
 package com.decisionhub.service;
 
-import com.decisionhub.dto.ComparisonFactorRequest;
-import com.decisionhub.dto.ComparisonFactorResponse;
+import com.decisionhub.dto.request.decision.ComparisonFactorRequest;
+import com.decisionhub.dto.response.decision.ComparisonFactorResponse;
 import com.decisionhub.entity.decision.Decision;
 import com.decisionhub.entity.decision.ComparisonFactor;
 import com.decisionhub.enums.decision.DecisionStatus;
 import com.decisionhub.entity.authentication.User;
 import com.decisionhub.exception.BadRequestException;
 import com.decisionhub.exception.UnauthorizedActionException;
+import com.decisionhub.mapper.decision.ComparisonMapper;
 import com.decisionhub.exception.ResourceNotFoundException;
-import com.decisionhub.mapper.ComparisonMapper;
-import com.decisionhub.repository.DecisionRepository;
-import com.decisionhub.repository.ComparisonFactorRepository;
 import com.decisionhub.repository.authentication.UserRepository;
-import com.decisionhub.security.AuthenticationFacade;
-import com.decisionhub.security.DecisionAuthorizationService;
-import com.decisionhub.service.impl.ComparisonFactorServiceImpl;
-import com.decisionhub.validator.ComparisonFactorValidator;
+import com.decisionhub.repository.decision.ComparisonFactorRepository;
+import com.decisionhub.repository.decision.DecisionRepository;
+import com.decisionhub.security.decision.DecisionAuthorizationService;
+import com.decisionhub.security.decision.AuthenticationFacade;
+import com.decisionhub.service.impl.decision.ComparisonFactorServiceImpl;
+import com.decisionhub.service.interfaces.audit.AuditService;
+import com.decisionhub.validator.decision.ComparisonFactorValidator;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
