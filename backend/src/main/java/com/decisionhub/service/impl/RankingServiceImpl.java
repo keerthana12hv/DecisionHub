@@ -19,7 +19,8 @@ import com.decisionhub.repository.DecisionRepository;
 import com.decisionhub.repository.DecisionOptionRepository;
 import com.decisionhub.security.AuthenticationFacade;
 import com.decisionhub.security.DecisionAuthorizationService;
-import com.decisionhub.service.RankingService;
+import com.decisionhub.service.interfaces.RankingService;
+
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;

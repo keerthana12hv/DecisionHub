@@ -2,7 +2,8 @@ package com.decisionhub.controller;
 
 import com.decisionhub.dto.OptionCreateDto;
 import com.decisionhub.dto.OptionResponseDto;
-import com.decisionhub.service.DecisionOptionService;
+import com.decisionhub.service.interfaces.DecisionOptionService;
+
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;

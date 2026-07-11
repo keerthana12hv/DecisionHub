@@ -2,7 +2,8 @@ package com.decisionhub.controller;
 
 import com.decisionhub.dto.ComparisonFactorRequest;
 import com.decisionhub.dto.ComparisonFactorResponse;
-import com.decisionhub.service.ComparisonFactorService;
+import com.decisionhub.service.interfaces.ComparisonFactorService;
+
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;

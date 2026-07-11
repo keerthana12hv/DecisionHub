@@ -15,7 +15,7 @@ import com.decisionhub.repository.authentication.UserRepository;
 import com.decisionhub.security.AuthenticationFacade;
 import com.decisionhub.security.DecisionAuthorizationService;
 import com.decisionhub.service.AuditService;
-import com.decisionhub.service.DecisionOptionService;
+import com.decisionhub.service.interfaces.DecisionOptionService;
 import com.decisionhub.validator.DecisionOptionValidator;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

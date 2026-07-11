@@ -1,4 +1,4 @@
-package com.decisionhub.service;
+package com.decisionhub.service.interfaces;
 
 import com.decisionhub.dto.RankingResponse;
 import com.decisionhub.dto.RankingSummaryResponse;

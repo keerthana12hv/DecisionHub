@@ -2,7 +2,6 @@ package com.decisionhub.controller;
 
 import com.decisionhub.dto.OptionCreateDto;
 import com.decisionhub.dto.OptionResponseDto;
-import com.decisionhub.service.DecisionOptionService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -30,6 +29,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.decisionhub.config.JwtService;
 import com.decisionhub.service.impl.authentication.CustomUserDetailsService;
+import com.decisionhub.service.interfaces.DecisionOptionService;
+
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 @WebMvcTest(

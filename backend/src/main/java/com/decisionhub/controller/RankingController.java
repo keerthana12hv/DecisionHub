@@ -2,7 +2,8 @@ package com.decisionhub.controller;
 
 import com.decisionhub.dto.RankingResponse;
 import com.decisionhub.dto.RankingSummaryResponse;
-import com.decisionhub.service.RankingService;
+import com.decisionhub.service.interfaces.RankingService;
+
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
