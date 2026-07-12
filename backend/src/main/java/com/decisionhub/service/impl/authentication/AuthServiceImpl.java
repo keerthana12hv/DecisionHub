@@ -78,7 +78,6 @@ public class AuthServiceImpl implements AuthService {
             }
             return hexString.toString();
         } catch (Exception e) {
-            // Fixed: Throwing IllegalStateException instead of a generic RuntimeException
             throw new IllegalStateException("Failed to hash reset token", e);
         }
     }
@@ -86,18 +85,18 @@ public class AuthServiceImpl implements AuthService {
     @Override
     public RegisterResponse register(RegisterRequest request) {
 
-        if (userRepository.existsByEmail(request.getEmail())) {
+        if (userRepository.existsByEmail(request.email())) {
             throw new ResourceAlreadyExistsException("Email already exists");
         }
 
-        if (userRepository.existsByUsername(request.getUsername())) {
+        if (userRepository.existsByUsername(request.username())) {
             throw new ResourceAlreadyExistsException("Username already exists");
         }
 
         User user = new User();
-        user.setUsername(request.getUsername());
-        user.setEmail(request.getEmail());
-        user.setPasswordHash(passwordEncoder.encode(request.getPassword()));
+        user.setUsername(request.username());
+        user.setEmail(request.email());
+        user.setPasswordHash(passwordEncoder.encode(request.password()));
         user.setRole(PlatformRole.USER);
         user.setStatus(UserStatus.ACTIVE);
 
@@ -112,17 +111,16 @@ public class AuthServiceImpl implements AuthService {
         // 1. Authenticate user (this internally hits loadUserByUsername)
         Authentication authentication = authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(
-                        request.getEmail(),
-                        request.getPassword()
+                        request.email(),
+                        request.password()
                 )
         );
 
         // 2. Fetch our custom User entity strictly to get the ID for our JWT extra claims
-        User user = userRepository.findByEmail(request.getEmail())
+        User user = userRepository.findByEmail(request.email())
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
-        // 3. Fixed: Extract UserDetails directly from the successful Authentication object
-        // This avoids calling customUserDetailsService.loadUserByUsername() a second time.
+        // 3. Extract UserDetails directly from the successful Authentication object
         UserDetails userDetails = (UserDetails) authentication.getPrincipal();
         
         // Pass ID and Role into the JWT Claims
@@ -162,7 +160,7 @@ public class AuthServiceImpl implements AuthService {
     @Transactional
     public void forgotPassword(ForgotPasswordRequest request) {
 
-        Optional<User> userOpt = userRepository.findByEmail(request.getEmail());
+        Optional<User> userOpt = userRepository.findByEmail(request.email());
 
         if (userOpt.isPresent()) {
             User user = userOpt.get();
@@ -194,7 +192,7 @@ public class AuthServiceImpl implements AuthService {
 
         // Hash the incoming raw token to lookup the stored hash in the database
         PasswordResetToken passwordResetToken = passwordResetTokenRepository
-                .findByTokenHash(hashToken(request.getToken()))
+                .findByTokenHash(hashToken(request.token()))
                 .orElseThrow(() -> new ResourceNotFoundException("Invalid reset token"));
 
         if (passwordResetToken.getExpiresAt().isBefore(LocalDateTime.now())) {
@@ -202,7 +200,7 @@ public class AuthServiceImpl implements AuthService {
         }
 
         User user = passwordResetToken.getUser();
-        user.setPasswordHash(passwordEncoder.encode(request.getNewPassword()));
+        user.setPasswordHash(passwordEncoder.encode(request.newPassword()));
         
         userRepository.save(user);
         passwordResetTokenRepository.delete(passwordResetToken);
