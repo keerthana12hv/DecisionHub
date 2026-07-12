@@ -53,27 +53,30 @@ public class CommunityServiceImpl implements CommunityService {
     @Override
     public CommunityResponse createCommunity(CreateCommunityRequest request) {
 
-        if (communityRepository.existsByName(request.getName())) {
+        // Changed to request.name()
+        if (communityRepository.existsByName(request.name())) {
             throw new ResourceAlreadyExistsException("Community name already exists");
         }
 
-        if (communityRepository.existsBySlug(request.getSlug())) {
+        // Changed to request.slug()
+        if (communityRepository.existsBySlug(request.slug())) {
             throw new ResourceAlreadyExistsException("Community slug already exists");
         }
 
-        Category category = categoryRepository.findById(request.getCategoryId())
+        // Changed to request.categoryId()
+        Category category = categoryRepository.findById(request.categoryId())
                 .orElseThrow(() ->
                         new ResourceNotFoundException("Category not found"));
 
         User owner = getCurrentUser();
 
         Community community = new Community();
-        community.setName(request.getName());
-        community.setSlug(request.getSlug());
-        community.setDescription(request.getDescription());
+        community.setName(request.name()); // Updated
+        community.setSlug(request.slug()); // Updated
+        community.setDescription(request.description()); // Updated
         community.setCategory(category);
         community.setOwner(owner);
-        community.setVisibility(request.getVisibility());
+        community.setVisibility(request.visibility()); // Updated
         community.setMemberCount(1);
 
         community = communityRepository.save(community);
@@ -120,7 +123,6 @@ public class CommunityServiceImpl implements CommunityService {
                 .orElseThrow(() ->
                         new ResourceNotFoundException("Community not found"));
 
-        // NEW: Ignore deleted communities
         if (community.getDeletedAt() != null) {
             throw new ResourceNotFoundException("Community not found");
         }
@@ -130,25 +132,28 @@ public class CommunityServiceImpl implements CommunityService {
             throw new UnauthorizedActionException("Only the community owner can update this community");
         }
 
-        Category category = categoryRepository.findById(request.getCategoryId())
+        // Changed to request.categoryId()
+        Category category = categoryRepository.findById(request.categoryId())
                 .orElseThrow(() ->
                         new ResourceNotFoundException("Category not found"));
 
-        if (!community.getName().equals(request.getName())
-                && communityRepository.existsByName(request.getName())) {
+        // Changed to request.name()
+        if (!community.getName().equals(request.name())
+                && communityRepository.existsByName(request.name())) {
             throw new ResourceAlreadyExistsException("Community name already exists");
         }
 
-        if (!community.getSlug().equals(request.getSlug())
-                && communityRepository.existsBySlug(request.getSlug())) {
+        // Changed to request.slug()
+        if (!community.getSlug().equals(request.slug())
+                && communityRepository.existsBySlug(request.slug())) {
             throw new ResourceAlreadyExistsException("Community slug already exists");
         }
 
-        community.setName(request.getName());
-        community.setSlug(request.getSlug());
-        community.setDescription(request.getDescription());
+        community.setName(request.name()); // Updated
+        community.setSlug(request.slug()); // Updated
+        community.setDescription(request.description()); // Updated
         community.setCategory(category);
-        community.setVisibility(request.getVisibility());
+        community.setVisibility(request.visibility()); // Updated
 
         community = communityRepository.save(community);
 
@@ -162,7 +167,6 @@ public class CommunityServiceImpl implements CommunityService {
                 .orElseThrow(() ->
                         new ResourceNotFoundException("Community not found"));
 
-        // NEW: Ignore deleted communities
         if (community.getDeletedAt() != null) {
             throw new ResourceNotFoundException("Community not found");
         }
@@ -185,7 +189,6 @@ public class CommunityServiceImpl implements CommunityService {
                 .orElseThrow(() ->
                         new ResourceNotFoundException("Community not found"));
 
-        // NEW: Ignore deleted communities
         if (community.getDeletedAt() != null) {
             throw new ResourceNotFoundException("Community not found");
         }
@@ -230,7 +233,6 @@ public class CommunityServiceImpl implements CommunityService {
                 .orElseThrow(() ->
                         new ResourceNotFoundException("Community not found"));
 
-        // NEW: Ignore deleted communities
         if (community.getDeletedAt() != null) {
             throw new ResourceNotFoundException("Community not found");
         }
