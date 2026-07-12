@@ -1,0 +1,70 @@
+.delete-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(8px);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.delete-modal {
+  width: 420px;
+  max-width: 90%;
+  padding: 2.25rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.delete-warning-icon {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  background: var(--danger-glow);
+  color: var(--danger);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  margin-bottom: 1.25rem;
+}
+
+.delete-modal h2 {
+  margin: 0 0 0.5rem;
+  font-family: var(--font-title);
+  font-weight: 700;
+  font-size: 1.4rem;
+}
+
+.delete-modal p {
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  line-height: 1.45;
+  margin: 0 0 1.75rem;
+}
+
+.delete-buttons {
+  display: flex;
+  width: 100%;
+  gap: 0.75rem;
+}
+
+.delete-buttons button {
+  flex: 1;
+}
+
+.confirm-delete-btn {
+  background: var(--danger) !important;
+}
+
+.confirm-delete-btn:hover {
+  background: #dc2626 !important;
+  box-shadow: 0 5px 15px rgba(220, 38, 38, 0.3) !important;
+}
