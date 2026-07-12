@@ -48,17 +48,29 @@ public class SecurityConfig {
                         authException) -> response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Unauthorized")))
 
                 .authorizeHttpRequests(auth -> auth
-                        // Whitelisted Swagger Endpoints
-                        .requestMatchers(
-                                "/api/auth/register", 
-                                "/api/auth/login", 
-                                "/api/auth/forgot-password",
-                                "/api/auth/reset-password", 
-                                "/api/auth/oauth2/**",
-                                "/swagger-ui/**",
-                                "/v3/api-docs/**"
-                        ).permitAll()
-                        .anyRequest().authenticated())
+
+                	    .requestMatchers(
+                	            "/api/auth/register",
+                	            "/api/auth/login",
+                	            "/api/auth/forgot-password",
+                	            "/api/auth/reset-password",
+                	            "/api/auth/oauth2/**",
+                	            "/swagger-ui/**",
+                	            "/v3/api-docs/**"
+                	    ).permitAll()
+
+                	    // Admin only
+                	    .requestMatchers("/api/admin/**")
+                	    .hasRole("ADMIN")
+
+                	    // USER or ADMIN
+                	    .requestMatchers("/api/user/**")
+                	    .hasAnyRole("USER", "ADMIN")
+
+                	    // All other APIs require authentication
+                	    .anyRequest()
+                	    .authenticated()
+                	)
 
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 
