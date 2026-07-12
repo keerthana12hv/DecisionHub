@@ -1,4 +1,9 @@
 $kind: http-request
-url: ""
+name: user role test
+url: http://localhost:8080/api/user/test
 method: GET
-order: 1393700778611176
+auth:
+  type: bearer
+  credentials:
+    token: "{{authToken}}"
+order: 3000

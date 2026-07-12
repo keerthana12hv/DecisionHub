@@ -8,7 +8,7 @@ body:
 
     \  \"email\": \"admin@gmail.com\",\r
 
-    \  \"password\": \"123456\"\r
+    \  \"password\": \"admin123\"\r
 
     }"
 auth:
@@ -21,4 +21,4 @@ scripts:
 
       pm.globals.set(\"authToken\", response.token);"
     language: text/javascript
-order: 1783876243245
+order: 2000
