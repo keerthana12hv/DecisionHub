@@ -10,11 +10,12 @@ import com.decisionhub.dto.response.authentication.ForgotPasswordResponse;
 import com.decisionhub.dto.response.authentication.LoginResponse;
 import com.decisionhub.dto.response.authentication.ProfileResponse;
 import com.decisionhub.dto.response.authentication.RegisterResponse;
-import com.decisionhub.service.interfaces.authentication.AuthService;
+
 import jakarta.validation.Valid;
 import com.decisionhub.dto.request.authentication.ForgotPasswordRequest;
 import com.decisionhub.dto.request.authentication.ResetPasswordRequest;
 import com.decisionhub.dto.response.authentication.ResetPasswordResponse;
+import com.decisionhub.service.interfaces.authentication.AuthService;
 
 @RestController
 @RequestMapping("/api/auth")

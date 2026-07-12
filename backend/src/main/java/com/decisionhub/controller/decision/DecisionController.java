@@ -1,4 +1,4 @@
-package com.decisionhub.controller;
+package com.decisionhub.controller.decision;
 
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
