@@ -1,0 +1,44 @@
+.decision-table{
+    background:white;
+    margin-top:20px;
+    border-radius:18px;
+    overflow:hidden;
+    box-shadow:0 10px 25px rgba(0,0,0,.08);
+}
+
+.table-header,
+.table-row{
+    display:flex;
+    justify-content:space-between;
+    padding:18px 25px;
+}
+
+.table-header{
+    background:#6C63FF;
+    color:white;
+    font-weight:bold;
+}
+
+.table-row{
+    border-bottom:1px solid #eee;
+}
+
+.table-row:last-child{
+    border-bottom:none;
+}
+
+.active{
+    background:#22c55e;
+    color:white;
+    padding:5px 14px;
+    border-radius:20px;
+    font-size:13px;
+}
+
+.closed{
+    background:#ef4444;
+    color:white;
+    padding:5px 14px;
+    border-radius:20px;
+    font-size:13px;
+}

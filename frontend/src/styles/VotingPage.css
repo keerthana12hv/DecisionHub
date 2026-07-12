@@ -1,0 +1,149 @@
+body{
+    background:#f5f7fb;
+}
+
+.voting-container{
+    min-height:100vh;
+    display:flex;
+    justify-content:center;
+    align-items:flex-start;
+    background:linear-gradient(135deg,#eef2ff,#dbeafe);
+    padding:40px;
+}
+
+.polls-list{
+    width:100%;
+    max-width:700px;
+    display:flex;
+    flex-direction:column;
+    gap:20px;
+}
+
+.voting-card{
+    width:100%;
+    background:#fff;
+    padding:35px;
+    border-radius:20px;
+    box-shadow:0 15px 35px rgba(0,0,0,.15);
+    box-sizing:border-box;
+}
+
+.voting-card h1{
+    color:#6C63FF;
+    margin-bottom:8px;
+}
+
+.decision-description{
+    color:#6b7280;
+    margin-bottom:20px;
+}
+
+.option-block{
+    margin-bottom:16px;
+    padding:14px;
+    border:1px solid #e5e7eb;
+    border-radius:12px;
+}
+
+.option-row{
+    display:flex;
+    justify-content:space-between;
+    margin-bottom:8px;
+    font-weight:600;
+}
+
+.percentage{
+    color:#6C63FF;
+}
+
+.progress-bar{
+    width:100%;
+    background:#e5e7eb;
+    border-radius:999px;
+    height:8px;
+    margin-bottom:8px;
+    overflow:hidden;
+}
+
+.progress-fill{
+    background:#6C63FF;
+    height:100%;
+    border-radius:999px;
+}
+
+.vote-btn-card{
+    width:100%;
+    border:1px solid #6C63FF;
+    color:#6C63FF;
+    background:#fff;
+    padding:10px;
+    border-radius:10px;
+    cursor:pointer;
+}
+
+.selected-badge{
+    color:#16a34a;
+    font-size:14px;
+}
+
+.total-votes{
+    text-align:center;
+    color:#9ca3af;
+    margin-top:16px;
+}
+
+.thanks-box{
+    margin-top:12px;
+    background:#ede9fe;
+    color:#5b21b6;
+    padding:12px;
+    text-align:center;
+    border-radius:10px;
+}
+
+.comments-section{
+    margin-top:24px;
+    padding-top:20px;
+    border-top:1px solid #e5e7eb;
+}
+
+.comment-form{
+    display:flex;
+    flex-direction:column;
+    gap:10px;
+    margin-bottom:14px;
+}
+
+.comment-form textarea{
+    border:1px solid #d1d5db;
+    border-radius:10px;
+    padding:10px;
+    resize:vertical;
+}
+
+.comment-form button{
+    border:none;
+    background:#6C63FF;
+    color:white;
+    padding:10px 14px;
+    border-radius:10px;
+    cursor:pointer;
+    align-self:flex-start;
+}
+
+.comment-list{
+    display:flex;
+    flex-direction:column;
+    gap:10px;
+}
+
+.comment-item{
+    background:#f9fafb;
+    padding:10px 12px;
+    border-radius:10px;
+}
+
+.comment-item p{
+    margin:4px 0 0;
+    color:#4b5563;
+}
