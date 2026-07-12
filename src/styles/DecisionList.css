@@ -1,0 +1,312 @@
+.decision-page {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.decision-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1.5rem;
+}
+
+.decision-header h1 {
+  font-family: var(--font-title);
+  font-size: 1.85rem;
+  font-weight: 700;
+  margin: 0 0 0.5rem;
+}
+
+.decision-header p {
+  color: var(--text-secondary);
+  font-size: 0.95rem;
+  margin: 0;
+}
+
+.decision-actions-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.table-search {
+  width: 240px;
+}
+
+.table-search input {
+  padding-left: 2.5rem;
+  height: 38px;
+  border-radius: var(--border-radius-sm);
+  font-size: 0.85rem;
+}
+
+.table-search svg {
+  position: absolute;
+  left: 12px;
+  color: var(--text-muted);
+}
+
+.filter {
+  height: 38px;
+  width: 150px;
+  font-size: 0.85rem;
+  cursor: pointer;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.create-decision-btn {
+  height: 38px;
+  padding: 0 1.25rem;
+  font-size: 0.85rem;
+}
+
+.decision-table-wrapper {
+  padding: 0;
+  overflow: hidden;
+}
+
+.decision-table-element {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+.decision-table-element th, .decision-table-element td {
+  padding: 1.25rem 1.75rem;
+  border-bottom: 1px solid var(--border-glass);
+}
+
+.decision-table-element th {
+  background: rgba(0, 0, 0, 0.15);
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.decision-table-element tbody tr {
+  transition: var(--transition-smooth);
+}
+
+.decision-table-element tbody tr:hover {
+  background: rgba(255, 255, 255, 0.015);
+}
+
+.decision-table-element tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.decision-title-col {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.decision-title-col .title-text {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.decision-title-col .desc-preview {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  max-width: 320px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.category-tag {
+  font-size: 0.8rem;
+  background: rgba(255, 255, 255, 0.04);
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--border-glass);
+  color: var(--text-secondary);
+}
+
+.vote-count-txt {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.visibility-tag {
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 9999px;
+  text-transform: uppercase;
+}
+
+.visibility-tag.public {
+  background: rgba(59, 130, 246, 0.1);
+  color: #60a5fa;
+  border: 1px solid rgba(96, 165, 250, 0.2);
+}
+
+.visibility-tag.private {
+  background: rgba(245, 158, 11, 0.1);
+  color: #fbbf24;
+  border: 1px solid rgba(251, 191, 36, 0.2);
+}
+
+.actions-col {
+  text-align: right;
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}
+
+/* Action buttons inside rows */
+.action-row-btn-icon {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border-glass);
+  color: var(--text-secondary);
+  width: 32px;
+  height: 32px;
+  border-radius: var(--border-radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: var(--transition-smooth);
+}
+
+.action-row-btn-icon:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text-primary);
+}
+
+.action-row-btn-icon.vote:hover {
+  color: var(--accent-blue);
+  border-color: var(--accent-blue);
+  background: var(--accent-blue-glow);
+}
+
+.action-row-btn-icon.analytics:hover {
+  color: var(--success);
+  border-color: var(--success);
+  background: var(--success-glow);
+}
+
+.action-row-btn-icon.edit:hover {
+  color: var(--warning);
+  border-color: var(--warning);
+  background: var(--warning-glow);
+}
+
+.action-row-btn-icon.delete:hover {
+  color: var(--danger);
+  border-color: var(--danger);
+  background: var(--danger-glow);
+}
+
+.empty-table {
+  text-align: center;
+  color: var(--text-muted);
+  padding: 3rem !important;
+}
+
+/* Pagination bar styling */
+.pagination-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.25rem 1.75rem;
+  border-top: 1px solid var(--border-glass);
+  background: rgba(0, 0, 0, 0.1);
+}
+
+.pagination-btn {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border-glass);
+  color: var(--text-secondary);
+  padding: 6px 12px;
+  border-radius: var(--border-radius-sm);
+  cursor: pointer;
+  font-size: 0.8rem;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  transition: var(--transition-smooth);
+}
+
+.pagination-btn:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text-primary);
+}
+
+.pagination-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.pagination-numbers {
+  display: flex;
+  gap: 0.35rem;
+}
+
+.pagination-num-btn {
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--text-secondary);
+  width: 28px;
+  height: 28px;
+  border-radius: var(--border-radius-sm);
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: var(--transition-smooth);
+}
+
+.pagination-num-btn:hover {
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text-primary);
+}
+
+.pagination-num-btn.active-page {
+  background: var(--gradient-primary);
+  color: #fff;
+  border-color: transparent;
+  box-shadow: var(--shadow-glow);
+}
+
+@media (max-width: 1024px) {
+  .decision-table-element th:nth-child(5),
+  .decision-table-element td:nth-child(5) {
+    display: none;
+  }
+}
+
+@media (max-width: 768px) {
+  .decision-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .decision-actions-header {
+    width: 100%;
+    justify-content: space-between;
+  }
+  .table-search {
+    width: 100%;
+  }
+  .filter {
+    flex: 1;
+  }
+  .decision-table-element th:nth-child(2),
+  .decision-table-element td:nth-child(2),
+  .decision-table-element th:nth-child(4),
+  .decision-table-element td:nth-child(4) {
+    display: none;
+  }
+}
