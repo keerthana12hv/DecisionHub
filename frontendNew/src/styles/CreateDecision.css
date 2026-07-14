@@ -1,0 +1,224 @@
+.create-decision-page {
+  max-width: 880px;
+  margin: 0 auto;
+}
+
+.create-header {
+  margin-bottom: 2rem;
+}
+
+.back-btn-top {
+  padding: 6px 12px !important;
+  font-size: 0.85rem !important;
+  margin-bottom: 1rem;
+}
+
+.create-header h1 {
+  font-family: var(--font-title);
+  font-size: 1.85rem;
+  font-weight: 700;
+  margin: 0 0 0.5rem;
+}
+
+.create-header p {
+  color: var(--text-secondary);
+  font-size: 0.95rem;
+  margin: 0;
+}
+
+.create-form-panel {
+  padding: 2.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.form-group-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.form-group label {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.section-subtitle {
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+  margin: 0 0 1.25rem;
+}
+
+/* Options list styling */
+.form-section-options {
+  border-top: 1px solid var(--border-glass);
+  padding-top: 1.5rem;
+  margin-top: 0.5rem;
+}
+
+.form-section-options h3 {
+  margin: 0 0 4px;
+  font-family: var(--font-title);
+  font-size: 1.15rem;
+  font-weight: 600;
+}
+
+.options-input-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.option-row-item {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.option-index-lbl {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  width: 70px;
+  flex-shrink: 0;
+}
+
+.btn-delete-option {
+  background: transparent;
+  border: 1px solid var(--border-glass);
+  color: var(--text-muted);
+  width: 42px;
+  height: 42px;
+  border-radius: var(--border-radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: var(--transition-smooth);
+  flex-shrink: 0;
+}
+
+.btn-delete-option:hover {
+  border-color: var(--danger);
+  color: var(--danger);
+  background: rgba(239, 68, 68, 0.05);
+}
+
+.add-opt-btn {
+  width: auto;
+  font-size: 0.85rem;
+}
+
+/* Invites Section styling */
+.form-section-invites {
+  border-top: 1px solid var(--border-glass);
+  padding-top: 1.5rem;
+  margin-top: 0.5rem;
+}
+
+.invites-title-sec {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--accent-purple);
+  margin-bottom: 4px;
+}
+
+.invites-title-sec h3 {
+  margin: 0;
+  font-family: var(--font-title);
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.email-input-bar {
+  display: flex;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+  max-width: 500px;
+}
+
+.email-input-bar button {
+  flex-shrink: 0;
+  padding: 0 1.25rem;
+}
+
+.email-chips-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  min-height: 40px;
+  padding: 0.5rem;
+  background: rgba(0, 0, 0, 0.15);
+  border: 1px solid var(--border-glass);
+  border-radius: var(--border-radius-sm);
+}
+
+.no-invites-msg {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  width: 100%;
+}
+
+.email-chip {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: var(--accent-purple-glow);
+  border: 1px solid rgba(139, 92, 246, 0.25);
+  color: #c084fc;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 500;
+}
+
+.email-chip button {
+  background: transparent;
+  border: none;
+  color: #c084fc;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  padding: 0;
+  transition: var(--transition-smooth);
+}
+
+.email-chip button:hover {
+  color: #fff;
+}
+
+.create-submit-sec {
+  border-top: 1px solid var(--border-glass);
+  padding-top: 1.5rem;
+  margin-top: 1rem;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.btn-submit-poll {
+  padding: 0.85rem 2rem;
+  font-size: 1rem;
+}
+
+@media (max-width: 768px) {
+  .form-group-grid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+  .create-form-panel {
+    padding: 1.5rem;
+  }
+}
