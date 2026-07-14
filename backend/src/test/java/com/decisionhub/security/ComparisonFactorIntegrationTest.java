@@ -88,47 +88,45 @@ class ComparisonFactorIntegrationTest {
         auditLogRepository.deleteAll();
         userRepository.deleteAll();
 
-        // 1. Register and login Creator
-        RegisterRequest creatorReg = new RegisterRequest();
-        creatorReg.setUsername("creatoruser");
-        creatorReg.setEmail("creator@test.com");
-        creatorReg.setPassword("Password123!");
+        // 1. Register and login Creator (Updated for Records)
+        RegisterRequest creatorReg = new RegisterRequest("creatoruser", "creator@test.com", "Password123!");
+        
         mockMvc.perform(post("/api/auth/register")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(creatorReg)))
                 .andExpect(status().isOk());
 
-        LoginRequest creatorLogin = new LoginRequest();
-        creatorLogin.setEmail("creator@test.com");
-        creatorLogin.setPassword("Password123!");
+        LoginRequest creatorLogin = new LoginRequest("creator@test.com", "Password123!");
+        
         String creatorLoginResponse = mockMvc.perform(post("/api/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(creatorLogin)))
                 .andExpect(status().isOk())
                 .andReturn().getResponse().getContentAsString();
-        creatorToken = objectMapper.readValue(creatorLoginResponse, LoginResponse.class).getToken();
+                
+        // Updated to use .token() record accessor
+        creatorToken = objectMapper.readValue(creatorLoginResponse, LoginResponse.class).token(); 
         User creatorUser = userRepository.findByUsername("creatoruser").orElseThrow();
         creatorId = creatorUser.getId();
 
-        // 2. Register and login Other User
-        RegisterRequest otherReg = new RegisterRequest();
-        otherReg.setUsername("otheruser");
-        otherReg.setEmail("other@test.com");
-        otherReg.setPassword("Password123!");
+        // 2. Register and login Other User (Updated for Records)
+        RegisterRequest otherReg = new RegisterRequest("otheruser", "other@test.com", "Password123!");
+        
         mockMvc.perform(post("/api/auth/register")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(otherReg)))
                 .andExpect(status().isOk());
 
-        LoginRequest otherLogin = new LoginRequest();
-        otherLogin.setEmail("other@test.com");
-        otherLogin.setPassword("Password123!");
+        LoginRequest otherLogin = new LoginRequest("other@test.com", "Password123!");
+        
         String otherLoginResponse = mockMvc.perform(post("/api/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(otherLogin)))
                 .andExpect(status().isOk())
                 .andReturn().getResponse().getContentAsString();
-        otherUserToken = objectMapper.readValue(otherLoginResponse, LoginResponse.class).getToken();
+                
+        // Updated to use .token() record accessor
+        otherUserToken = objectMapper.readValue(otherLoginResponse, LoginResponse.class).token();
         otherUserId = userRepository.findByUsername("otheruser").orElseThrow().getId();
 
         // 3. Create a default Decision Board in DRAFT state directly in DB
