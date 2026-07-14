@@ -1,20 +1,23 @@
 $kind: http-request
-name: login-owner
 url: http://localhost:8080/api/auth/login
 method: POST
 body:
   type: json
   content: "{\r
 
-    \  \"email\":\"c@gmail.com\",\r
+    \  \"email\": \"admin@gmail.com\",\r
 
-    \  \"password\":\"123456\"\r
+    \  \"password\": \"admin123\"\r
 
     }"
+auth:
+  type: bearer
+  credentials:
+    token: "{{authToken}}"
 scripts:
   - type: afterResponse
     code: "const response = pm.response.json();\r
 
       pm.globals.set(\"authToken\", response.token);"
     language: text/javascript
-order: 2078
+order: 1836
