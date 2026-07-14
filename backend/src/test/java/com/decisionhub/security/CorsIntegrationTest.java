@@ -83,10 +83,7 @@ class CorsIntegrationTest {
 
     @Test
     void testCorsActualRequest_Success() throws Exception {
-        RegisterRequest registerReq = new RegisterRequest();
-        registerReq.setUsername("corsuser");
-        registerReq.setEmail("cors@test.com");
-        registerReq.setPassword("Password123!");
+        RegisterRequest registerReq = new RegisterRequest("corsuser", "cors@test.com", "Password123!");
 
         mockMvc.perform(post("/api/auth/register")
                         .header(HttpHeaders.ORIGIN, "http://localhost:5173")
