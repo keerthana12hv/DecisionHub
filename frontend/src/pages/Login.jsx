@@ -4,10 +4,12 @@ import { useAuth } from "../context/AuthContext";
 import { useToast } from "../components/Toast";
 import { FaGoogle, FaUserShield, FaUser, FaLock, FaEnvelope } from "react-icons/fa";
 import "../styles/Login.css";
+import api from "../services/api";
 
 function Login() {
   const navigate = useNavigate();
-  const { login } = useAuth();
+  //const { login } = useAuth();
+  const { setUser } = useAuth();
   const { addToast } = useToast();
 
   const [email, setEmail] = useState("");
@@ -17,19 +19,50 @@ function Login() {
   const [showForgot, setShowForgot] = useState(false);
   const [forgotEmail, setForgotEmail] = useState("");
 
-  const handleLogin = (e) => {
-    e.preventDefault();
-    if (!email || !password) {
-      addToast("Please fill in all fields.", "error");
-      return;
-    }
-    
-    // JWT Ready simulated authentication
-    login(email, password, role, rememberMe);
-    addToast(`Successfully logged in as ${role === "ADMIN" ? "Admin" : "User"}!`, "success");
-    navigate("/dashboard");
-  };
+ const handleLogin = async (e) => {
+   e.preventDefault();
 
+   if (!email || !password) {
+     addToast("Please fill in all fields.", "error");
+     return;
+   }
+
+   try {
+     // Login
+     const response = await api.post("/api/auth/login", {
+       email,
+       password,
+     });
+
+     const token = response.data.token;
+
+     localStorage.setItem("token", token);
+
+     // Get logged-in user profile
+     const profileResponse = await api.get("/api/auth/profile");
+
+     const user = profileResponse.data;
+
+     localStorage.setItem(
+       "decisionhub-session",
+       JSON.stringify(user)
+     );
+
+     setUser(user);
+
+     addToast("Login Successful!", "success");
+
+     navigate("/dashboard");
+
+   } catch (error) {
+     addToast(
+       error.response?.data?.error ||
+       error.response?.data?.message ||
+       "Invalid email or password",
+       "error"
+     );
+   }
+ };
   const handleForgotPassword = (e) => {
     e.preventDefault();
     if (!forgotEmail) {

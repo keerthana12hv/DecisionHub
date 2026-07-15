@@ -4,10 +4,11 @@ import { useAuth } from "../context/AuthContext";
 import { useToast } from "../components/Toast";
 import { FaUser, FaEnvelope, FaLock, FaUserShield } from "react-icons/fa";
 import "../styles/Register.css";
+import api from "../services/api";
 
 function Register() {
   const navigate = useNavigate();
-  const { register } = useAuth();
+  //const { register } = useAuth();
   const { addToast } = useToast();
 
   const [username, setUsername] = useState("");
@@ -16,33 +17,44 @@ function Register() {
   const [role, setRole] = useState("USER"); // Option to select Admin/User on register
   const [confirmPassword, setConfirmPassword] = useState("");
 
-  const handleRegister = async (e) => {
-    e.preventDefault();
+const handleRegister = async (e) => {
+  e.preventDefault();
 
-    if (!username || !email || !password || !confirmPassword) {
-      addToast("Please fill in all fields.", "error");
-      return;
-    }
+  if (!username || !email || !password || !confirmPassword) {
+    addToast("Please fill in all fields.", "error");
+    return;
+  }
 
-    if (password !== confirmPassword) {
-      addToast("Passwords do not match.", "error");
-      return;
-    }
+  if (password !== confirmPassword) {
+    addToast("Passwords do not match.", "error");
+    return;
+  }
 
-    if (password.length < 6) {
-      addToast("Password must be at least 6 characters.", "error");
-      return;
-    }
+  if (password.length < 6) {
+    addToast("Password must be at least 6 characters.", "error");
+    return;
+  }
 
-    try {
-      // Simulate registration
-      register(username, email, password, role);
-      addToast("Account created successfully!", "success");
-      navigate("/dashboard");
-    } catch (error) {
-      addToast(error.message || "Registration failed.", "error");
-    }
-  };
+  try {
+    await api.post("/api/auth/register", {
+      username,
+      email,
+      password,
+    });
+
+    addToast("Account created successfully!", "success");
+
+    navigate("/login");
+
+  } catch (error) {
+    addToast(
+      error.response?.data?.error ||
+      error.response?.data?.message ||
+      "Registration failed.",
+      "error"
+    );
+  }
+};
 
   return (
     <div className="login-container">
