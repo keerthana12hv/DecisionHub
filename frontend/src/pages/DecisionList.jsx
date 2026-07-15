@@ -1,11 +1,17 @@
 import { useEffect, useState } from "react";
 import EditDecisionModal from "../components/EditDecisionModal";
+import InviteModal from "../components/InviteModal";
 import { FaEdit, FaTrash, FaVoteYea, FaChartBar, FaSearch } from "react-icons/fa";
 import { Link, useNavigate } from "react-router-dom";
 import DeleteModal from "../components/DeleteModal";
 import "../styles/DecisionList.css";
 
 const STORAGE_KEY = "decisionhub-decisions";
+const USER_KEY = "decisionhub-current-user";
+
+function getCurrentUser() {
+  return localStorage.getItem(USER_KEY) || "Mythili";
+}
 
 function DecisionList() {
   const navigate = useNavigate();
@@ -16,6 +22,9 @@ function DecisionList() {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
   const [decisions, setDecisions] = useState([]);
+  const [showInvite, setShowInvite] = useState(false);
+  const [inviteTarget, setInviteTarget] = useState(null);
+  const currentUser = getCurrentUser();
 
   useEffect(() => {
     const savedDecisions = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
@@ -96,42 +105,56 @@ function DecisionList() {
           ) : (
             filteredDecisions.map((decision) => (
               <tr key={decision.id}>
-              <td>{decision.title}</td>
-              <td>
-                <span className={decision.status === "Active" ? "status-active" : "status-closed"}>
-                  {decision.status}
-                </span>
-              </td>
-              <td>{decision.votes}</td>
-              <td>
-                <button
-                  className="edit-btn"
-                  onClick={() => {
-                    setEditDecision(decision);
-                    setShowEdit(true);
-                  }}
-                >
-                  <FaEdit />
-                </button>
+                <td>{decision.title}</td>
+                <td>
+                  <span className={decision.status === "Active" ? "status-active" : "status-closed"}>
+                    {decision.status}
+                  </span>
+                </td>
+                <td>{(decision.options || []).reduce((s, o) => s + (o.votes || 0), 0)}</td>
+                <td>
+                  {decision.creator === currentUser && (
+                    <>
+                      <button
+                        className="edit-btn"
+                        onClick={() => {
+                          setEditDecision(decision);
+                          setShowEdit(true);
+                        }}
+                      >
+                        <FaEdit />
+                      </button>
 
-                <button
-                  className="delete-btn"
-                  onClick={() => {
-                    setSelectedDecision(decision);
-                    setShowDelete(true);
-                  }}
-                >
-                  <FaTrash />
-                </button>
+                      <button
+                        className="delete-btn"
+                        onClick={() => {
+                          setSelectedDecision(decision);
+                          setShowDelete(true);
+                        }}
+                      >
+                        <FaTrash />
+                      </button>
 
-                <button className="vote-btn" onClick={() => navigate("/vote")}>
-                  <FaVoteYea />
-                </button>
+                      <button
+                        className="invite-btn"
+                        onClick={() => {
+                          setInviteTarget(decision);
+                          setShowInvite(true);
+                        }}
+                      >
+                        Invite
+                      </button>
+                    </>
+                  )}
 
-                <button className="analytics-btn">
-                  <FaChartBar />
-                </button>
-              </td>
+                  <button className="vote-btn" onClick={() => navigate("/vote") }>
+                    <FaVoteYea />
+                  </button>
+
+                  <button className="analytics-btn" onClick={() => navigate("/analytics") }>
+                    <FaChartBar />
+                  </button>
+                </td>
               </tr>
             ))
           )}
@@ -155,6 +178,10 @@ function DecisionList() {
           }}
           onSave={handleSave}
         />
+      )}
+
+      {showInvite && inviteTarget && (
+        <InviteModal closeModal={() => setShowInvite(false)} />
       )}
     </div>
   );

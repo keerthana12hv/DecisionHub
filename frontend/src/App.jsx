@@ -8,6 +8,8 @@ import VotingPage from "./pages/VotingPage";
 import Communities from "./pages/Communities";
 import DecisionList from "./pages/DecisionList";
 import Profile from "./pages/Profile";
+import Analytics from "./pages/Analytics";
+import Boards from "./pages/Boards";
 
 function App() {
   return (
@@ -22,6 +24,8 @@ function App() {
         <Route path="/vote" element={<VotingPage />} />
         <Route path="/communities" element={<Communities />} />
         <Route path="/profile" element={<Profile />} />
+        <Route path="/analytics" element={<Analytics />} />
+        <Route path="/boards" element={<Boards />} />
         <Route path="/decisions" element={<DecisionList />} />
       </Routes>
     </BrowserRouter>

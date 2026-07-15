@@ -1,9 +1,15 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { FaArrowLeft, FaPlusCircle } from "react-icons/fa";
+import InviteModal from "../components/InviteModal";
 import "../styles/CreateDecision.css";
 
 const STORAGE_KEY = "decisionhub-decisions";
+const USER_KEY = "decisionhub-current-user";
+
+function getCurrentUser() {
+  return localStorage.getItem(USER_KEY) || "Mythili";
+}
 
 function CreateDecision() {
   const navigate = useNavigate();
@@ -13,8 +19,10 @@ function CreateDecision() {
     category: "",
     visibility: "Public",
     deadline: "",
+    board: "",
     options: ["", ""],
   });
+  const [showInvite, setShowInvite] = useState(false);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -56,9 +64,12 @@ function CreateDecision() {
       category: form.category,
       visibility: form.visibility,
       deadline: form.deadline,
+      board: form.board,
       status: "Active",
       votes: 0,
+      creator: getCurrentUser(),
       userVoteOptionId: null,
+      invites: [],
       options: filledOptions.map((name, index) => ({
         id: index + 1,
         name,
@@ -116,6 +127,21 @@ function CreateDecision() {
             <option value="Public">Public</option>
             <option value="Private">Private</option>
           </select>
+
+          <label>Board / Community</label>
+          <input
+            type="text"
+            name="board"
+            placeholder="Board or community name (optional)"
+            value={form.board}
+            onChange={handleChange}
+          />
+
+          <div style={{ marginTop: 8 }}>
+            <button type="button" className="add-option-btn" onClick={() => setShowInvite(true)}>
+              Invite Members
+            </button>
+          </div>
 
           <label>Voting Deadline</label>
           <input type="date" name="deadline" value={form.deadline} onChange={handleChange} required />

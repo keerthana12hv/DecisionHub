@@ -1,11 +1,20 @@
 import { useEffect, useState } from "react";
 import "../styles/VotingPage.css";
+import EditDecisionModal from "../components/EditDecisionModal";
 
 const STORAGE_KEY = "decisionhub-decisions";
+const USER_KEY = "decisionhub-current-user";
+
+function getCurrentUser() {
+  return localStorage.getItem(USER_KEY) || "Mythili";
+}
 
 const VotingPage = () => {
   const [polls, setPolls] = useState([]);
   const [commentInputs, setCommentInputs] = useState({});
+  const currentUser = getCurrentUser();
+  const [showEdit, setShowEdit] = useState(false);
+  const [editDecision, setEditDecision] = useState(null);
 
   useEffect(() => {
     const storedDecisions = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
@@ -63,6 +72,17 @@ const VotingPage = () => {
     setCommentInputs((prev) => ({ ...prev, [pollId]: "" }));
   };
 
+  const handleSave = (updated) => {
+    setPolls((prevPolls) => {
+      const next = prevPolls.map((p) => (p.id === editDecision.id ? { ...p, ...updated } : p));
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+      return next;
+    });
+    setShowEdit(false);
+    setEditDecision(null);
+    alert("Decision updated");
+  };
+
   return (
     <div className="voting-container">
       <div className="polls-list">
@@ -73,12 +93,24 @@ const VotingPage = () => {
           </div>
         ) : (
           polls.map((poll) => {
-          const totalVotes = poll.options.reduce((sum, option) => sum + option.votes, 0);
+          const totalVotes = (poll.options || []).reduce((sum, option) => sum + (option.votes || 0), 0);
           const hasVoted = poll.userVoteOptionId != null;
+          const isOwner = poll.creator === currentUser;
+          const isActive = poll.status === "Active";
+          const isPublic = poll.visibility === "Public";
+          const invited = (poll.invites || []).includes(currentUser);
+          const canVote = !hasVoted && isActive && ((isPublic && !isOwner) || (!isPublic && (isOwner || invited)));
 
           return (
             <div key={poll.id} className="voting-card">
-              <h1>{poll.title}</h1>
+              <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+                <h1>{poll.title}</h1>
+                {poll.creator === currentUser && (
+                  <button className="edit-inline-btn" onClick={() => { setEditDecision(poll); setShowEdit(true); }}>
+                    Edit
+                  </button>
+                )}
+              </div>
               <p className="decision-description">{poll.description}</p>
 
               {poll.options.map((option) => {
@@ -97,10 +129,12 @@ const VotingPage = () => {
                       </div>
                     )}
 
-                    {!hasVoted && (
+                    {canVote ? (
                       <button onClick={() => handleVote(poll.id, option.id)} className="vote-btn-card">
                         Vote for {option.name}
                       </button>
+                    ) : (
+                      !hasVoted && <div style={{ color: "#9ca3af" }}>{isOwner ? "Can't vote your own decision" : isPublic ? "Voting unavailable" : "Private poll"}</div>
                     )}
 
                     {hasVoted && poll.userVoteOptionId === option.id && (
@@ -142,6 +176,13 @@ const VotingPage = () => {
           })
         )}
       </div>
+      {showEdit && editDecision && (
+        <EditDecisionModal
+          decision={editDecision}
+          onClose={() => { setShowEdit(false); setEditDecision(null); }}
+          onSave={handleSave}
+        />
+      )}
     </div>
   );
 };
