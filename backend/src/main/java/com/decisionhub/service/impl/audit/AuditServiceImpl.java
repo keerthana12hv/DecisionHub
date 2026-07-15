@@ -26,16 +26,19 @@ public class AuditServiceImpl implements AuditService {
         AuditActionType actionType = AuditActionType.ADMIN_ACTION;
         if (action != null) {
             switch (action) {
+                case "DECISION_CREATED":
                 case "OPTION_CREATED":
                 case "FACTOR_CREATED":
                 case "SCORE_CREATED":
                     actionType = AuditActionType.CREATE_DECISION;
                     break;
+                case "DECISION_UPDATED":
                 case "OPTION_UPDATED":
                 case "FACTOR_UPDATED":
                 case "SCORE_UPDATED":
                     actionType = AuditActionType.UPDATE_DECISION;
                     break;
+                case "DECISION_DELETED":
                 case "OPTION_DELETED":
                 case "FACTOR_DELETED":
                 case "SCORE_DELETED":
