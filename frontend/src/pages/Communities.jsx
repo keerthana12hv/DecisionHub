@@ -5,6 +5,13 @@ import { useAuth } from "../context/AuthContext";
 import { useToast } from "../components/Toast";
 import { FaUsers, FaUserPlus, FaArrowRight, FaTimes, FaGlobe, FaChevronRight, FaStar, FaPlusCircle, FaPaperPlane } from "react-icons/fa";
 import "../styles/Communities.css";
+import {
+  getCommunities,
+  createCommunity,
+  joinCommunity,
+  leaveCommunity,
+} from "../services/communityService";
+import api from "../services/api";
 
 const STORAGE_KEY = "decisionhub-communities";
 
@@ -24,82 +31,119 @@ function Communities() {
   // Feed post state
   const [feedInput, setFeedInput] = useState("");
 
-  useEffect(() => {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored) {
-      setCommunities(JSON.parse(stored));
-    }
-  }, []);
+ useEffect(() => {
+   loadCommunities();
+ }, []);
+
+ const loadCommunities = async () => {
+   try {
+     const data = await getCommunities();
+     setCommunities(data);
+   } catch (error) {
+     console.error(error);
+     addToast("Failed to load communities", "error");
+   }
+ };
 
   const persistCommunities = (nextComms) => {
     setCommunities(nextComms);
     localStorage.setItem(STORAGE_KEY, JSON.stringify(nextComms));
   };
 
-  const handleJoinToggle = (commId) => {
-    const nextComms = communities.map((c) => {
-      if (c.id === commId) {
-        const nextJoined = !c.joined;
-        addToast(
-          nextJoined ? `Joined '${c.name}' community!` : `Left '${c.name}' community.`,
-          "success"
-        );
-        return {
-          ...c,
-          joined: nextJoined,
-          members: nextJoined ? c.members + 1 : c.members - 1
-        };
-      }
-      return c;
-    });
+const handleJoinToggle = async (community) => {
+  try {
+    if (community.joined) {
+      await leaveCommunity(community.id);
 
-    persistCommunities(nextComms);
+      setCommunities(prev =>
+        prev.map(c =>
+          c.id === community.id
+            ? {
+                ...c,
+                joined: false,
+                memberCount: c.memberCount - 1
+              }
+            : c
+        )
+      );
 
-    // Update details panel if active
-    if (activeCommDetail && activeCommDetail.id === commId) {
-      setActiveCommDetail(nextComms.find(c => c.id === commId));
+      addToast("Left community successfully!", "success");
+
+    } else {
+      await joinCommunity(community.id);
+
+      setCommunities(prev =>
+        prev.map(c =>
+          c.id === community.id
+            ? {
+                ...c,
+                joined: true,
+                memberCount: c.memberCount + 1
+              }
+            : c
+        )
+      );
+
+      addToast("Joined community successfully!", "success");
     }
-  };
 
-  const handleCreateCommunity = (e) => {
-    e.preventDefault();
-    if (!newName || !newCategory) {
-      addToast("Please fill in required fields.", "error");
-      return;
-    }
+  } catch (error) {
+    console.error(error);
 
-    const bannerUrl = newBanner.trim() || "https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=600&auto=format&fit=crop&q=60";
+    addToast(
+      error.response?.data?.message ||
+      error.response?.data?.error ||
+      "Failed to update community",
+      "error"
+    );
+  }
+};
+ const handleCreateCommunity = async (e) => {
+   e.preventDefault();
+console.log("handleCreateCommunity called");
+   if (!newName || !newCategory) {
+     addToast("Please fill in required fields.", "error");
+     return;
 
-    const newComm = {
-      id: Date.now(),
-      name: newName,
-      category: newCategory,
-      members: 1,
-      joined: true,
-      admins: [user?.username || "Admin"],
-      banner: bannerUrl,
-      pinnedDecisions: [],
-      feed: [
-        {
-          id: Date.now(),
-          user: user?.username || "Admin",
-          text: `Welcome to the new '${newName}' community space! Let's make smart decisions together.`,
-          likes: 0,
-          reactions: {}
-        }
-      ]
-    };
+   }
 
-    const nextComms = [...communities, newComm];
-    persistCommunities(nextComms);
-    addToast(`Community '${newName}' created successfully!`, "success");
+   try {
+     const categoryMap = {
+       Technology: 1,
+       Education: 2,
+       Career: 3,
+       Business: 4,
+       Travel: 5,
+       Others: 6,
+     };
 
-    // Reset states
-    setNewName("");
-    setNewCategory("");
-    setNewBanner("");
-    setShowCreateModal(false);
-  };
+     await createCommunity({
+       name: newName,
+       slug: newName.toLowerCase().replace(/\s+/g, "-"),
+       description: "",
+       categoryId: categoryMap[newCategory],
+       visibility: "PUBLIC",
+     });
+
+     addToast("Community created successfully!", "success");
+
+     // Reload communities from backend
+     await loadCommunities();
+
+     // Reset form
+     setNewName("");
+     setNewCategory("");
+     setNewBanner("");
+     setShowCreateModal(false);
+
+   } catch (error) {
+     console.error(error);
+     addToast(
+       error.response?.data?.message || "Failed to create community",
+       "error"
+     );
+   }
+ };
 
   // Add post inside community feed
   const handlePostFeed = (e) => {
@@ -250,7 +294,7 @@ function Communities() {
                       <div className="comm-body">
                         <span className="category-tag">{community.category}</span>
                         <h2>{community.name}</h2>
-                        
+
                         <div className="comm-stats-row">
                           <FaUsers />
                           <span>{community.members} Members</span>
@@ -263,7 +307,7 @@ function Communities() {
 
                           <button
                             className={`btn-${community.joined ? "secondary" : "primary"} join-btn`}
-                            onClick={() => handleJoinToggle(community.id)}
+                            onClick={() => handleJoinToggle(community)}
                           >
                             {community.joined ? "Leave" : "Join"}
                           </button>
