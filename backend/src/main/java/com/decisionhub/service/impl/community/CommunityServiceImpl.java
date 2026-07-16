@@ -11,12 +11,15 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.decisionhub.dto.request.community.CreateCommunityRequest;
 import com.decisionhub.dto.request.community.UpdateCommunityRequest;
+import com.decisionhub.dto.response.community.CommunityJoinRequestResponse;
+import com.decisionhub.dto.response.community.CommunityMemberResponse;
 import com.decisionhub.dto.response.community.CommunityResponse;
 import com.decisionhub.entity.authentication.User;
 import com.decisionhub.entity.community.Category;
 import com.decisionhub.entity.community.Community;
 import com.decisionhub.entity.community.CommunityMember;
 import com.decisionhub.enums.community.CommunityMemberRole;
+import com.decisionhub.enums.community.CommunityVisibility;
 import com.decisionhub.enums.community.MembershipStatus;
 import com.decisionhub.mapper.community.CommunityMapper;
 import com.decisionhub.repository.authentication.UserRepository;
@@ -53,17 +56,14 @@ public class CommunityServiceImpl implements CommunityService {
     @Override
     public CommunityResponse createCommunity(CreateCommunityRequest request) {
 
-        // Changed to request.name()
         if (communityRepository.existsByName(request.name())) {
             throw new ResourceAlreadyExistsException("Community name already exists");
         }
 
-        // Changed to request.slug()
         if (communityRepository.existsBySlug(request.slug())) {
             throw new ResourceAlreadyExistsException("Community slug already exists");
         }
 
-        // Changed to request.categoryId()
         Category category = categoryRepository.findById(request.categoryId())
                 .orElseThrow(() ->
                         new ResourceNotFoundException("Category not found"));
@@ -71,12 +71,12 @@ public class CommunityServiceImpl implements CommunityService {
         User owner = getCurrentUser();
 
         Community community = new Community();
-        community.setName(request.name()); // Updated
-        community.setSlug(request.slug()); // Updated
-        community.setDescription(request.description()); // Updated
+        community.setName(request.name());
+        community.setSlug(request.slug());
+        community.setDescription(request.description());
         community.setCategory(category);
         community.setOwner(owner);
-        community.setVisibility(request.visibility()); // Updated
+        community.setVisibility(request.visibility());
         community.setMemberCount(1);
 
         community = communityRepository.save(community);
@@ -84,7 +84,7 @@ public class CommunityServiceImpl implements CommunityService {
         CommunityMember member = new CommunityMember();
         member.setCommunity(community);
         member.setUser(owner);
-        member.setRole(CommunityMemberRole.OWNER);
+        member.setRole(CommunityMemberRole.MODERATOR);
         member.setStatus(MembershipStatus.APPROVED);
         member.setJoinedAt(LocalDateTime.now());
 
@@ -129,31 +129,28 @@ public class CommunityServiceImpl implements CommunityService {
 
         User currentUser = getCurrentUser();
         if (!community.getOwner().getId().equals(currentUser.getId())) {
-            throw new UnauthorizedActionException("Only the community owner can update this community");
+            throw new UnauthorizedActionException("Only the community moderator can update this community");
         }
 
-        // Changed to request.categoryId()
         Category category = categoryRepository.findById(request.categoryId())
                 .orElseThrow(() ->
                         new ResourceNotFoundException("Category not found"));
 
-        // Changed to request.name()
         if (!community.getName().equals(request.name())
                 && communityRepository.existsByName(request.name())) {
             throw new ResourceAlreadyExistsException("Community name already exists");
         }
 
-        // Changed to request.slug()
         if (!community.getSlug().equals(request.slug())
                 && communityRepository.existsBySlug(request.slug())) {
             throw new ResourceAlreadyExistsException("Community slug already exists");
         }
 
-        community.setName(request.name()); // Updated
-        community.setSlug(request.slug()); // Updated
-        community.setDescription(request.description()); // Updated
+        community.setName(request.name());
+        community.setSlug(request.slug());
+        community.setDescription(request.description());
         community.setCategory(category);
-        community.setVisibility(request.visibility()); // Updated
+        community.setVisibility(request.visibility());
 
         community = communityRepository.save(community);
 
@@ -173,7 +170,7 @@ public class CommunityServiceImpl implements CommunityService {
 
         User currentUser = getCurrentUser();
         if (!community.getOwner().getId().equals(currentUser.getId())) {
-            throw new UnauthorizedActionException("Only the community owner can delete this community");
+            throw new UnauthorizedActionException("Only the community moderator can delete this community");
         }
 
         community.setDeletedAt(LocalDateTime.now());
@@ -203,9 +200,25 @@ public class CommunityServiceImpl implements CommunityService {
             
             if (existingMember.getStatus() == MembershipStatus.APPROVED) {
                 throw new BadRequestException("User is already a member");
-            } else if (existingMember.getStatus() == MembershipStatus.LEFT) {
-                existingMember.setStatus(MembershipStatus.APPROVED);
+            } 
+            if (existingMember.getStatus() == MembershipStatus.PENDING) {
+                throw new BadRequestException("Join request is already pending");
+            }
+            if (existingMember.getStatus() == MembershipStatus.REJECTED) {
+                existingMember.setStatus(MembershipStatus.PENDING);
                 existingMember.setJoinedAt(LocalDateTime.now());
+                communityMemberRepository.save(existingMember);
+                return;
+            }
+            if (existingMember.getStatus() == MembershipStatus.LEFT) {
+                existingMember.setJoinedAt(LocalDateTime.now());
+                if (community.getVisibility() == CommunityVisibility.PUBLIC) {
+                    existingMember.setStatus(MembershipStatus.APPROVED);
+                    community.setMemberCount(community.getMemberCount() + 1);
+                    communityRepository.save(community);
+                } else {
+                    existingMember.setStatus(MembershipStatus.PENDING);
+                }
                 communityMemberRepository.save(existingMember);
             }
         } else {
@@ -213,17 +226,17 @@ public class CommunityServiceImpl implements CommunityService {
             newMember.setCommunity(community);
             newMember.setUser(user);
             newMember.setRole(CommunityMemberRole.MEMBER);
-            newMember.setStatus(MembershipStatus.APPROVED);
             newMember.setJoinedAt(LocalDateTime.now());
-            
-            communityMemberRepository.save(newMember);
+            if (community.getVisibility() == CommunityVisibility.PUBLIC) {
+                newMember.setStatus(MembershipStatus.APPROVED);
+                communityMemberRepository.save(newMember);
+                community.setMemberCount(community.getMemberCount() + 1);
+                communityRepository.save(community);
+            } else {
+                newMember.setStatus(MembershipStatus.PENDING);
+                communityMemberRepository.save(newMember);
+            }
         }
-
-        community.setMemberCount(
-                community.getMemberCount() + 1
-        );
-
-        communityRepository.save(community);
     }
 
     @Override
@@ -248,9 +261,9 @@ public class CommunityServiceImpl implements CommunityService {
             throw new BadRequestException("User has already left the community");
         }
 
-        if (member.getRole() == CommunityMemberRole.OWNER) {
+        if (member.getRole() == CommunityMemberRole.MODERATOR) {
             throw new BadRequestException(
-                    "Community owner cannot leave the community"
+                    "Community moderator cannot leave the community"
             );
         }
 
@@ -262,6 +275,183 @@ public class CommunityServiceImpl implements CommunityService {
                 Math.max(0, community.getMemberCount() - 1)
         );
 
+        communityRepository.save(community);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<CommunityResponse> getMyCommunities() {
+
+        User currentUser = getCurrentUser();
+
+        return communityMemberRepository.findByUser(currentUser)
+                .stream()
+                .filter(member -> member.getStatus() == MembershipStatus.APPROVED)
+                .map(CommunityMember::getCommunity)
+                .filter(community -> community.getDeletedAt() == null)
+                .map(CommunityMapper::toResponse)
+                .toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<CommunityResponse> getModeratingCommunities() {
+        User currentUser = getCurrentUser();
+
+        return communityRepository.findByOwner(currentUser)
+                .stream()
+                .filter(community -> community.getDeletedAt() == null)
+                .map(CommunityMapper::toResponse)
+                .toList();
+    }
+
+    @Override
+    public List<CommunityJoinRequestResponse> getPendingRequests(Long communityId) {
+        Community community = communityRepository.findById(communityId)
+                .orElseThrow(() -> new ResourceNotFoundException("Community not found"));
+
+        if (community.getDeletedAt() != null) {
+            throw new ResourceNotFoundException("Community not found");
+        }
+
+        User currentUser = getCurrentUser();
+        if (!community.getOwner().getId().equals(currentUser.getId())) {
+            throw new UnauthorizedActionException("Only the community moderator can view pending requests");
+        }
+
+        return communityMemberRepository.findByCommunityAndStatus(community, MembershipStatus.PENDING)
+                .stream()
+                .map(member -> new CommunityJoinRequestResponse(
+                        member.getId(),
+                        member.getUser().getId(),
+                        member.getUser().getUsername(),
+                        member.getUser().getEmail(),
+                        member.getJoinedAt()
+                ))
+                .toList();
+    }
+
+    @Override
+    public void approveJoinRequest(Long communityId, Long memberId) {
+        Community community = communityRepository.findById(communityId)
+                .orElseThrow(() -> new ResourceNotFoundException("Community not found"));
+
+        if (community.getDeletedAt() != null) {
+            throw new ResourceNotFoundException("Community not found");
+        }
+
+        User currentUser = getCurrentUser();
+        if (!community.getOwner().getId().equals(currentUser.getId())) {
+            throw new UnauthorizedActionException("Only the community moderator can approve requests");
+        }
+
+        CommunityMember member = communityMemberRepository.findByIdAndCommunity(memberId, community)
+                .orElseThrow(() -> new ResourceNotFoundException("Join request not found"));
+
+        if (member.getStatus() != MembershipStatus.PENDING) {
+            throw new BadRequestException("Join request is not pending");
+        }
+
+        member.setStatus(MembershipStatus.APPROVED);
+        member.setJoinedAt(LocalDateTime.now());
+        communityMemberRepository.save(member);
+
+        community.setMemberCount(community.getMemberCount() + 1);
+        communityRepository.save(community);
+    }
+
+    @Override
+    public void rejectJoinRequest(Long communityId, Long memberId) {
+        Community community = communityRepository.findById(communityId)
+                .orElseThrow(() -> new ResourceNotFoundException("Community not found"));
+
+        if (community.getDeletedAt() != null) {
+            throw new ResourceNotFoundException("Community not found");
+        }
+
+        User currentUser = getCurrentUser();
+        if (!community.getOwner().getId().equals(currentUser.getId())) {
+            throw new UnauthorizedActionException("Only the community moderator can reject requests");
+        }
+
+        CommunityMember member = communityMemberRepository.findByIdAndCommunity(memberId, community)
+                .orElseThrow(() -> new ResourceNotFoundException("Join request not found"));
+
+        if (member.getStatus() != MembershipStatus.PENDING) {
+            throw new BadRequestException("Join request is not pending");
+        }
+
+        member.setStatus(MembershipStatus.REJECTED);
+        communityMemberRepository.save(member);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<CommunityMemberResponse> getCommunityMembers(Long communityId) {
+        Community community = communityRepository.findById(communityId)
+                .orElseThrow(() -> new ResourceNotFoundException("Community not found"));
+
+        if (community.getDeletedAt() != null) {
+            throw new ResourceNotFoundException("Community not found");
+        }
+
+        User currentUser = getCurrentUser();
+        CommunityMember currentMember = communityMemberRepository
+                .findByCommunityAndUser(community, currentUser)
+                .orElseThrow(() -> new UnauthorizedActionException("You are not a member of this community"));
+
+        if (currentMember.getStatus() != MembershipStatus.APPROVED) {
+            throw new UnauthorizedActionException("You must be an approved member to view the member list");
+        }
+
+        return communityMemberRepository.findByCommunityAndStatus(community, MembershipStatus.APPROVED)
+                .stream()
+                .map(member -> new CommunityMemberResponse(
+                        member.getId(),
+                        member.getUser().getId(),
+                        member.getUser().getUsername(),
+                        member.getUser().getEmail(),
+                        member.getRole(),
+                        member.getStatus(),
+                        member.getJoinedAt()
+                ))
+                .toList();
+    }
+
+    @Override
+    public void removeMember(Long communityId, Long memberId) {
+        Community community = communityRepository.findById(communityId)
+                .orElseThrow(() -> new ResourceNotFoundException("Community not found"));
+
+        if (community.getDeletedAt() != null) {
+            throw new ResourceNotFoundException("Community not found");
+        }
+
+        User currentUser = getCurrentUser();
+        if (!community.getOwner().getId().equals(currentUser.getId())) {
+            throw new UnauthorizedActionException("Only the community moderator can remove members");
+        }
+
+        CommunityMember member = communityMemberRepository.findByIdAndCommunity(memberId, community)
+                .orElseThrow(() -> new ResourceNotFoundException("Membership not found"));
+
+        if (member.getRole() == CommunityMemberRole.MODERATOR) {
+            throw new BadRequestException("Cannot remove the community moderator");
+        }
+
+        if (member.getStatus() == MembershipStatus.LEFT) {
+            throw new BadRequestException("User has already left the community");
+        }
+
+        // 👇 NEW CHECK: Ensure only approved members can be removed
+        if (member.getStatus() != MembershipStatus.APPROVED) {
+            throw new BadRequestException("Only approved members can be removed");
+        }
+
+        member.setStatus(MembershipStatus.LEFT);
+        communityMemberRepository.save(member);
+
+        community.setMemberCount(Math.max(0, community.getMemberCount() - 1));
         communityRepository.save(community);
     }
 
