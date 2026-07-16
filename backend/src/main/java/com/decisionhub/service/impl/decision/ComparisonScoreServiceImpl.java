@@ -213,6 +213,12 @@ public class ComparisonScoreServiceImpl implements ComparisonScoreService {
             throw new UnauthorizedActionException("Not authorized to view decision details");
         }
 
+        // TODO: Future Sprint 7 (Voting/Score Anonymity rules)
+        // Future rules:
+        // - owner-only visibility: only the decision creator/owner can view individual scores.
+        // - anonymous visibility: score submitters are anonymized (user details hidden/stripped).
+        // - admin visibility: administrators can always see all scores and submitters.
+
         return comparisonScoreRepository.findByOptionDecisionId(decisionId).stream()
                 .map(comparisonMapper::toResponse)
                 .collect(Collectors.toList());
