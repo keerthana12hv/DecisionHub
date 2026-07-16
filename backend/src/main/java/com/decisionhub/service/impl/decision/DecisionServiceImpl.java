@@ -81,7 +81,11 @@ public class DecisionServiceImpl implements DecisionService {
         decision.setCreator(currentUser);
         decision.setCommunity(community);
         decision.setStatus(DecisionStatus.DRAFT);
-        decision.setVisibility(request.isPublic() ? DecisionVisibility.PUBLIC : DecisionVisibility.PRIVATE);
+        if (request.communityId() == null) {
+            decision.setVisibility(DecisionVisibility.PUBLIC);
+        } else {
+            decision.setVisibility(DecisionVisibility.COMMUNITY);
+        }
         decision.setCreatedAt(LocalDateTime.now());
 
         // 4. Save

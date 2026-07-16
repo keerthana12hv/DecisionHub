@@ -4,8 +4,6 @@ import com.decisionhub.enums.decision.AnonymityType;
 import com.decisionhub.enums.decision.VotingType;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotEmpty;
-import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
 import java.time.LocalDateTime;
@@ -18,8 +16,6 @@ public record DecisionRequest(
     String title,
 
     String description,
-
-    Long categoryId,
 
     Long communityId,
 
@@ -36,4 +32,22 @@ public record DecisionRequest(
     List<@Valid OptionCreateDto> options,
 
     List<ComparisonFactorRequest> factors
-) {}
+) {
+    // Overloaded constructor to preserve backward compatibility (ignores categoryId)
+    @Deprecated
+    public DecisionRequest(
+        String title,
+        String description,
+        Long categoryId,
+        Long communityId,
+        boolean isPublic,
+        VotingType votingType,
+        AnonymityType anonymityType,
+        LocalDateTime deadline,
+        Set<String> tags,
+        List<OptionCreateDto> options,
+        List<ComparisonFactorRequest> factors
+    ) {
+        this(title, description, communityId, isPublic, votingType, anonymityType, deadline, tags, options, factors);
+    }
+}
