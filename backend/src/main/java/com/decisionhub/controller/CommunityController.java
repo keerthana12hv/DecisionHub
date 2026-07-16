@@ -8,6 +8,8 @@ import org.springframework.web.bind.annotation.*;
 
 import com.decisionhub.dto.request.community.CreateCommunityRequest;
 import com.decisionhub.dto.request.community.UpdateCommunityRequest;
+import com.decisionhub.dto.response.community.CommunityJoinRequestResponse;
+import com.decisionhub.dto.response.community.CommunityMemberResponse;
 import com.decisionhub.dto.response.community.CommunityResponse;
 import com.decisionhub.service.interfaces.community.CommunityService;
 
@@ -47,6 +49,19 @@ public class CommunityController {
 
         return ResponseEntity.ok(
                 communityService.getCommunityById(id)
+        );
+    }
+
+    @GetMapping("/my")
+    public ResponseEntity<List<CommunityResponse>> getMyCommunities() {
+        return ResponseEntity.ok(communityService.getMyCommunities());
+    }
+
+    // 👇 Added your missing moderating endpoint here!
+    @GetMapping("/moderating")
+    public ResponseEntity<List<CommunityResponse>> getModeratingCommunities() {
+        return ResponseEntity.ok(
+                communityService.getModeratingCommunities()
         );
     }
 
@@ -91,5 +106,57 @@ public class CommunityController {
         return ResponseEntity.ok(
                 "Left community successfully"
         );
+    }
+
+    // Moderator Request Endpoints
+
+    @GetMapping("/{id}/requests")
+    public ResponseEntity<List<CommunityJoinRequestResponse>> getPendingRequests(
+            @PathVariable Long id) {
+
+        return ResponseEntity.ok(
+                communityService.getPendingRequests(id)
+        );
+    }
+
+    @PutMapping("/{id}/requests/{memberId}/approve")
+    public ResponseEntity<String> approveJoinRequest(
+            @PathVariable Long id,
+            @PathVariable Long memberId) {
+
+        communityService.approveJoinRequest(id, memberId);
+
+        return ResponseEntity.ok("Join request approved");
+    }
+
+    @PutMapping("/{id}/requests/{memberId}/reject")
+    public ResponseEntity<String> rejectJoinRequest(
+            @PathVariable Long id,
+            @PathVariable Long memberId) {
+
+        communityService.rejectJoinRequest(id, memberId);
+
+        return ResponseEntity.ok("Join request rejected");
+    }
+
+    // Final Phase 2 Features (View Members & Remove Member)
+
+    @GetMapping("/{id}/members")
+    public ResponseEntity<List<CommunityMemberResponse>> getCommunityMembers(
+            @PathVariable Long id) {
+
+        return ResponseEntity.ok(
+                communityService.getCommunityMembers(id)
+        );
+    }
+
+    @DeleteMapping("/{id}/members/{memberId}")
+    public ResponseEntity<String> removeMember(
+            @PathVariable Long id,
+            @PathVariable Long memberId) {
+
+        communityService.removeMember(id, memberId);
+
+        return ResponseEntity.ok("Member removed successfully");
     }
 }

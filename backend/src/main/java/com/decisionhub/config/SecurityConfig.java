@@ -2,6 +2,7 @@ package com.decisionhub.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
@@ -68,28 +69,30 @@ public class SecurityConfig {
 
                 .authorizeHttpRequests(auth -> auth
 
-                	    .requestMatchers(
-                	            "/api/auth/register",
-                	            "/api/auth/login",
-                	            "/api/auth/forgot-password",
-                	            "/api/auth/reset-password",
-                	            "/api/auth/oauth2/**",
-                	            "/swagger-ui/**",
-                	            "/v3/api-docs/**"
-                	    ).permitAll()
+                        .requestMatchers(
+                                "/api/auth/register",
+                                "/api/auth/login",
+                                "/api/auth/forgot-password",
+                                "/api/auth/reset-password",
+                                "/api/auth/oauth2/**",
+                                "/swagger-ui/**",
+                                "/v3/api-docs/**"
+                        ).permitAll()
 
-                	    // Admin only
-                	    .requestMatchers("/api/admin/**")
-                	    .hasRole("ADMIN")
+                        // 🔒 RESTRICTED: Only ADMINs can Create, Update, or Delete Categories
+                        .requestMatchers(HttpMethod.POST, "/api/categories/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.PUT, "/api/categories/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.DELETE, "/api/categories/**").hasRole("ADMIN")
 
-                	    // USER or ADMIN
-                	    .requestMatchers("/api/user/**")
-                	    .hasAnyRole("USER", "ADMIN")
+                        // 📖 OPEN: Any authenticated user can View Categories
+                        .requestMatchers(HttpMethod.GET, "/api/categories/**").authenticated()
 
-                	    // All other APIs require authentication
-                	    .anyRequest()
-                	    .authenticated()
-                	)
+                        // USER or ADMIN
+                        .requestMatchers("/api/user/**").hasAnyRole("USER", "ADMIN")
+
+                        // All other APIs require authentication
+                        .anyRequest().authenticated()
+                )
 
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 
