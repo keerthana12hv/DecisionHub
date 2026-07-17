@@ -11,6 +11,7 @@ import com.decisionhub.dto.request.community.UpdateCommunityRequest;
 import com.decisionhub.dto.response.community.CommunityJoinRequestResponse;
 import com.decisionhub.dto.response.community.CommunityMemberResponse;
 import com.decisionhub.dto.response.community.CommunityResponse;
+import com.decisionhub.dto.response.community.JoinCommunityResponse; // 👈 NEW IMPORT
 import com.decisionhub.service.interfaces.community.CommunityService;
 
 import jakarta.validation.Valid;
@@ -86,14 +87,13 @@ public class CommunityController {
         );
     }
 
+    // ✅ FIXED: Now returns the professional JSON DTO
     @PostMapping("/{id}/join")
-    public ResponseEntity<String> joinCommunity(
+    public ResponseEntity<JoinCommunityResponse> joinCommunity(
             @PathVariable Long id) {
 
-        communityService.joinCommunity(id);
-
         return ResponseEntity.ok(
-                "Joined community successfully"
+                communityService.joinCommunity(id)
         );
     }
 
