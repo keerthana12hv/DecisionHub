@@ -29,7 +29,7 @@ import java.util.List;
  * REST controller exposing endpoints for managing comparison factors.
  */
 @RestController
-@RequestMapping("/decisions/{decisionId}/factors")
+@RequestMapping("/api/decisions/{decisionId}/factors")
 @RequiredArgsConstructor
 @Tag(name = "Comparison Factor", description = "Decision Comparison Factors Management Endpoints")
 @Slf4j

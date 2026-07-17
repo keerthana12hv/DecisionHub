@@ -52,8 +52,10 @@ This document records the alignment of the DecisionHub backend Sprint 6 (Decisio
   * **anonymous visibility**: score submitters are anonymized (user details stripped).
   * **admin visibility**: global administrators can view all details.
 
-### PATCH 9: API Path Consistency Choice
-* To prevent breaking other teammate branches or existing frontend APIs, we have preserved the `/decisions/{decisionId}/...` path mappings on option, factor, score, and ranking controllers. This minimizes merge conflicts and maintains strict backward compatibility.
+### PATCH 9: Route Prefix Standardization
+* **Standardized REST Base Path Prefix**: Changed class-level `@RequestMapping` on `DecisionOptionController`, `ComparisonFactorController`, `ComparisonScoreController`, and `RankingController` from `/decisions/...` to `/api/decisions/...`.
+* **Alignment**: This maps all decision endpoints consistently under the `/api` prefix, matching other sub-modules and streamlining integration with Swagger, Postman, and frontend clients.
+* **Test Updates**: Standardized all MockMvc paths across unit and integration tests to prepend the `/api` prefix, verifying route correctness.
 
 ### PATCH 10: Entity Cascading and Orphan Removal
 * Added `cascade = CascadeType.ALL` and `orphanRemoval = true` mappings in the `Decision` entity for its lists of options and factors.

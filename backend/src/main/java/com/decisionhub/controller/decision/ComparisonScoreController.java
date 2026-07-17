@@ -29,7 +29,7 @@ import java.util.List;
  * REST controller exposing endpoints for managing comparison scores.
  */
 @RestController
-@RequestMapping("/decisions/{decisionId}/scores")
+@RequestMapping("/api/decisions/{decisionId}/scores")
 @RequiredArgsConstructor
 @Tag(name = "Comparison Score", description = "Decision Comparison Scores Management Endpoints")
 @Slf4j

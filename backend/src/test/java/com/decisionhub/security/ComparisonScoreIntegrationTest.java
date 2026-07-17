@@ -162,7 +162,7 @@ class ComparisonScoreIntegrationTest {
 
         // 4. Create a default Comparison Factor via REST API
         ComparisonFactorRequest factorRequest = new ComparisonFactorRequest("Performance", "Execution speed");
-        String factorResponseJson = mockMvc.perform(post("/decisions/{decisionId}/factors", decisionId)
+        String factorResponseJson = mockMvc.perform(post("/api/decisions/{decisionId}/factors", decisionId)
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + creatorToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(factorRequest)))
@@ -176,7 +176,7 @@ class ComparisonScoreIntegrationTest {
     void testSubmitScore_BoardNotActive_ReturnsBadRequest() throws Exception {
         ComparisonScoreRequest request = new ComparisonScoreRequest(optionId, factorId, 80, "Validation check");
 
-        mockMvc.perform(post("/decisions/{decisionId}/scores", decisionId)
+        mockMvc.perform(post("/api/decisions/{decisionId}/scores", decisionId)
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + creatorToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
@@ -192,7 +192,7 @@ class ComparisonScoreIntegrationTest {
 
         // 2. Submit score (Create)
         ComparisonScoreRequest request = new ComparisonScoreRequest(optionId, factorId, 85, "Excellent startup");
-        mockMvc.perform(post("/decisions/{decisionId}/scores", decisionId)
+        mockMvc.perform(post("/api/decisions/{decisionId}/scores", decisionId)
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + creatorToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
@@ -206,7 +206,7 @@ class ComparisonScoreIntegrationTest {
 
         // 3. Submit score again (Update via POST/upsert)
         ComparisonScoreRequest updateRequest = new ComparisonScoreRequest(optionId, factorId, 95, "Updated higher score");
-        mockMvc.perform(post("/decisions/{decisionId}/scores", decisionId)
+        mockMvc.perform(post("/api/decisions/{decisionId}/scores", decisionId)
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + creatorToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(updateRequest)))
@@ -229,7 +229,7 @@ class ComparisonScoreIntegrationTest {
         // Score exceeds 100
         ComparisonScoreRequest request = new ComparisonScoreRequest(optionId, factorId, 120, "Out of bounds");
 
-        mockMvc.perform(post("/decisions/{decisionId}/scores", decisionId)
+        mockMvc.perform(post("/api/decisions/{decisionId}/scores", decisionId)
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + creatorToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
@@ -245,14 +245,14 @@ class ComparisonScoreIntegrationTest {
 
         // Submit score
         ComparisonScoreRequest request = new ComparisonScoreRequest(optionId, factorId, 85, "Great");
-        mockMvc.perform(post("/decisions/{decisionId}/scores", decisionId)
+        mockMvc.perform(post("/api/decisions/{decisionId}/scores", decisionId)
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + creatorToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk());
 
         // Fetch scores
-        mockMvc.perform(get("/decisions/{decisionId}/scores", decisionId)
+        mockMvc.perform(get("/api/decisions/{decisionId}/scores", decisionId)
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + creatorToken))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].score").value(85));
@@ -267,14 +267,14 @@ class ComparisonScoreIntegrationTest {
 
         // Submit score
         ComparisonScoreRequest request = new ComparisonScoreRequest(optionId, factorId, 85, "Great");
-        mockMvc.perform(post("/decisions/{decisionId}/scores", decisionId)
+        mockMvc.perform(post("/api/decisions/{decisionId}/scores", decisionId)
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + creatorToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk());
 
         // Delete score
-        mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete("/decisions/{decisionId}/scores/{optionId}/{factorId}", decisionId, optionId, factorId)
+        mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete("/api/decisions/{decisionId}/scores/{optionId}/{factorId}", decisionId, optionId, factorId)
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + creatorToken))
                 .andExpect(status().isNoContent());
 
@@ -296,7 +296,7 @@ class ComparisonScoreIntegrationTest {
 
         // Submit score (Create)
         ComparisonScoreRequest request = new ComparisonScoreRequest(optionId, factorId, 80, "Initial");
-        mockMvc.perform(post("/decisions/{decisionId}/scores", decisionId)
+        mockMvc.perform(post("/api/decisions/{decisionId}/scores", decisionId)
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + creatorToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
@@ -339,14 +339,14 @@ class ComparisonScoreIntegrationTest {
 
         // Submit score
         ComparisonScoreRequest request = new ComparisonScoreRequest(optionId, factorId, 85, "Great");
-        mockMvc.perform(post("/decisions/{decisionId}/scores", decisionId)
+        mockMvc.perform(post("/api/decisions/{decisionId}/scores", decisionId)
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + creatorToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk());
 
         // Get single score
-        mockMvc.perform(get("/decisions/{decisionId}/scores/{optionId}/{factorId}", decisionId, optionId, factorId)
+        mockMvc.perform(get("/api/decisions/{decisionId}/scores/{optionId}/{factorId}", decisionId, optionId, factorId)
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + creatorToken))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.score").value(85))
@@ -355,7 +355,7 @@ class ComparisonScoreIntegrationTest {
 
     @Test
     void testGetScore_NotFound() throws Exception {
-        mockMvc.perform(get("/decisions/{decisionId}/scores/{optionId}/{factorId}", decisionId, optionId, 999L)
+        mockMvc.perform(get("/api/decisions/{decisionId}/scores/{optionId}/{factorId}", decisionId, optionId, 999L)
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + creatorToken))
                 .andExpect(status().isNotFound());
     }
