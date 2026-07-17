@@ -2,6 +2,9 @@ $kind: http-request
 name: list communities
 url: http://localhost:8080/api/communities
 method: GET
+body:
+  type: json
+  content: ""
 auth:
   type: bearer
   credentials:

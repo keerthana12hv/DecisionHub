@@ -1,6 +1,10 @@
 $kind: http-request
-url: http://localhost:8080/api/communities/1
+name: Delete community
+url: http://localhost:8080/api/communities/3
 method: DELETE
+body:
+  type: json
+  content: ""
 auth:
   type: bearer
   credentials:

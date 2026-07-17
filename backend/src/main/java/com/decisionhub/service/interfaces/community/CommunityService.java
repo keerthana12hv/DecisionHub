@@ -7,6 +7,7 @@ import com.decisionhub.dto.request.community.UpdateCommunityRequest;
 import com.decisionhub.dto.response.community.CommunityJoinRequestResponse;
 import com.decisionhub.dto.response.community.CommunityMemberResponse;
 import com.decisionhub.dto.response.community.CommunityResponse;
+import com.decisionhub.dto.response.community.JoinCommunityResponse; // 👈 NEW IMPORT
 
 public interface CommunityService {
 
@@ -18,7 +19,7 @@ public interface CommunityService {
 
     List<CommunityResponse> getMyCommunities();
 
-    // 👇 NEW: Dashboard endpoint for the moderator
+    // Dashboard endpoint for the moderator
     List<CommunityResponse> getModeratingCommunities();
 
     CommunityResponse updateCommunity(
@@ -28,7 +29,8 @@ public interface CommunityService {
 
     void deleteCommunity(Long communityId);
 
-    void joinCommunity(Long communityId);
+    // ✅ FIXED: Now returns the professional JSON DTO
+    JoinCommunityResponse joinCommunity(Long communityId);
 
     void leaveCommunity(Long communityId);
 

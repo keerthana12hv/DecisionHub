@@ -1,7 +1,10 @@
 $kind: http-request
 name: leave community
-url: http://localhost:8080/api/communities/1/leave
+url: http://localhost:8080/api/communities/3/leave
 method: POST
+body:
+  type: json
+  content: ""
 auth:
   type: bearer
   credentials:

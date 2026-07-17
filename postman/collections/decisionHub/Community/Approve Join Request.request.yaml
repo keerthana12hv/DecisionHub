@@ -1,4 +1,9 @@
 $kind: http-request
-url: ""
-method: GET
+name: Approve Join Request
+url: http://localhost:8080/api/communities/3/requests/1/accept
+method: PUT
+auth:
+  type: bearer
+  credentials:
+    token: "{{authToken}}"
 order: 2795508655459289

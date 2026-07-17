@@ -14,6 +14,7 @@ import com.decisionhub.dto.request.community.UpdateCommunityRequest;
 import com.decisionhub.dto.response.community.CommunityJoinRequestResponse;
 import com.decisionhub.dto.response.community.CommunityMemberResponse;
 import com.decisionhub.dto.response.community.CommunityResponse;
+import com.decisionhub.dto.response.community.JoinCommunityResponse; // 👈 NEW IMPORT
 import com.decisionhub.entity.authentication.User;
 import com.decisionhub.entity.community.Category;
 import com.decisionhub.entity.community.Community;
@@ -179,8 +180,9 @@ public class CommunityServiceImpl implements CommunityService {
         communityRepository.save(community);
     }
 
+    // ✅ FIXED: Returns the JoinCommunityResponse DTO
     @Override
-    public void joinCommunity(Long communityId) {
+    public JoinCommunityResponse joinCommunity(Long communityId) {
 
         Community community = communityRepository.findById(communityId)
                 .orElseThrow(() ->
@@ -208,18 +210,23 @@ public class CommunityServiceImpl implements CommunityService {
                 existingMember.setStatus(MembershipStatus.PENDING);
                 existingMember.setJoinedAt(LocalDateTime.now());
                 communityMemberRepository.save(existingMember);
-                return;
+                return new JoinCommunityResponse("Join request sent successfully", "PENDING");
             }
             if (existingMember.getStatus() == MembershipStatus.LEFT) {
                 existingMember.setJoinedAt(LocalDateTime.now());
                 if (community.getVisibility() == CommunityVisibility.PUBLIC) {
                     existingMember.setStatus(MembershipStatus.APPROVED);
+                    
+                    communityMemberRepository.save(existingMember);
+                    
                     community.setMemberCount(community.getMemberCount() + 1);
                     communityRepository.save(community);
+                    return new JoinCommunityResponse("Joined community successfully", "APPROVED");
                 } else {
                     existingMember.setStatus(MembershipStatus.PENDING);
+                    communityMemberRepository.save(existingMember);
+                    return new JoinCommunityResponse("Join request sent successfully", "PENDING");
                 }
-                communityMemberRepository.save(existingMember);
             }
         } else {
             CommunityMember newMember = new CommunityMember();
@@ -227,16 +234,21 @@ public class CommunityServiceImpl implements CommunityService {
             newMember.setUser(user);
             newMember.setRole(CommunityMemberRole.MEMBER);
             newMember.setJoinedAt(LocalDateTime.now());
+            
             if (community.getVisibility() == CommunityVisibility.PUBLIC) {
                 newMember.setStatus(MembershipStatus.APPROVED);
                 communityMemberRepository.save(newMember);
                 community.setMemberCount(community.getMemberCount() + 1);
                 communityRepository.save(community);
+                return new JoinCommunityResponse("Joined community successfully", "APPROVED");
             } else {
                 newMember.setStatus(MembershipStatus.PENDING);
                 communityMemberRepository.save(newMember);
+                return new JoinCommunityResponse("Join request sent successfully", "PENDING");
             }
         }
+        
+        throw new IllegalStateException("Unexpected membership state.");
     }
 
     @Override
@@ -443,7 +455,6 @@ public class CommunityServiceImpl implements CommunityService {
             throw new BadRequestException("User has already left the community");
         }
 
-        // 👇 NEW CHECK: Ensure only approved members can be removed
         if (member.getStatus() != MembershipStatus.APPROVED) {
             throw new BadRequestException("Only approved members can be removed");
         }
