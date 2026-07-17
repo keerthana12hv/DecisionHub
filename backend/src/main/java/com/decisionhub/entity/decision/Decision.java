@@ -8,6 +8,7 @@ import com.decisionhub.entity.community.Community;
 import com.decisionhub.enums.decision.DecisionStatus;
 import com.decisionhub.enums.decision.DecisionVisibility;
 
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -68,9 +69,9 @@ public class Decision {
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
-    @OneToMany(mappedBy = "decision", fetch = FetchType.LAZY)
+    @OneToMany(mappedBy = "decision", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
     private List<DecisionOption> options;
 
-    @OneToMany(mappedBy = "decision", fetch = FetchType.LAZY)
+    @OneToMany(mappedBy = "decision", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
     private List<ComparisonFactor> comparisonFactors;
 }

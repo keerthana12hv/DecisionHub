@@ -2,7 +2,7 @@
 
 This document records the alignment of the DecisionHub backend Sprint 6 (Decision CRUD) implementation with the mentor's functional expectations before starting Sprint 7 (Voting Module).
 
-## 1. Already Complete (No Action Needed)
+## 1. Already Complete & Verified (No Action Needed)
 
 * **Decision CRUD**: Comprehensive CRUD operations exist for Decisions (`DecisionController`).
 * **Standalone Decision Creation**: Decisions can be created without a community affiliation (`communityId == null`).
@@ -15,6 +15,13 @@ This document records the alignment of the DecisionHub backend Sprint 6 (Decisio
 * **Community Creation Authorization**: Any authenticated user can create a community. The creator is automatically assigned the `OWNER` role, acting as the community moderator.
 
 ## 2. Patches Applied
+
+### PATCH 1: Added Option Read (GET) Endpoints
+* **Problem**: The Decision Option module was missing Read endpoints (GET all and GET single option), making the CRUD API incomplete.
+* **Solution**: Exposed:
+  * `GET /decisions/{decisionId}/options`
+  * `GET /decisions/{decisionId}/options/{optionId}`
+  * Implemented corresponding interfaces in `DecisionOptionService` and logic in `DecisionOptionServiceImpl`. Added security checks to ensure the requester has permission to view the parent decision.
 
 ### PATCH 2: Decision Visibility Enum
 * Added the `COMMUNITY` level to the `DecisionVisibility` enum to properly support:
@@ -48,7 +55,23 @@ This document records the alignment of the DecisionHub backend Sprint 6 (Decisio
 ### PATCH 9: API Path Consistency Choice
 * To prevent breaking other teammate branches or existing frontend APIs, we have preserved the `/decisions/{decisionId}/...` path mappings on option, factor, score, and ranking controllers. This minimizes merge conflicts and maintains strict backward compatibility.
 
+### PATCH 10: Entity Cascading and Orphan Removal
+* Added `cascade = CascadeType.ALL` and `orphanRemoval = true` mappings in the `Decision` entity for its lists of options and factors.
+* Added `cascade = CascadeType.ALL` and `orphanRemoval = true` mapping in `DecisionOption` and `ComparisonFactor` for `comparisonScores` to prevent database constraint violations when options or factors are deleted.
+
+### PATCH 11: Validation Exception Handlers
+* Added exception handlers in `GlobalExceptionHandler` to translate `HttpMessageNotReadableException` (JSON/Enum deserialization errors) and `ConstraintViolationException` into clean HTTP 400 Bad Request responses instead of leaking internal HTTP 500 errors.
+
 ## 3. Future Sprint 7 (Voting Module) & Beyond
 * **Voting Engine**: To be implemented during Sprint 7.
 * **Invitation System & Private ACL**: To be implemented when private sharing features are scheduled.
 * **Anonymity Processing**: To be implemented when anonymous participation behavior is fully detailed.
+
+## 4. Full Verification Checklist
+* **Decisions**: `POST`, `GET`, `PUT`, `DELETE` $\rightarrow$ ✅ Verified & Checked
+* **Options**: `POST`, `GET`, `PUT`, `DELETE` $\rightarrow$ ✅ Verified & Checked
+* **Factors**: `POST`, `GET`, `PUT`, `DELETE` $\rightarrow$ ✅ Verified & Checked
+* **Scores**: `POST` (Upsert), `GET`, `DELETE` $\rightarrow$ ✅ Verified & Checked
+* **Ranking**: stateless computation and stable tie-breaker sorting $\rightarrow$ ✅ Verified & Checked
+* **Authorization**: view permission checks, creator edit enforcement $\rightarrow$ ✅ Verified & Checked
+* **Integrations**: JWT, Cors, and database cascades $\rightarrow$ ✅ Verified & Checked

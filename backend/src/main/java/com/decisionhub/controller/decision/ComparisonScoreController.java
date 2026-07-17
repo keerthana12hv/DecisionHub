@@ -104,6 +104,18 @@ public class ComparisonScoreController {
         return ResponseEntity.ok(response);
     }
 
+    @GetMapping("/{optionId}/{factorId}")
+    @Operation(summary = "Get comparison score details", description = "Retrieves a single comparison score by option ID and factor ID submitted by the current user (requires view authorization)", security = @SecurityRequirement(name = "bearerAuth"))
+    public ResponseEntity<ComparisonScoreResponse> getScore(
+            @PathVariable Long decisionId,
+            @PathVariable Long optionId,
+            @PathVariable Long factorId
+    ) {
+        log.info("REST request to fetch comparison score for decision: {} option: {} factor: {}", decisionId, optionId, factorId);
+        ComparisonScoreResponse response = comparisonScoreService.getScore(decisionId, optionId, factorId);
+        return ResponseEntity.ok(response);
+    }
+
     private String getClientIp(HttpServletRequest request) {
         String xfHeader = request.getHeader("X-Forwarded-For");
         if (xfHeader == null) {

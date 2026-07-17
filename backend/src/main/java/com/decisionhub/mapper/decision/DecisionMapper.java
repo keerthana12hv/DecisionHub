@@ -44,6 +44,5 @@ public interface DecisionMapper {
     DecisionOption toEntity(OptionCreateDto dto);
 
     @Mapping(target = "title", source = "optionName")
-    @Mapping(target = "comparisonScores", ignore = true)
     OptionResponseDto toResponseDto(DecisionOption option);
 }

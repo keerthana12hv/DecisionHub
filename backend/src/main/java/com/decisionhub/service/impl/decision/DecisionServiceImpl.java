@@ -14,6 +14,9 @@ import com.decisionhub.exception.BadRequestException;
 import com.decisionhub.exception.ResourceNotFoundException;
 import com.decisionhub.exception.UnauthorizedActionException;
 import com.decisionhub.mapper.decision.DecisionMapper;
+import com.decisionhub.mapper.decision.ComparisonMapper;
+import com.decisionhub.dto.request.decision.OptionCreateDto;
+import com.decisionhub.dto.request.decision.ComparisonFactorRequest;
 import com.decisionhub.repository.authentication.UserRepository;
 import com.decisionhub.repository.community.CommunityRepository;
 import com.decisionhub.repository.decision.DecisionRepository;
@@ -47,6 +50,7 @@ public class DecisionServiceImpl implements DecisionService {
     private final ComparisonScoreRepository comparisonScoreRepository;
     
     private final DecisionMapper decisionMapper;
+    private final ComparisonMapper comparisonMapper;
     private final DecisionAuthorizationService decisionAuthorizationService;
     private final AuthenticationFacade authenticationFacade;
     private final AuditService auditService;
@@ -90,6 +94,33 @@ public class DecisionServiceImpl implements DecisionService {
 
         // 4. Save
         Decision savedDecision = decisionRepository.save(decision);
+
+        // Save options if provided in the creation request
+        if (request.options() != null && !request.options().isEmpty()) {
+            List<DecisionOption> optionsList = new java.util.ArrayList<>();
+            for (OptionCreateDto optionDto : request.options()) {
+                DecisionOption option = decisionMapper.toEntity(optionDto);
+                option.setDecision(savedDecision);
+                optionsList.add(decisionOptionRepository.save(option));
+            }
+            savedDecision.setOptions(optionsList);
+        }
+
+        // Save factors if provided in the creation request
+        if (request.factors() != null && !request.factors().isEmpty()) {
+            List<ComparisonFactor> factorsList = new java.util.ArrayList<>();
+            for (ComparisonFactorRequest factorDto : request.factors()) {
+                ComparisonFactor factor = comparisonMapper.toEntity(factorDto);
+                factor.setDecision(savedDecision);
+                if (factor.getWeight() == null) {
+                    factor.setWeight(1);
+                }
+                factorsList.add(comparisonFactorRepository.save(factor));
+            }
+            savedDecision.setComparisonFactors(factorsList);
+        }
+
+        decisionRepository.flush();
 
         // 5. Audit Logging
         String newValueJson = String.format("{\"title\":\"%s\"}", savedDecision.getTitle());

@@ -255,4 +255,45 @@ class ComparisonFactorIntegrationTest {
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest());
     }
+
+    @Test
+    void testGetFactor_Success() throws Exception {
+        mockMvc.perform(get("/decisions/{decisionId}/factors/{factorId}", decisionId, factorId)
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + creatorToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(factorId))
+                .andExpect(jsonPath("$.name").value("Performance"))
+                .andExpect(jsonPath("$.description").value("Execution speed"));
+    }
+
+    @Test
+    void testGetFactor_NotFound() throws Exception {
+        mockMvc.perform(get("/decisions/{decisionId}/factors/{factorId}", decisionId, 999L)
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + creatorToken))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void testGetFactor_Forbidden_NonAuthorizedView() throws Exception {
+        // Create a PRIVATE decision directly in DB under creator
+        Decision privateDecision = new Decision();
+        privateDecision.setTitle("Private Board");
+        privateDecision.setDescription("Only creator can see");
+        privateDecision.setCreator(userRepository.findById(creatorId).orElseThrow());
+        privateDecision.setVisibility(DecisionVisibility.PRIVATE);
+        privateDecision.setStatus(DecisionStatus.DRAFT);
+        privateDecision.setCreatedAt(java.time.LocalDateTime.now());
+        privateDecision = decisionRepository.save(privateDecision);
+
+        ComparisonFactor factor = new ComparisonFactor();
+        factor.setName("Secret Factor");
+        factor.setWeight(1);
+        factor.setDecision(privateDecision);
+        comparisonFactorRepository.save(factor);
+
+        // Fetching factors of private decision with other user's token should be forbidden (403)
+        mockMvc.perform(get("/decisions/{decisionId}/factors/{factorId}", privateDecision.getId(), factor.getId())
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + otherUserToken))
+                .andExpect(status().isForbidden());
+    }
 }

@@ -35,6 +35,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -256,5 +257,57 @@ class DecisionOptionIntegrationTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void testGetOptions_Success() throws Exception {
+        mockMvc.perform(get("/decisions/{decisionId}/options", decisionId)
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + creatorToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$").isArray())
+                .andExpect(jsonPath("$.length()").value(2))
+                .andExpect(jsonPath("$[0].title").value("Spring Boot"))
+                .andExpect(jsonPath("$[1].title").value("Quarkus"));
+    }
+
+    @Test
+    void testGetOption_Success() throws Exception {
+        mockMvc.perform(get("/decisions/{decisionId}/options/{optionId}", decisionId, option1Id)
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + creatorToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(option1Id))
+                .andExpect(jsonPath("$.title").value("Spring Boot"))
+                .andExpect(jsonPath("$.description").value("Enterprise stack"));
+    }
+
+    @Test
+    void testGetOption_NotFound() throws Exception {
+        mockMvc.perform(get("/decisions/{decisionId}/options/{optionId}", decisionId, 999L)
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + creatorToken))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void testGetOption_Forbidden_NonAuthorizedView() throws Exception {
+        // Create a PRIVATE decision directly in DB under creator
+        Decision privateDecision = new Decision();
+        privateDecision.setTitle("Private Board");
+        privateDecision.setDescription("Only creator can see");
+        privateDecision.setCreator(userRepository.findById(creatorId).orElseThrow());
+        privateDecision.setVisibility(DecisionVisibility.PRIVATE);
+        privateDecision.setStatus(DecisionStatus.DRAFT);
+        privateDecision.setCreatedAt(java.time.LocalDateTime.now());
+        privateDecision = decisionRepository.save(privateDecision);
+
+        DecisionOption option = new DecisionOption();
+        option.setOptionName("Secret Option");
+        option.setDescription("Classified information");
+        option.setDecision(privateDecision);
+        decisionOptionRepository.save(option);
+
+        // Fetching options of private decision with other user's token should be forbidden (403)
+        mockMvc.perform(get("/decisions/{decisionId}/options", privateDecision.getId())
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + otherUserToken))
+                .andExpect(status().isForbidden());
     }
 }

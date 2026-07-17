@@ -329,4 +329,34 @@ class ComparisonScoreIntegrationTest {
             // Succeeded! Optimistic locking worked
         }
     }
+
+    @Test
+    void testGetScore_Success() throws Exception {
+        // Transition status to ACTIVE directly in DB
+        Decision d = decisionRepository.findById(decisionId).orElseThrow();
+        d.setStatus(DecisionStatus.ACTIVE);
+        decisionRepository.save(d);
+
+        // Submit score
+        ComparisonScoreRequest request = new ComparisonScoreRequest(optionId, factorId, 85, "Great");
+        mockMvc.perform(post("/decisions/{decisionId}/scores", decisionId)
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + creatorToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk());
+
+        // Get single score
+        mockMvc.perform(get("/decisions/{decisionId}/scores/{optionId}/{factorId}", decisionId, optionId, factorId)
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + creatorToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.score").value(85))
+                .andExpect(jsonPath("$.remarks").value("Great"));
+    }
+
+    @Test
+    void testGetScore_NotFound() throws Exception {
+        mockMvc.perform(get("/decisions/{decisionId}/scores/{optionId}/{factorId}", decisionId, optionId, 999L)
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + creatorToken))
+                .andExpect(status().isNotFound());
+    }
 }

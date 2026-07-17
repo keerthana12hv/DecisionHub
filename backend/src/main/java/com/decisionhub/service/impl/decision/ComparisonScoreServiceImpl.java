@@ -242,6 +242,25 @@ public class ComparisonScoreServiceImpl implements ComparisonScoreService {
                 .collect(Collectors.toList());
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public ComparisonScoreResponse getScore(Long decisionId, Long optionId, Long factorId) {
+        log.info("Retrieving comparison score on board: {} for option: {} and factor: {}", decisionId, optionId, factorId);
+
+        getActiveBoardOrThrow(decisionId);
+        Long currentUserId = getCurrentUserIdOrThrow();
+
+        if (!decisionAuthorizationService.canViewDecision(decisionId, currentUserId)) {
+            throw new UnauthorizedActionException("Not authorized to view decision details");
+        }
+
+        ComparisonScore score = comparisonScoreRepository.findById(
+                new ComparisonScoreId(optionId, factorId, currentUserId)
+        ).orElseThrow(() -> new ResourceNotFoundException("Comparison score not found for option: " + optionId + " and factor: " + factorId));
+
+        return comparisonMapper.toResponse(score);
+    }
+
     private Decision getActiveBoardOrThrow(Long id) {
         return decisionRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Decision not found with ID: " + id));

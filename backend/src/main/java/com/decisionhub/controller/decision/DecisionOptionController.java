@@ -15,6 +15,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -44,6 +45,25 @@ public class DecisionOptionController {
 
         OptionResponseDto response = decisionOptionService.createOption(decisionId, request, ipAddress, userAgent);
         return new ResponseEntity<>(response, HttpStatus.CREATED);
+    }
+
+    @GetMapping
+    @Operation(summary = "Get all options for a decision", description = "Retrieves all options for the specified decision board (requires view authorization)", security = @SecurityRequirement(name = "bearerAuth"))
+    public ResponseEntity<java.util.List<OptionResponseDto>> getOptions(
+            @PathVariable Long decisionId
+    ) {
+        log.info("REST request to get all options for decision: {}", decisionId);
+        return ResponseEntity.ok(decisionOptionService.getOptions(decisionId));
+    }
+
+    @GetMapping("/{optionId}")
+    @Operation(summary = "Get option details", description = "Retrieves a single option by ID (requires view authorization)", security = @SecurityRequirement(name = "bearerAuth"))
+    public ResponseEntity<OptionResponseDto> getOption(
+            @PathVariable Long decisionId,
+            @PathVariable Long optionId
+    ) {
+        log.info("REST request to get option: {} for decision: {}", optionId, decisionId);
+        return ResponseEntity.ok(decisionOptionService.getOption(decisionId, optionId));
     }
 
     @PutMapping("/{optionId}")
