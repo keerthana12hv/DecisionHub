@@ -23,7 +23,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/decisions/{decisionId}/options")
+@RequestMapping("/api/decisions/{decisionId}/options")
 @RequiredArgsConstructor
 @Tag(name = "Decision Option", description = "Decision Options Management Endpoints")
 @Slf4j
