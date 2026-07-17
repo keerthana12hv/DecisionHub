@@ -19,7 +19,7 @@ import org.springframework.web.bind.annotation.RestController;
  * REST controller exposing endpoints for the Collaborative Decision Ranking Engine.
  */
 @RestController
-@RequestMapping("/decisions/{decisionId}/ranking")
+@RequestMapping("/api/decisions/{decisionId}/ranking")
 @RequiredArgsConstructor
 @Tag(name = "Ranking", description = "Collaborative Decision Ranking Engine Endpoints")
 @Slf4j
