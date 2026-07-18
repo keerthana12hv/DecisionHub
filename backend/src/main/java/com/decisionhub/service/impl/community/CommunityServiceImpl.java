@@ -27,6 +27,7 @@ import com.decisionhub.repository.community.CategoryRepository;
 import com.decisionhub.repository.community.CommunityMemberRepository;
 import com.decisionhub.repository.community.CommunityRepository;
 import com.decisionhub.service.interfaces.community.CommunityService;
+import com.decisionhub.enums.authentication.PlatformRole;
 import com.decisionhub.exception.ResourceNotFoundException;
 import com.decisionhub.exception.ResourceAlreadyExistsException;
 import com.decisionhub.exception.UnauthorizedActionException;
@@ -69,6 +70,15 @@ public class CommunityServiceImpl implements CommunityService {
                         new ResourceNotFoundException("Category not found"));
 
         User owner = getCurrentUser();
+
+        // If a user creates their first active community and their PlatformRole is USER, automatically update it to MODERATOR
+        boolean hasActiveCommunity = communityRepository.findByOwner(owner)
+                .stream()
+                .anyMatch(c -> c.getDeletedAt() == null);
+        if (!hasActiveCommunity && owner.getRole() == PlatformRole.USER) {
+            owner.setRole(PlatformRole.MODERATOR);
+            userRepository.save(owner);
+        }
 
         Community community = new Community();
         community.setName(request.name());
