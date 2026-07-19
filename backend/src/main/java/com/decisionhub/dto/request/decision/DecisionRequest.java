@@ -4,6 +4,7 @@ import com.decisionhub.enums.decision.AnonymityType;
 import com.decisionhub.enums.decision.VotingType;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
 import java.time.LocalDateTime;
@@ -21,10 +22,15 @@ public record DecisionRequest(
 
     boolean isPublic,
 
+    @NotNull(message = "Voting type is required")
     VotingType votingType,
 
     AnonymityType anonymityType,
 
+    @NotNull(message = "Voting end time is required")
+    LocalDateTime votingEndTime,
+
+    @NotNull(message = "Decision deadline is required")
     LocalDateTime deadline,
 
     Set<String> tags,
@@ -48,6 +54,11 @@ public record DecisionRequest(
         List<OptionCreateDto> options,
         List<ComparisonFactorRequest> factors
     ) {
-        this(title, description, communityId, isPublic, votingType, anonymityType, deadline, tags, options, factors);
+        this(title, description, communityId, isPublic,
+             votingType != null ? votingType : VotingType.RATING_BASED,
+             anonymityType,
+             deadline != null ? deadline.minusHours(2) : LocalDateTime.now().plusDays(1).minusHours(2),
+             deadline != null ? deadline : LocalDateTime.now().plusDays(1),
+             tags, options, factors);
     }
 }

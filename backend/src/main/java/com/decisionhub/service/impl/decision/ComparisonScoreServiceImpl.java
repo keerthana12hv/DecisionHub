@@ -262,8 +262,21 @@ public class ComparisonScoreServiceImpl implements ComparisonScoreService {
     }
 
     private Decision getActiveBoardOrThrow(Long id) {
-        return decisionRepository.findById(id)
+        Decision decision = decisionRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Decision not found with ID: " + id));
+        validateRatingBased(decision);
+        validatePollOpen(decision);
+        return decision;
+    }
+
+    private void validateRatingBased(Decision decision) {
+        if (decision.getVotingType() != com.decisionhub.enums.decision.VotingType.RATING_BASED) {
+            throw new BadRequestException("Comparison scores are only allowed for RATING_BASED decisions");
+        }
+    }
+
+    private void validatePollOpen(Decision decision) {
+        // TODO: Future Poll Management Integration - validate that the associated Poll is OPEN/active.
     }
 
     private Long getCurrentUserIdOrThrow() {

@@ -7,6 +7,7 @@ import com.decisionhub.entity.authentication.User;
 import com.decisionhub.entity.community.Community;
 import com.decisionhub.enums.decision.DecisionStatus;
 import com.decisionhub.enums.decision.DecisionVisibility;
+import com.decisionhub.enums.decision.VotingType;
 
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
@@ -62,6 +63,13 @@ public class Decision {
 
     @Column(name = "deadline")
     private LocalDateTime deadline;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "voting_type", nullable = false)
+    private VotingType votingType = VotingType.RATING_BASED;
+
+    @Column(name = "voting_end_time")
+    private LocalDateTime votingEndTime;
 
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
