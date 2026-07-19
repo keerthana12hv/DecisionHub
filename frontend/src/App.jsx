@@ -14,6 +14,7 @@ import Settings from "./pages/Settings";
 import NotificationsPage from "./pages/NotificationsPage";
 import Analytics from "./pages/Analytics";
 import NotFound from "./pages/NotFound";
+import Discussion from "./pages/Discussion";
 
 function App() {
   return (
@@ -34,6 +35,7 @@ function App() {
             <Route path="/notifications" element={<NotificationsPage />} />
             <Route path="/analytics" element={<Analytics />} />
             <Route path="*" element={<NotFound />} />
+            <Route path="/discussion" element={<Discussion />} />
           </Routes>
         </BrowserRouter>
       </ToastProvider>
