@@ -4,6 +4,8 @@ import com.decisionhub.entity.authentication.User;
 import com.decisionhub.enums.authentication.PlatformRole;
 import com.decisionhub.enums.authentication.UserStatus;
 import com.decisionhub.repository.authentication.UserRepository;
+import com.decisionhub.entity.community.Category;
+import com.decisionhub.repository.community.CategoryRepository;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -14,21 +16,44 @@ public class DatabaseSeeder implements CommandLineRunner {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final CategoryRepository categoryRepository;
 
-    // This pulls the values you just added to application.properties
     @Value("${app.admin.email}")
     private String adminEmail;
 
     @Value("${app.admin.password}")
     private String adminPassword;
 
-    public DatabaseSeeder(UserRepository userRepository, PasswordEncoder passwordEncoder) {
+    public DatabaseSeeder(
+            UserRepository userRepository, 
+            PasswordEncoder passwordEncoder,
+            CategoryRepository categoryRepository) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
+        this.categoryRepository = categoryRepository;
     }
 
     @Override
     public void run(String... args) throws Exception {
+        // Seed default categories if none exist
+        if (categoryRepository.count() == 0) {
+            String[][] defaultCategories = {
+                {"General", "general"},
+                {"Technology", "technology"},
+                {"Business", "business"},
+                {"Health", "health"},
+                {"Education", "education"}
+            };
+
+            for (String[] catData : defaultCategories) {
+                Category category = new Category();
+                category.setName(catData[0]);
+                category.setSlug(catData[1]);
+                category.setIsActive(true);
+                categoryRepository.save(category);
+            }
+            System.out.println("✅ Seeded default categories successfully!");
+        }
         
         // Checks if the admin already exists in the DB so we don't duplicate it
         if (!userRepository.existsByEmail(adminEmail)) {
