@@ -22,7 +22,7 @@ public class CommunityRuleController {
     private final CommunityRuleService communityRuleService;
 
     @PostMapping("/api/moderation/communities/{communityId}/rules")
-    @Operation(summary = "Create community rule", description = "Creates a new rule for a community (requires moderator)", security = @SecurityRequirement(name = "bearerAuth"))
+    @Operation(summary = "Create community rule", description = "Creates a new rule for a community (requires moderator)")
     public ResponseEntity<CommunityRuleResponse> createRule(
             @PathVariable Long communityId,
             @Valid @RequestBody CommunityRuleRequest request
@@ -31,7 +31,7 @@ public class CommunityRuleController {
     }
 
     @PutMapping("/api/moderation/rules/{ruleId}")
-    @Operation(summary = "Update community rule", description = "Updates an existing community rule (requires moderator)", security = @SecurityRequirement(name = "bearerAuth"))
+    @Operation(summary = "Update community rule", description = "Updates an existing community rule (requires moderator)")
     public ResponseEntity<CommunityRuleResponse> updateRule(
             @PathVariable Long ruleId,
             @Valid @RequestBody CommunityRuleRequest request
@@ -40,7 +40,7 @@ public class CommunityRuleController {
     }
 
     @DeleteMapping("/api/moderation/rules/{ruleId}")
-    @Operation(summary = "Delete community rule", description = "Deletes a community rule (requires moderator)", security = @SecurityRequirement(name = "bearerAuth"))
+    @Operation(summary = "Delete community rule", description = "Deletes a community rule (requires moderator)")
     public ResponseEntity<Void> deleteRule(@PathVariable Long ruleId) {
         communityRuleService.deleteRule(ruleId);
         return ResponseEntity.noContent().build();
