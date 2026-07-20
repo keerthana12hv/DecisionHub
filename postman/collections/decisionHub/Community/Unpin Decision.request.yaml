@@ -1,0 +1,8 @@
+$kind: http-request
+url: http://localhost:8080/api/moderation/decisions/1/unpin
+method: PUT
+auth:
+  type: bearer
+  credentials:
+    token: "{{authToken}}"
+order: 5006
