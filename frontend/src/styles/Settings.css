@@ -1,0 +1,128 @@
+.settings-header {
+  margin-bottom: 2rem;
+}
+
+.settings-header h1 {
+  font-family: var(--font-title);
+  font-size: 1.85rem;
+  font-weight: 700;
+  margin: 0 0 0.5rem;
+}
+
+.settings-header p {
+  color: var(--text-secondary);
+  font-size: 0.95rem;
+  margin: 0;
+}
+
+.settings-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2rem;
+  align-items: start;
+}
+
+.settings-left-col, .settings-right-col {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.settings-card {
+  padding: 1.75rem;
+}
+
+.settings-section-title {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+  color: var(--accent-purple);
+  font-size: 1.1rem;
+}
+
+.settings-section-title h3 {
+  margin: 0;
+  font-family: var(--font-title);
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.settings-desc {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  margin: 0 0 1.25rem;
+}
+
+.theme-toggle-options {
+  display: flex;
+  gap: 1rem;
+}
+
+.theme-btn {
+  flex: 1;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border-glass);
+  color: var(--text-secondary);
+  padding: 0.75rem 1rem;
+  border-radius: var(--border-radius-sm);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  font-family: var(--font-title);
+  font-weight: 600;
+  transition: var(--transition-smooth);
+}
+
+.theme-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text-primary);
+  border-color: var(--accent-purple);
+}
+
+.theme-btn.active-theme {
+  background: var(--gradient-primary);
+  color: #fff;
+  border-color: transparent;
+  box-shadow: var(--shadow-glow);
+}
+
+.settings-row {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: 1.25rem;
+}
+
+.settings-row label {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.notif-toggle-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.settings-checkbox {
+  font-size: 0.9rem;
+  color: var(--text-primary);
+}
+
+.password-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+@media (max-width: 1024px) {
+  .settings-grid {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
+}
