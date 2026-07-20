@@ -1,0 +1,339 @@
+.navbar {
+  height: 70px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 2rem;
+  background: rgba(15, 13, 34, 0.4);
+  border-bottom: 1px solid var(--border-glass);
+  border-radius: 0;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  margin-left: 260px; /* Aligned next to sidebar */
+  box-sizing: border-box;
+}
+
+.search-box {
+  position: relative;
+  width: 320px;
+  display: flex;
+  align-items: center;
+}
+
+.search-icon {
+  position: absolute;
+  left: 14px;
+  color: var(--text-muted);
+  pointer-events: none;
+}
+
+.search-box input {
+  padding-left: 2.75rem;
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: 9999px;
+  height: 38px;
+  font-size: 0.85rem;
+}
+
+.navbar-right {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+}
+
+.navbar-btn {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border-glass);
+  color: var(--text-secondary);
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1rem;
+  position: relative;
+  transition: var(--transition-smooth);
+}
+
+.navbar-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text-primary);
+  border-color: var(--accent-purple);
+}
+
+.notification-wrapper {
+  position: relative;
+}
+
+.notification-bell .badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  background: var(--danger);
+  color: #fff;
+  font-size: 0.7rem;
+  font-weight: 700;
+  min-width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid var(--bg-secondary);
+}
+
+/* Notification Dropdown styling */
+.notif-dropdown {
+  position: absolute;
+  top: 52px;
+  right: 0;
+  width: 360px;
+  border-radius: var(--border-radius-md);
+  z-index: 200;
+  overflow: hidden;
+  padding: 0;
+}
+
+.dropdown-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid var(--border-glass);
+  background: rgba(0, 0, 0, 0.15);
+}
+
+.dropdown-header h3 {
+  margin: 0;
+  font-family: var(--font-title);
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.mark-read-btn {
+  background: transparent;
+  border: none;
+  color: var(--accent-purple);
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--transition-smooth);
+}
+
+.mark-read-btn:hover {
+  color: var(--text-primary);
+}
+
+.dropdown-list {
+  max-height: 280px;
+  overflow-y: auto;
+}
+
+.empty-notifs {
+  padding: 2rem;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
+
+.notif-item {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.85rem 1.25rem;
+  border-bottom: 1px solid var(--border-glass);
+  transition: var(--transition-smooth);
+}
+
+.notif-item:hover {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.notif-item.unread {
+  background: rgba(139, 92, 246, 0.04);
+}
+
+.notif-content {
+  flex: 1;
+  cursor: pointer;
+}
+
+.notif-text {
+  margin: 0 0 4px;
+  font-size: 0.8rem;
+  color: var(--text-primary);
+  line-height: 1.35;
+}
+
+.notif-time {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+}
+
+.notif-actions {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  margin-left: 8px;
+}
+
+.action-btn {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-size: 0.8rem;
+  padding: 4px;
+  border-radius: 4px;
+  color: var(--text-muted);
+  transition: var(--transition-smooth);
+}
+
+.action-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.read-action:hover {
+  color: var(--success);
+}
+
+.delete-action:hover {
+  color: var(--danger);
+}
+
+.dropdown-footer {
+  padding: 0.75rem;
+  text-align: center;
+  background: rgba(0, 0, 0, 0.15);
+  border-top: 1px solid var(--border-glass);
+}
+
+.view-all-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: var(--transition-smooth);
+}
+
+.view-all-btn:hover {
+  color: var(--accent-purple);
+}
+
+/* Profile wrapper styling */
+.profile-wrapper {
+  position: relative;
+}
+
+.profile-trigger {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: var(--border-radius-md);
+  border: 1px solid transparent;
+  transition: var(--transition-smooth);
+}
+
+.profile-trigger:hover {
+  background: rgba(255, 255, 255, 0.03);
+  border-color: var(--border-glass);
+}
+
+.nav-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 1px solid var(--border-glass);
+}
+
+.nav-profile-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.nav-profile-info h4 {
+  margin: 0;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.nav-profile-info span {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+}
+
+.profile-dropdown {
+  position: absolute;
+  top: 52px;
+  right: 0;
+  width: 220px;
+  border-radius: var(--border-radius-md);
+  z-index: 200;
+  padding: 0.5rem 0;
+}
+
+.profile-dropdown-header {
+  padding: 0.75rem 1.25rem;
+  border-bottom: 1px solid var(--border-glass);
+  margin-bottom: 0.25rem;
+}
+
+.profile-dropdown-header h4 {
+  margin: 0 0 2px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.profile-dropdown-header span {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.profile-dropdown ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.profile-dropdown li {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.65rem 1.25rem;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: var(--transition-smooth);
+}
+
+.profile-dropdown li:hover {
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--text-primary);
+}
+
+.profile-dropdown li.logout-item:hover {
+  background: rgba(239, 68, 68, 0.05);
+  color: var(--danger);
+}
+
+@media (max-width: 768px) {
+  .navbar {
+    margin-left: 60px;
+    padding: 0 1rem;
+  }
+  .search-box {
+    width: 180px;
+  }
+  .nav-profile-info {
+    display: none;
+  }
+  .notif-dropdown {
+    width: 300px;
+    right: -40px;
+  }
+}

@@ -17,5 +17,7 @@ public record DecisionResponse(
     LocalDateTime deadline,
     List<OptionResponseDto> options,
     List<ComparisonFactorResponse> factors,
-    LocalDateTime createdAt
+    LocalDateTime createdAt,
+    boolean pinned,
+    boolean locked
 ) {}
