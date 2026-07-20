@@ -29,7 +29,7 @@ import java.util.List;
  * REST controller exposing endpoints for managing comparison scores.
  */
 @RestController
-@RequestMapping("/decisions/{decisionId}/scores")
+@RequestMapping("/api/decisions/{decisionId}/scores")
 @RequiredArgsConstructor
 @Tag(name = "Comparison Score", description = "Decision Comparison Scores Management Endpoints")
 @Slf4j
@@ -101,6 +101,18 @@ public class ComparisonScoreController {
     ) {
         log.info("REST request to fetch current user's scores for decision: {}", decisionId);
         List<ComparisonScoreResponse> response = comparisonScoreService.getMyScoresByDecisionId(decisionId);
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/{optionId}/{factorId}")
+    @Operation(summary = "Get comparison score details", description = "Retrieves a single comparison score by option ID and factor ID submitted by the current user (requires view authorization)", security = @SecurityRequirement(name = "bearerAuth"))
+    public ResponseEntity<ComparisonScoreResponse> getScore(
+            @PathVariable Long decisionId,
+            @PathVariable Long optionId,
+            @PathVariable Long factorId
+    ) {
+        log.info("REST request to fetch comparison score for decision: {} option: {} factor: {}", decisionId, optionId, factorId);
+        ComparisonScoreResponse response = comparisonScoreService.getScore(decisionId, optionId, factorId);
         return ResponseEntity.ok(response);
     }
 

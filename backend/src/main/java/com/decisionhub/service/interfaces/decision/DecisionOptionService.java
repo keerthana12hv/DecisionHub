@@ -40,4 +40,21 @@ public interface DecisionOptionService {
      * @param userAgent  Client user agent.
      */
     void deleteOption(Long decisionId, Long optionId, String ipAddress, String userAgent);
+
+    /**
+     * Retrieves all options for a decision.
+     *
+     * @param decisionId ID of the decision.
+     * @return A list of OptionResponseDto.
+     */
+    java.util.List<OptionResponseDto> getOptions(Long decisionId);
+
+    /**
+     * Retrieves a single option by ID.
+     *
+     * @param decisionId ID of the parent decision.
+     * @param optionId   ID of the option.
+     * @return OptionResponseDto representing the option.
+     */
+    OptionResponseDto getOption(Long decisionId, Long optionId);
 }

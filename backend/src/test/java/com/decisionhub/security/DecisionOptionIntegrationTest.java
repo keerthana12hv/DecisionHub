@@ -35,6 +35,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -160,7 +161,7 @@ class DecisionOptionIntegrationTest {
     void testAddOption_Success() throws Exception {
         OptionCreateDto request = new OptionCreateDto("Micronaut", "A modern framework", Collections.emptyList());
 
-        mockMvc.perform(post("/decisions/{decisionId}/options", decisionId)
+        mockMvc.perform(post("/api/decisions/{decisionId}/options", decisionId)
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + creatorToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
@@ -177,7 +178,7 @@ class DecisionOptionIntegrationTest {
     void testAddOption_DuplicateTitle_ReturnsBadRequest() throws Exception {
         OptionCreateDto request = new OptionCreateDto("Spring Boot", "Duplicate", Collections.emptyList());
 
-        mockMvc.perform(post("/decisions/{decisionId}/options", decisionId)
+        mockMvc.perform(post("/api/decisions/{decisionId}/options", decisionId)
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + creatorToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
@@ -188,7 +189,7 @@ class DecisionOptionIntegrationTest {
     void testAddOption_Forbidden_NonOwner() throws Exception {
         OptionCreateDto request = new OptionCreateDto("Micronaut", "Forbidden check", Collections.emptyList());
 
-        mockMvc.perform(post("/decisions/{decisionId}/options", decisionId)
+        mockMvc.perform(post("/api/decisions/{decisionId}/options", decisionId)
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + otherUserToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
@@ -199,7 +200,7 @@ class DecisionOptionIntegrationTest {
     void testUpdateOption_Success() throws Exception {
         OptionCreateDto request = new OptionCreateDto("Quarkus 3", "Updated native description", Collections.emptyList());
 
-        mockMvc.perform(put("/decisions/{decisionId}/options/{optionId}", decisionId, option2Id)
+        mockMvc.perform(put("/api/decisions/{decisionId}/options/{optionId}", decisionId, option2Id)
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + creatorToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
@@ -215,7 +216,7 @@ class DecisionOptionIntegrationTest {
     @Test
     void testDeleteOption_MinOptionsRuleViolation_ReturnsBadRequest() throws Exception {
         // Deleting when board has exactly 2 options should fail
-        mockMvc.perform(delete("/decisions/{decisionId}/options/{optionId}", decisionId, option2Id)
+        mockMvc.perform(delete("/api/decisions/{decisionId}/options/{optionId}", decisionId, option2Id)
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + creatorToken))
                 .andExpect(status().isBadRequest());
     }
@@ -224,7 +225,7 @@ class DecisionOptionIntegrationTest {
     void testDeleteOption_Success_AfterAddingThirdOption() throws Exception {
         // 1. Add third option
         OptionCreateDto addRequest = new OptionCreateDto("Micronaut", "Third option", Collections.emptyList());
-        String responseJson = mockMvc.perform(post("/decisions/{decisionId}/options", decisionId)
+        String responseJson = mockMvc.perform(post("/api/decisions/{decisionId}/options", decisionId)
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + creatorToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(addRequest)))
@@ -233,7 +234,7 @@ class DecisionOptionIntegrationTest {
         Long thirdOptionId = objectMapper.readValue(responseJson, OptionResponseDto.class).id();
 
         // 2. Delete one of the options
-        mockMvc.perform(delete("/decisions/{decisionId}/options/{optionId}", decisionId, option2Id)
+        mockMvc.perform(delete("/api/decisions/{decisionId}/options/{optionId}", decisionId, option2Id)
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + creatorToken))
                 .andExpect(status().isNoContent());
 
@@ -251,10 +252,62 @@ class DecisionOptionIntegrationTest {
 
         // Try to add option on active board
         OptionCreateDto request = new OptionCreateDto("Micronaut", "Active check", Collections.emptyList());
-        mockMvc.perform(post("/decisions/{decisionId}/options", decisionId)
+        mockMvc.perform(post("/api/decisions/{decisionId}/options", decisionId)
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + creatorToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void testGetOptions_Success() throws Exception {
+        mockMvc.perform(get("/api/decisions/{decisionId}/options", decisionId)
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + creatorToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$").isArray())
+                .andExpect(jsonPath("$.length()").value(2))
+                .andExpect(jsonPath("$[0].title").value("Spring Boot"))
+                .andExpect(jsonPath("$[1].title").value("Quarkus"));
+    }
+
+    @Test
+    void testGetOption_Success() throws Exception {
+        mockMvc.perform(get("/api/decisions/{decisionId}/options/{optionId}", decisionId, option1Id)
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + creatorToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(option1Id))
+                .andExpect(jsonPath("$.title").value("Spring Boot"))
+                .andExpect(jsonPath("$.description").value("Enterprise stack"));
+    }
+
+    @Test
+    void testGetOption_NotFound() throws Exception {
+        mockMvc.perform(get("/api/decisions/{decisionId}/options/{optionId}", decisionId, 999L)
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + creatorToken))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void testGetOption_Forbidden_NonAuthorizedView() throws Exception {
+        // Create a PRIVATE decision directly in DB under creator
+        Decision privateDecision = new Decision();
+        privateDecision.setTitle("Private Board");
+        privateDecision.setDescription("Only creator can see");
+        privateDecision.setCreator(userRepository.findById(creatorId).orElseThrow());
+        privateDecision.setVisibility(DecisionVisibility.PRIVATE);
+        privateDecision.setStatus(DecisionStatus.DRAFT);
+        privateDecision.setCreatedAt(java.time.LocalDateTime.now());
+        privateDecision = decisionRepository.save(privateDecision);
+
+        DecisionOption option = new DecisionOption();
+        option.setOptionName("Secret Option");
+        option.setDescription("Classified information");
+        option.setDecision(privateDecision);
+        decisionOptionRepository.save(option);
+
+        // Fetching options of private decision with other user's token should be forbidden (403)
+        mockMvc.perform(get("/api/decisions/{decisionId}/options", privateDecision.getId())
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + otherUserToken))
+                .andExpect(status().isForbidden());
     }
 }

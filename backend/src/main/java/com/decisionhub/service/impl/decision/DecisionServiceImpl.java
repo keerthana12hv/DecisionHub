@@ -14,6 +14,9 @@ import com.decisionhub.exception.BadRequestException;
 import com.decisionhub.exception.ResourceNotFoundException;
 import com.decisionhub.exception.UnauthorizedActionException;
 import com.decisionhub.mapper.decision.DecisionMapper;
+import com.decisionhub.mapper.decision.ComparisonMapper;
+import com.decisionhub.dto.request.decision.OptionCreateDto;
+import com.decisionhub.dto.request.decision.ComparisonFactorRequest;
 import com.decisionhub.repository.authentication.UserRepository;
 import com.decisionhub.repository.community.CommunityRepository;
 import com.decisionhub.repository.decision.DecisionRepository;
@@ -24,7 +27,9 @@ import com.decisionhub.security.decision.AuthenticationFacade;
 import com.decisionhub.security.decision.DecisionAuthorizationService;
 import com.decisionhub.service.interfaces.audit.AuditService;
 import com.decisionhub.service.interfaces.decision.DecisionService;
-
+import com.decisionhub.validator.decision.DecisionValidator;
+import com.decisionhub.event.DecisionPublishedEvent;
+import org.springframework.context.ApplicationEventPublisher;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -47,9 +52,12 @@ public class DecisionServiceImpl implements DecisionService {
     private final ComparisonScoreRepository comparisonScoreRepository;
     
     private final DecisionMapper decisionMapper;
+    private final ComparisonMapper comparisonMapper;
     private final DecisionAuthorizationService decisionAuthorizationService;
     private final AuthenticationFacade authenticationFacade;
     private final AuditService auditService;
+    private final DecisionValidator decisionValidator;
+    private final ApplicationEventPublisher eventPublisher;
 
     @Override
     @Transactional
@@ -72,20 +80,49 @@ public class DecisionServiceImpl implements DecisionService {
         }
 
         // 2. Business Validation
-        if (request.deadline() != null && request.deadline().isBefore(LocalDateTime.now())) {
-            throw new BadRequestException("Deadline must be in the future");
-        }
+        decisionValidator.validateCreate(request);
 
         // 3. Map & Associate
         Decision decision = decisionMapper.toEntity(request);
         decision.setCreator(currentUser);
         decision.setCommunity(community);
         decision.setStatus(DecisionStatus.DRAFT);
-        decision.setVisibility(request.isPublic() ? DecisionVisibility.PUBLIC : DecisionVisibility.PRIVATE);
+        if (request.communityId() == null) {
+            decision.setVisibility(DecisionVisibility.PUBLIC);
+        } else {
+            decision.setVisibility(DecisionVisibility.COMMUNITY);
+        }
         decision.setCreatedAt(LocalDateTime.now());
 
         // 4. Save
         Decision savedDecision = decisionRepository.save(decision);
+
+        // Save options if provided in the creation request
+        if (request.options() != null && !request.options().isEmpty()) {
+            List<DecisionOption> optionsList = new java.util.ArrayList<>();
+            for (OptionCreateDto optionDto : request.options()) {
+                DecisionOption option = decisionMapper.toEntity(optionDto);
+                option.setDecision(savedDecision);
+                optionsList.add(decisionOptionRepository.save(option));
+            }
+            savedDecision.setOptions(optionsList);
+        }
+
+        // Save factors if provided in the creation request
+        if (request.factors() != null && !request.factors().isEmpty()) {
+            List<ComparisonFactor> factorsList = new java.util.ArrayList<>();
+            for (ComparisonFactorRequest factorDto : request.factors()) {
+                ComparisonFactor factor = comparisonMapper.toEntity(factorDto);
+                factor.setDecision(savedDecision);
+                if (factor.getWeight() == null) {
+                    factor.setWeight(1);
+                }
+                factorsList.add(comparisonFactorRepository.save(factor));
+            }
+            savedDecision.setComparisonFactors(factorsList);
+        }
+
+        decisionRepository.flush();
 
         // 5. Audit Logging
         String newValueJson = String.format("{\"title\":\"%s\"}", savedDecision.getTitle());
@@ -179,17 +216,23 @@ public class DecisionServiceImpl implements DecisionService {
         }
 
         // 3. Business Validation
-        if (request.deadline() != null && request.deadline().isBefore(LocalDateTime.now())) {
-            throw new BadRequestException("Deadline must be in the future");
-        }
+        decisionValidator.validateUpdate(decision, request);
 
         // 4. Update fields
         String oldValueJson = String.format("{\"title\":\"%s\"}", decision.getTitle());
         decision.setTitle(request.title().trim());
         decision.setDescription(request.description());
         decision.setCommunity(community);
-        decision.setVisibility(request.isPublic() ? DecisionVisibility.PUBLIC : DecisionVisibility.PRIVATE);
-        decision.setDeadline(request.deadline());
+        if (request.communityId() == null) {
+            decision.setVisibility(DecisionVisibility.PUBLIC);
+        } else {
+            decision.setVisibility(DecisionVisibility.COMMUNITY);
+        }
+        if (decision.getStatus() == DecisionStatus.DRAFT) {
+            decision.setVotingType(request.votingType());
+            decision.setVotingEndTime(request.votingEndTime());
+            decision.setDeadline(request.deadline());
+        }
         decision.setUpdatedAt(LocalDateTime.now());
 
         // 5. Save
@@ -240,6 +283,41 @@ public class DecisionServiceImpl implements DecisionService {
         auditService.log(currentUser, "DECISION_DELETED", "decisions", id, oldValueJson, null, ipAddress, userAgent);
 
         log.info("Decision with ID '{}' deleted successfully", id);
+    }
+
+    @Override
+    @Transactional
+    public DecisionResponse publishDecision(Long id, String ipAddress, String userAgent) {
+        log.info("Attempting to publish decision with ID: {}", id);
+
+        Long currentUserId = getCurrentUserIdOrThrow();
+        User currentUser = userRepository.findById(currentUserId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with ID: " + currentUserId));
+
+        Decision decision = decisionRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Decision not found with ID: " + id));
+
+        if (!decisionAuthorizationService.canActivateDecision(id, currentUserId)) {
+            throw new UnauthorizedActionException("Not authorized to publish this decision");
+        }
+
+        List<DecisionOption> options = decisionOptionRepository.findByDecisionId(id);
+        List<ComparisonFactor> factors = comparisonFactorRepository.findByDecisionId(id);
+        decisionValidator.validatePublish(decision, options, factors);
+
+        String oldValueJson = String.format("{\"status\":\"%s\"}", decision.getStatus());
+
+        decision.setStatus(DecisionStatus.ACTIVE);
+        decision.setUpdatedAt(LocalDateTime.now());
+        Decision publishedDecision = decisionRepository.saveAndFlush(decision);
+
+        String newValueJson = String.format("{\"status\":\"%s\"}", publishedDecision.getStatus());
+        auditService.log(currentUser, "DECISION_PUBLISHED", "decisions", id, oldValueJson, newValueJson, ipAddress, userAgent);
+
+        eventPublisher.publishEvent(new DecisionPublishedEvent(this, id));
+
+        log.info("Decision with ID '{}' published successfully", id);
+        return decisionMapper.toResponse(publishedDecision);
     }
 
     private Long getCurrentUserIdOrThrow() {

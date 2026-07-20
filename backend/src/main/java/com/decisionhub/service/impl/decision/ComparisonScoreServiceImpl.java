@@ -213,6 +213,12 @@ public class ComparisonScoreServiceImpl implements ComparisonScoreService {
             throw new UnauthorizedActionException("Not authorized to view decision details");
         }
 
+        // TODO: Future Sprint 7 (Voting/Score Anonymity rules)
+        // Future rules:
+        // - owner-only visibility: only the decision creator/owner can view individual scores.
+        // - anonymous visibility: score submitters are anonymized (user details hidden/stripped).
+        // - admin visibility: administrators can always see all scores and submitters.
+
         return comparisonScoreRepository.findByOptionDecisionId(decisionId).stream()
                 .map(comparisonMapper::toResponse)
                 .collect(Collectors.toList());
@@ -236,9 +242,41 @@ public class ComparisonScoreServiceImpl implements ComparisonScoreService {
                 .collect(Collectors.toList());
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public ComparisonScoreResponse getScore(Long decisionId, Long optionId, Long factorId) {
+        log.info("Retrieving comparison score on board: {} for option: {} and factor: {}", decisionId, optionId, factorId);
+
+        getActiveBoardOrThrow(decisionId);
+        Long currentUserId = getCurrentUserIdOrThrow();
+
+        if (!decisionAuthorizationService.canViewDecision(decisionId, currentUserId)) {
+            throw new UnauthorizedActionException("Not authorized to view decision details");
+        }
+
+        ComparisonScore score = comparisonScoreRepository.findById(
+                new ComparisonScoreId(optionId, factorId, currentUserId)
+        ).orElseThrow(() -> new ResourceNotFoundException("Comparison score not found for option: " + optionId + " and factor: " + factorId));
+
+        return comparisonMapper.toResponse(score);
+    }
+
     private Decision getActiveBoardOrThrow(Long id) {
-        return decisionRepository.findById(id)
+        Decision decision = decisionRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Decision not found with ID: " + id));
+        validateRatingBased(decision);
+        validatePollOpen(decision);
+        return decision;
+    }
+
+    private void validateRatingBased(Decision decision) {
+        if (decision.getVotingType() != com.decisionhub.enums.decision.VotingType.RATING_BASED) {
+            throw new BadRequestException("Comparison scores are only allowed for RATING_BASED decisions");
+        }
+    }
+
+    private void validatePollOpen(Decision decision) {
+        // TODO: Future Poll Management Integration - validate that the associated Poll is OPEN/active.
     }
 
     private Long getCurrentUserIdOrThrow() {

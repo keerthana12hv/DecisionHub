@@ -110,6 +110,10 @@ public class RankingServiceImpl implements RankingService {
         // 1. Fetch & Validate Decision
         Decision board = getBoardOrThrow(decisionId);
 
+        if (board.getVotingType() != com.decisionhub.enums.decision.VotingType.RATING_BASED) {
+            throw new BadRequestException("Ranking calculation is only supported for RATING_BASED decisions");
+        }
+
         // 2. Authorize requester
         Long currentUserId = authenticationFacade.getCurrentUserId().orElse(null);
         if (!decisionAuthorizationService.canViewDecision(decisionId, currentUserId)) {

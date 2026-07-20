@@ -59,4 +59,14 @@ public interface ComparisonScoreService {
      * @param userAgent  Client user agent.
      */
     void deleteScore(Long decisionId, Long optionId, Long factorId, String ipAddress, String userAgent);
+
+    /**
+     * Retrieves a single comparison score submitted by the current user.
+     *
+     * @param decisionId ID of the parent decision board.
+     * @param optionId   ID of the option.
+     * @param factorId   ID of the comparison factor.
+     * @return ComparisonScoreResponse representing the score.
+     */
+    ComparisonScoreResponse getScore(Long decisionId, Long optionId, Long factorId);
 }

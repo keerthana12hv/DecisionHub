@@ -16,4 +16,6 @@ public interface DecisionService {
     DecisionResponse updateDecision(Long id, DecisionRequest request, String ipAddress, String userAgent);
     
     void deleteDecision(Long id, String ipAddress, String userAgent);
+
+    DecisionResponse publishDecision(Long id, String ipAddress, String userAgent);
 }

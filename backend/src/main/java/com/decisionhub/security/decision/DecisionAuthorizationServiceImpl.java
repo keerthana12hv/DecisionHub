@@ -49,23 +49,40 @@ public class DecisionAuthorizationServiceImpl implements DecisionAuthorizationSe
         }
 
         Decision decision = decisionOpt.get();
+
+        // 1. PUBLIC visibility -> All authenticated users can view
         if (decision.getVisibility() == com.decisionhub.enums.decision.DecisionVisibility.PUBLIC) {
+            // TODO: Future Sprint 7 (Voting Module) - Implement voting restriction for PUBLIC decisions.
+            // TODO: Future Sprint - Implement commenting restriction for PUBLIC decisions.
             return true;
         }
 
-        // Private decision checks
+        // For non-public decisions, user must be authenticated
         if (userId == null) {
             return false;
         }
 
-        // Creator can always view
+        // Creator/Owner can always view
         if (decision.getCreator().getId().equals(userId)) {
             return true;
         }
 
-        // If it's a private community decision, active community members can view
-        if (decision.getCommunity() != null) {
-            return isUserActiveCommunityMember(decision.getCommunity().getId(), userId);
+        // 2. COMMUNITY visibility -> Only active community members can view
+        if (decision.getVisibility() == com.decisionhub.enums.decision.DecisionVisibility.COMMUNITY) {
+            if (decision.getCommunity() != null) {
+                // TODO: Future Sprint 7 (Voting Module) - Implement voting restriction for COMMUNITY decisions.
+                // TODO: Future Sprint - Implement commenting restriction for COMMUNITY decisions.
+                return isUserActiveCommunityMember(decision.getCommunity().getId(), userId);
+            }
+            return false;
+        }
+
+        // 3. PRIVATE visibility -> Creator/owner only, or invited users
+        if (decision.getVisibility() == com.decisionhub.enums.decision.DecisionVisibility.PRIVATE) {
+            // TODO: Future Sprint - Verify invited-user access (DecisionInvitation entity / Private ACL check)
+            // TODO: Future Sprint 7 (Voting Module) - Implement voting restriction for PRIVATE decisions.
+            // TODO: Future Sprint - Implement commenting restriction for PRIVATE decisions.
+            return false;
         }
 
         return false;

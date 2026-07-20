@@ -155,6 +155,43 @@ public class DecisionOptionServiceImpl implements DecisionOptionService {
         log.info("Option with ID '{}' deleted successfully", optionId);
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public java.util.List<OptionResponseDto> getOptions(Long decisionId) {
+        log.info("Retrieving decision options for board: {}", decisionId);
+
+        getActiveBoardOrThrow(decisionId);
+        Long currentUserId = authenticationFacade.getCurrentUserId().orElse(null);
+
+        if (!decisionAuthorizationService.canViewDecision(decisionId, currentUserId)) {
+            throw new UnauthorizedActionException("Not authorized to view decision details");
+        }
+
+        return decisionOptionRepository.findByDecisionId(decisionId).stream()
+                .map(decisionMapper::toResponseDto)
+                .collect(java.util.stream.Collectors.toList());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public OptionResponseDto getOption(Long decisionId, Long optionId) {
+        log.info("Retrieving decision option: {} for board: {}", optionId, decisionId);
+
+        getActiveBoardOrThrow(decisionId);
+        Long currentUserId = authenticationFacade.getCurrentUserId().orElse(null);
+
+        if (!decisionAuthorizationService.canViewDecision(decisionId, currentUserId)) {
+            throw new UnauthorizedActionException("Not authorized to view decision details");
+        }
+
+        DecisionOption option = getActiveOptionOrThrow(optionId);
+        if (!option.getDecision().getId().equals(decisionId)) {
+            throw new BadRequestException("Option with ID " + optionId + " does not belong to decision " + decisionId);
+        }
+
+        return decisionMapper.toResponseDto(option);
+    }
+
     private Decision getActiveBoardOrThrow(Long decisionId) {
         return decisionRepository.findById(decisionId)
                 .orElseThrow(() -> new ResourceNotFoundException("Decision not found with ID: " + decisionId));
