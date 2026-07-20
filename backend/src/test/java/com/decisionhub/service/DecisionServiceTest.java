@@ -28,6 +28,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.LocalDateTime;
@@ -63,6 +64,10 @@ class DecisionServiceTest {
     private AuthenticationFacade authenticationFacade;
     @Mock
     private AuditService auditService;
+    @Spy
+    private com.decisionhub.validator.decision.DecisionValidator decisionValidator = new com.decisionhub.validator.decision.DecisionValidator();
+    @Mock
+    private org.springframework.context.ApplicationEventPublisher eventPublisher;
 
     @InjectMocks
     private DecisionServiceImpl decisionService;

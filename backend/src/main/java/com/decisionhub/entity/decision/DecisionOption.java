@@ -34,6 +34,9 @@ public class DecisionOption {
     @OneToMany(mappedBy = "decisionOption", fetch = FetchType.LAZY)
     private List<OptionFactorScore> factorScores;
 
+    @OneToMany(mappedBy = "option", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<ComparisonScore> comparisonScores;
+
     @OneToMany(mappedBy = "decisionOption", fetch = FetchType.LAZY)
     private List<ProsCons> prosCons;
 

@@ -79,7 +79,7 @@ class ComparisonFactorControllerTest {
         when(comparisonFactorService.createFactor(eq(decisionId), any(ComparisonFactorRequest.class), any(), any()))
                 .thenReturn(response);
 
-        mockMvc.perform(post("/decisions/{decisionId}/factors", decisionId)
+        mockMvc.perform(post("/api/decisions/{decisionId}/factors", decisionId)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isCreated())
@@ -92,7 +92,7 @@ class ComparisonFactorControllerTest {
         Long decisionId = 1L;
         ComparisonFactorRequest request = new ComparisonFactorRequest("", "Description");
 
-        mockMvc.perform(post("/decisions/{decisionId}/factors", decisionId)
+        mockMvc.perform(post("/api/decisions/{decisionId}/factors", decisionId)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest());
@@ -108,7 +108,7 @@ class ComparisonFactorControllerTest {
         when(comparisonFactorService.updateFactor(eq(decisionId), eq(factorId), any(ComparisonFactorRequest.class), any(), any()))
                 .thenReturn(response);
 
-        mockMvc.perform(put("/decisions/{decisionId}/factors/{factorId}", decisionId, factorId)
+        mockMvc.perform(put("/api/decisions/{decisionId}/factors/{factorId}", decisionId, factorId)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
@@ -122,7 +122,7 @@ class ComparisonFactorControllerTest {
 
         doNothing().when(comparisonFactorService).deleteFactor(eq(decisionId), eq(factorId), any(), any());
 
-        mockMvc.perform(delete("/decisions/{decisionId}/factors/{factorId}", decisionId, factorId))
+        mockMvc.perform(delete("/api/decisions/{decisionId}/factors/{factorId}", decisionId, factorId))
                 .andExpect(status().isNoContent());
     }
 
@@ -135,7 +135,7 @@ class ComparisonFactorControllerTest {
         when(comparisonFactorService.getFactorsByDecisionId(eq(decisionId)))
                 .thenReturn(Collections.singletonList(response));
 
-        mockMvc.perform(get("/decisions/{decisionId}/factors", decisionId))
+        mockMvc.perform(get("/api/decisions/{decisionId}/factors", decisionId))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].id").value(factorId))
                 .andExpect(jsonPath("$[0].name").value("Performance"));

@@ -3,6 +3,8 @@ package com.decisionhub.security;
 import com.decisionhub.dto.request.authentication.LoginRequest;
 import com.decisionhub.dto.request.authentication.RegisterRequest;
 import com.decisionhub.dto.request.decision.DecisionRequest;
+import com.decisionhub.dto.request.decision.OptionCreateDto;
+import com.decisionhub.dto.request.decision.ComparisonFactorRequest;
 import com.decisionhub.dto.response.authentication.LoginResponse;
 import com.decisionhub.dto.response.decision.DecisionResponse;
 import com.decisionhub.entity.administration.AuditLog;
@@ -339,5 +341,41 @@ class DecisionIntegrationTest {
 
         // Verify DB record is still present
         assertTrue(decisionRepository.findById(decision.getId()).isPresent());
+    }
+
+    @Test
+    void testCreateDecision_WithNestedOptionsAndFactors_Success() throws Exception {
+        DecisionRequest request = new DecisionRequest(
+            "Nested Creation Test",
+            "This tests options and factors creation nested inside decision",
+            null,
+            null,
+            true,
+            null,
+            null,
+            LocalDateTime.now().plusDays(5),
+            null,
+            List.of(
+                new OptionCreateDto("MacBook", "Apple Laptop", Collections.emptyList()),
+                new OptionCreateDto("ThinkPad", "Lenovo Laptop", Collections.emptyList())
+            ),
+            List.of(
+                new ComparisonFactorRequest("Price", "Cost factor"),
+                new ComparisonFactorRequest("Performance", "CPU/RAM factor")
+            )
+        );
+
+        mockMvc.perform(post("/api/decisions")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + creatorToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.title").value("Nested Creation Test"))
+                .andExpect(jsonPath("$.options").isArray())
+                .andExpect(jsonPath("$.options[0].title").value("MacBook"))
+                .andExpect(jsonPath("$.options[1].title").value("ThinkPad"))
+                .andExpect(jsonPath("$.factors").isArray())
+                .andExpect(jsonPath("$.factors[0].name").value("Price"))
+                .andExpect(jsonPath("$.factors[1].name").value("Performance"));
     }
 }
