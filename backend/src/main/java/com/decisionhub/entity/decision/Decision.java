@@ -82,4 +82,10 @@ public class Decision {
 
     @OneToMany(mappedBy = "decision", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
     private List<ComparisonFactor> comparisonFactors;
+
+    @Column(name = "pinned", nullable = false)
+    private boolean pinned = false;
+
+    @Column(name = "locked", nullable = false)
+    private boolean locked = false;
 }
