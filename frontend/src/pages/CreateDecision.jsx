@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import axios from "axios";
 import Sidebar from "../components/Sidebar";
 import Navbar from "../components/Navbar";
 import { useAuth } from "../context/AuthContext";
@@ -7,14 +8,22 @@ import { useToast } from "../components/Toast";
 import { FaArrowLeft, FaPlusCircle, FaTrash, FaEnvelope, FaTimes, FaLock } from "react-icons/fa";
 import "../styles/CreateDecision.css";
 
+const API = "http://localhost:8080/api";
+
+const token = () =>
+  localStorage.getItem("token") ||
+  localStorage.getItem("authToken") ||
+  localStorage.getItem("jwt");
+
+const headers = () => ({
+  headers: { Authorization: `Bearer ${token()}`, "Content-Type": "application/json" }
+});
+
 function CreateDecision() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { addToast } = useToast();
-  
-  const STORAGE_KEY = "decisionhub-decisions";
 
-  // Check if role is admin on mount
   useEffect(() => {
     if (user && user.role !== "ADMIN") {
       addToast("Access Denied: Only Admins can create decisions.", "error");
@@ -27,14 +36,16 @@ function CreateDecision() {
   const [category, setCategory] = useState("");
   const [visibility, setVisibility] = useState("Public");
   const [deadline, setDeadline] = useState("");
-  
-  // Dynamic Options (starts with 2 options)
+  const [votingType, setVotingType] = useState("SINGLE_CHOICE");
+  const [submitting, setSubmitting] = useState(false);
+
   const [options, setOptions] = useState([
     { id: 1, text: "" },
     { id: 2, text: "" }
   ]);
 
-  // Private Member Invites
+  const [factors, setFactors] = useState([{ id: 1, text: "" }]);
+
   const [emailInput, setEmailInput] = useState("");
   const [invitedEmails, setInvitedEmails] = useState([]);
 
@@ -47,44 +58,61 @@ function CreateDecision() {
       addToast("A decision requires at least two options.", "error");
       return;
     }
-    setOptions(options.filter(opt => opt.id !== id));
+    setOptions(options.filter((opt) => opt.id !== id));
   };
 
   const handleOptionChange = (id, val) => {
-    setOptions(options.map(opt => opt.id === id ? { ...opt, text: val } : opt));
+    setOptions(options.map((opt) => (opt.id === id ? { ...opt, text: val } : opt)));
   };
 
-  // Invited Emails Chip input logic
+  const addFactorField = () => {
+    setFactors([...factors, { id: Date.now(), text: "" }]);
+  };
+
+  const removeFactorField = (id) => {
+    if (factors.length <= 1) {
+      addToast("At least one comparison factor is required.", "error");
+      return;
+    }
+    setFactors(factors.filter((f) => f.id !== id));
+  };
+
+  const handleFactorChange = (id, val) => {
+    setFactors(factors.map((f) => (f.id === id ? { ...f, text: val } : f)));
+  };
+
   const handleAddEmail = (e) => {
     e.preventDefault();
     const email = emailInput.trim();
     if (!email) return;
-    
-    // Simple Email Regex check
+
     const isEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
     if (!isEmail) {
       addToast("Invalid email address.", "error");
       return;
     }
-
     if (invitedEmails.includes(email)) {
       addToast("Email already added.", "warning");
       return;
     }
-
     setInvitedEmails([...invitedEmails, email]);
     setEmailInput("");
   };
 
   const removeEmailChip = (email) => {
-    setInvitedEmails(invitedEmails.filter(e => e !== email));
+    setInvitedEmails(invitedEmails.filter((e) => e !== email));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (options.some(opt => !opt.text.trim())) {
+    if (options.some((opt) => !opt.text.trim())) {
       addToast("Please fill in all options.", "error");
+      return;
+    }
+
+    if (votingType === "RATING_BASED" && factors.some((f) => !f.text.trim())) {
+      addToast("Please fill in all comparison factors.", "error");
       return;
     }
 
@@ -93,51 +121,38 @@ function CreateDecision() {
       return;
     }
 
-    const existingDecisions = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
+    setSubmitting(true);
+    try {
+      // Step 1: Create as DRAFT
+      const createRes = await axios.post(
+        `${API}/decisions`,
+        {
+          title,
+          description,
+          votingType,
+          deadline: deadline ? new Date(deadline).toISOString() : null,
+          options: options.map((opt) => ({ title: opt.text })),
+          comparisonFactors:
+            votingType === "RATING_BASED"
+              ? factors.map((f) => ({ name: f.text }))
+              : []
+        },
+        headers()
+      );
 
-    const newDecision = {
-      id: Date.now(),
-      title,
-      description,
-      category,
-      visibility,
-      status: "Active",
-      deadline,
-      userVoteOptionId: null,
-      options: options.map((opt, idx) => ({
-        id: idx + 1,
-        name: opt.text,
-        votes: 0
-      })),
-      invitedEmails: visibility === "Private" ? invitedEmails : [],
-      comments: []
-    };
+      const decisionId = createRes.data.id;
 
-    existingDecisions.push(newDecision);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(existingDecisions));
+      // Step 2: Publish — DRAFT → ACTIVE, auto-creates Poll
+      await axios.put(`${API}/decisions/${decisionId}/publish`, {}, headers());
 
-    // Log Activity
-    const existingActivities = JSON.parse(localStorage.getItem("decisionhub-activities") || "[]");
-    existingActivities.unshift({
-      id: Date.now(),
-      icon: "create",
-      text: `You created '${title}'`,
-      time: "Just now"
-    });
-    localStorage.setItem("decisionhub-activities", JSON.stringify(existingActivities.slice(0, 10)));
-
-    // Log Notification
-    const existingNotifs = JSON.parse(localStorage.getItem("decisionhub-notifications") || "[]");
-    existingNotifs.unshift({
-      id: Date.now(),
-      text: `Admin created a new decision: '${title}'`,
-      unread: true,
-      time: "Just now"
-    });
-    localStorage.setItem("decisionhub-notifications", JSON.stringify(existingNotifs));
-
-    addToast("Decision created successfully!", "success");
-    navigate("/decisions");
+      addToast("Decision created successfully!", "success");
+      navigate(`/decision/${decisionId}`);
+    } catch (err) {
+      console.error("Failed to create/publish decision:", err.response?.data || err.message);
+      addToast("Failed to create decision. Check console for details.", "error");
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   if (user?.role !== "ADMIN") return null;
@@ -172,11 +187,7 @@ function CreateDecision() {
 
                 <div className="form-group">
                   <label>Category</label>
-                  <select
-                    value={category}
-                    onChange={(e) => setCategory(e.target.value)}
-                    required
-                  >
+                  <select value={category} onChange={(e) => setCategory(e.target.value)} required>
                     <option value="">Select Category</option>
                     <option>Education</option>
                     <option>Career</option>
@@ -202,10 +213,7 @@ function CreateDecision() {
               <div className="form-group-grid">
                 <div className="form-group">
                   <label>Visibility</label>
-                  <select
-                    value={visibility}
-                    onChange={(e) => setVisibility(e.target.value)}
-                  >
+                  <select value={visibility} onChange={(e) => setVisibility(e.target.value)}>
                     <option value="Public">Public (Anyone can view & vote)</option>
                     <option value="Private">Private (Invite-only via email)</option>
                   </select>
@@ -222,11 +230,19 @@ function CreateDecision() {
                 </div>
               </div>
 
-              {/* Dynamic Options Section */}
+              <div className="form-group">
+                <label>Voting Type</label>
+                <select value={votingType} onChange={(e) => setVotingType(e.target.value)}>
+                  <option value="SINGLE_CHOICE">Single Choice</option>
+                  <option value="MULTIPLE_CHOICE">Multiple Choice</option>
+                  <option value="RATING_BASED">Rating Based</option>
+                </select>
+              </div>
+
               <div className="form-section-options">
                 <h3>Voting Options</h3>
                 <p className="section-subtitle">Provide choices for participants. You must add at least 2 options.</p>
-                
+
                 <div className="options-input-list">
                   {options.map((option, index) => (
                     <div className="option-row-item animate-pop-in" key={option.id}>
@@ -250,16 +266,47 @@ function CreateDecision() {
                   ))}
                 </div>
 
-                <button
-                  type="button"
-                  className="btn-secondary add-opt-btn"
-                  onClick={addOptionField}
-                >
+                <button type="button" className="btn-secondary add-opt-btn" onClick={addOptionField}>
                   <FaPlusCircle /> Add Choice Option
                 </button>
               </div>
 
-              {/* Conditional Private Invites Section */}
+              {votingType === "RATING_BASED" && (
+                <div className="form-section-options animate-fade-in">
+                  <h3>Comparison Factors</h3>
+                  <p className="section-subtitle">
+                    Criteria voters will use to rate each option (e.g. Price, Quality).
+                  </p>
+
+                  <div className="options-input-list">
+                    {factors.map((factor, index) => (
+                      <div className="option-row-item animate-pop-in" key={factor.id}>
+                        <span className="option-index-lbl">Factor {index + 1}</span>
+                        <input
+                          type="text"
+                          placeholder={`Enter Factor ${index + 1} name`}
+                          value={factor.text}
+                          onChange={(e) => handleFactorChange(factor.id, e.target.value)}
+                          required
+                        />
+                        <button
+                          type="button"
+                          className="btn-delete-option"
+                          onClick={() => removeFactorField(factor.id)}
+                          title="Remove Factor"
+                        >
+                          <FaTrash />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+
+                  <button type="button" className="btn-secondary add-opt-btn" onClick={addFactorField}>
+                    <FaPlusCircle /> Add Comparison Factor
+                  </button>
+                </div>
+              )}
+
               {visibility === "Private" && (
                 <div className="form-section-invites animate-fade-in">
                   <div className="invites-title-sec">
@@ -300,8 +347,8 @@ function CreateDecision() {
               )}
 
               <div className="create-submit-sec">
-                <button type="submit" className="btn-primary btn-submit-poll">
-                  <FaPlusCircle /> Deploy Decision Poll
+                <button type="submit" className="btn-primary btn-submit-poll" disabled={submitting}>
+                  <FaPlusCircle /> {submitting ? "Deploying..." : "Deploy Decision Poll"}
                 </button>
               </div>
             </form>
