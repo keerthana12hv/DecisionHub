@@ -1,9 +1,12 @@
 $kind: http-request
 name: leave community
-url: http://localhost:8080/api/communities/1/leave
+url: http://localhost:8080/api/communities/3/leave
 method: POST
+body:
+  type: json
+  content: ""
 auth:
   type: bearer
   credentials:
     token: "{{authToken}}"
-order: 1019849316558
+order: 1000

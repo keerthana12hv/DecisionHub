@@ -1,23 +1,24 @@
 $kind: http-request
+name: Create Community-private
 url: http://localhost:8080/api/communities
 method: POST
 body:
   type: json
   content: "{\r
 
-    \  \"name\": \"Java Developers\",\r
+    \  \"name\": \"javaa\",\r
 
-    \  \"slug\": \"java-developers\",\r
+    \  \"slug\": \"javaa\",\r
 
     \  \"description\": \"Community for Java Developers\",\r
 
     \  \"categoryId\": 1,\r
 
-    \  \"visibility\": \"PUBLIC\"\r
+    \  \"visibility\": \"PRIVATE\"\r
 
     }"
 auth:
   type: bearer
   credentials:
     token: "{{authToken}}"
-order: 1783346625935
+order: 2227

@@ -14,7 +14,7 @@ target/
 .sts4-cache
 
 ### IntelliJ IDEA ###
-.idea
+.idea/
 *.iws
 *.iml
 *.ipr
@@ -33,5 +33,4 @@ build/
 .vscode/
 /.apt_generated_tests/
 
-*application-local.properties
-postman/
+.application-local.properties/

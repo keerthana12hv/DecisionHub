@@ -1,0 +1,9 @@
+$kind: http-request
+name: Remove Community Member
+url: http://localhost:8080/api/communities/1/members/2
+method: DELETE
+auth:
+  type: bearer
+  credentials:
+    token: "{{authToken}}"
+order: 4339977229012873

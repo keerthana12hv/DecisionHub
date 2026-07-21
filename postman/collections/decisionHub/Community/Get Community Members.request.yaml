@@ -1,0 +1,9 @@
+$kind: http-request
+name: Get Community Members
+url: http://localhost:8080/api/communities/1/members
+method: GET
+auth:
+  type: bearer
+  credentials:
+    token: "{{authToken}}"
+order: 4196420684416518

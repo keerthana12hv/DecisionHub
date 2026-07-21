@@ -81,6 +81,8 @@ public class DecisionController {
         return ResponseEntity.ok(response);
     }
 
+
+
     @DeleteMapping("/{id}")
     @Operation(summary = "Delete a decision", description = "Deletes a decision and associated entities (requires creator/owner)", security = @SecurityRequirement(name = "bearerAuth"))
     public ResponseEntity<Void> deleteDecision(

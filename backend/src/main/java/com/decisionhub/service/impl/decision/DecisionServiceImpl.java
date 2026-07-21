@@ -246,6 +246,8 @@ public class DecisionServiceImpl implements DecisionService {
         return decisionMapper.toResponse(updatedDecision);
     }
 
+
+
     @Override
     @Transactional
     public void deleteDecision(Long id, String ipAddress, String userAgent) {

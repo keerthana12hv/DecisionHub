@@ -2,8 +2,11 @@ $kind: http-request
 name: list communities
 url: http://localhost:8080/api/communities
 method: GET
+body:
+  type: json
+  content: ""
 auth:
   type: bearer
   credentials:
     token: "{{authToken}}"
-order: 3977243864673814
+order: 6000
