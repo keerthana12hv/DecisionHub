@@ -1,4 +1,20 @@
 $kind: http-request
-url: ""
-method: GET
-order: 4000
+name: option 2
+url: http://localhost:8080/api/decisions/1/options
+method: POST
+body:
+  type: json
+  content: "{\r
+
+    \    \"title\": \"Node.js\",\r
+
+    \    \"description\": \"JavaScript Runtime\",\r
+
+    \    \"criteria\": []\r
+
+    }"
+auth:
+  type: bearer
+  credentials:
+    token: "{{authToken}}"
+order: 3000

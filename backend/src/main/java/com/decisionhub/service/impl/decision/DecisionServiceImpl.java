@@ -57,6 +57,7 @@ public class DecisionServiceImpl implements DecisionService {
     private final AuthenticationFacade authenticationFacade;
     private final AuditService auditService;
     private final DecisionValidator decisionValidator;
+
     private final ApplicationEventPublisher eventPublisher;
 
     @Override
@@ -197,6 +198,8 @@ public class DecisionServiceImpl implements DecisionService {
         Decision decision = decisionRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Decision not found with ID: " + id));
 
+        decisionModificationValidator.validateDecisionEditable(decision);
+
         // 1. Authorization
         if (!decisionAuthorizationService.canEditDecision(id, currentUserId)) {
             throw new UnauthorizedActionException("Not authorized to edit this decision");
@@ -246,51 +249,7 @@ public class DecisionServiceImpl implements DecisionService {
         return decisionMapper.toResponse(updatedDecision);
     }
 
-    @Override
-    @Transactional
-    public DecisionResponse publishDecision(Long id, String ipAddress, String userAgent) {
-        log.info("Attempting to publish decision: {}", id);
 
-        Long currentUserId = getCurrentUserIdOrThrow();
-        User currentUser = userRepository.findById(currentUserId)
-                .orElseThrow(() -> new ResourceNotFoundException("User not found with ID: " + currentUserId));
-
-        Decision decision = decisionRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Decision not found with ID: " + id));
-
-        // 1. Authorization
-        if (!decisionAuthorizationService.canEditDecision(id, currentUserId)) {
-            throw new UnauthorizedActionException("Not authorized to publish this decision");
-        }
-
-        // 2. State Validation
-        if (decision.getStatus() != DecisionStatus.DRAFT) {
-            throw new BadRequestException("Only DRAFT decisions can be published.");
-        }
-
-        // 3. Completeness Validation
-        if (decision.getOptions() == null || decision.getOptions().size() < 2) {
-            throw new BadRequestException("A decision must have at least two options before publishing.");
-        }
-        if (decision.getComparisonFactors() == null || decision.getComparisonFactors().isEmpty()) {
-            throw new BadRequestException("Add at least one comparison factor before publishing.");
-        }
-
-        // 4. Update state
-        String oldValueJson = String.format("{\"status\":\"%s\"}", decision.getStatus());
-        decision.setStatus(DecisionStatus.ACTIVE);
-        decision.setUpdatedAt(LocalDateTime.now());
-
-        // 5. Save
-        Decision publishedDecision = decisionRepository.save(decision);
-
-        // 6. Audit Logging
-        String newValueJson = String.format("{\"status\":\"%s\"}", publishedDecision.getStatus());
-        auditService.log(currentUser, "DECISION_PUBLISHED", "decisions", id, oldValueJson, newValueJson, ipAddress, userAgent);
-
-        log.info("Decision with ID '{}' published successfully", id);
-        return decisionMapper.toResponse(publishedDecision);
-    }
 
     @Override
     @Transactional
@@ -303,6 +262,8 @@ public class DecisionServiceImpl implements DecisionService {
 
         Decision decision = decisionRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Decision not found with ID: " + id));
+
+        decisionModificationValidator.validateDecisionEditable(decision);
 
         // 1. Authorization
         if (!decisionAuthorizationService.canDeleteDecision(id, currentUserId)) {

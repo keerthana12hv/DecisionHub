@@ -1,6 +1,6 @@
 $kind: http-request
 name: join community
-url: http://localhost:8080/api/communities/1/join
+url: http://localhost:8080/api/communities/2/join
 method: POST
 body:
   type: json

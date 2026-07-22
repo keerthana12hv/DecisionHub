@@ -1,0 +1,43 @@
+$kind: http-request
+url: http://localhost:8080/api/decisions/2/scores/me
+method: GET
+body:
+  type: json
+  content: "[\r
+
+    \  {\r
+
+    \    \"optionId\": 4,\r
+
+    \    \"factorId\": 1,\r
+
+    \    \"score\": 9\r
+
+    \  },\r
+
+    \  {\r
+
+    \    \"optionId\": 5,\r
+
+    \    \"factorId\": 1,\r
+
+    \    \"score\": 8\r
+
+    \  },\r
+
+    \  {\r
+
+    \    \"optionId\": 6,\r
+
+    \    \"factorId\": 1,\r
+
+    \    \"score\": 7\r
+
+    \  }\r
+
+    ]"
+auth:
+  type: bearer
+  credentials:
+    token: "{{authToken}}"
+order: 2349968151027649

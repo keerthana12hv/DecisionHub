@@ -1,21 +1,22 @@
 $kind: http-request
+name: score 3
 url: http://localhost:8080/api/decisions/2/scores
 method: POST
 body:
   type: json
   content: "{\r
 
-    \    \"optionId\": 4,\r
+    \    \"optionId\": 6,\r
 
     \    \"factorId\": 1,\r
 
-    \    \"score\": 9,\r
+    \    \"score\": 7,\r
 
-    \    \"remarks\": \"Excellent performance\"\r
+    \    \"remarks\": \"Good performance\"\r
 
     }"
 auth:
   type: bearer
   credentials:
     token: "{{authToken}}"
-order: 15000
+order: 14368

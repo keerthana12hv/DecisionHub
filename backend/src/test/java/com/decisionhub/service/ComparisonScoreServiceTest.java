@@ -23,6 +23,7 @@ import com.decisionhub.security.decision.AuthenticationFacade;
 import com.decisionhub.service.impl.decision.ComparisonScoreServiceImpl;
 import com.decisionhub.service.interfaces.audit.AuditService;
 import com.decisionhub.validator.decision.ComparisonScoreValidator;
+import com.decisionhub.validator.decision.DecisionModificationValidator;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -71,6 +72,8 @@ class ComparisonScoreServiceTest {
     private AuthenticationFacade authenticationFacade;
     @Mock
     private org.springframework.context.ApplicationEventPublisher eventPublisher;
+    @Mock
+    private DecisionModificationValidator decisionModificationValidator;
 
     @InjectMocks
     private ComparisonScoreServiceImpl comparisonScoreService;
