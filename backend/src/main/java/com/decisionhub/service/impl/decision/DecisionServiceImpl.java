@@ -28,6 +28,7 @@ import com.decisionhub.security.decision.DecisionAuthorizationService;
 import com.decisionhub.service.interfaces.audit.AuditService;
 import com.decisionhub.service.interfaces.decision.DecisionService;
 import com.decisionhub.validator.decision.DecisionValidator;
+import com.decisionhub.validator.decision.DecisionModificationValidator;
 import com.decisionhub.event.DecisionPublishedEvent;
 import org.springframework.context.ApplicationEventPublisher;
 import lombok.RequiredArgsConstructor;
@@ -57,6 +58,7 @@ public class DecisionServiceImpl implements DecisionService {
     private final AuthenticationFacade authenticationFacade;
     private final AuditService auditService;
     private final DecisionValidator decisionValidator;
+    private final DecisionModificationValidator decisionModificationValidator;
     private final ApplicationEventPublisher eventPublisher;
 
     @Override
@@ -197,6 +199,8 @@ public class DecisionServiceImpl implements DecisionService {
         Decision decision = decisionRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Decision not found with ID: " + id));
 
+        decisionModificationValidator.validateDecisionUnlocked(decision);
+
         // 1. Authorization
         if (!decisionAuthorizationService.canEditDecision(id, currentUserId)) {
             throw new UnauthorizedActionException("Not authorized to edit this decision");
@@ -260,6 +264,8 @@ public class DecisionServiceImpl implements DecisionService {
         Decision decision = decisionRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Decision not found with ID: " + id));
 
+        decisionModificationValidator.validateDecisionUnlocked(decision);
+
         // 1. Authorization
         if (!decisionAuthorizationService.canDeleteDecision(id, currentUserId)) {
             throw new UnauthorizedActionException("Not authorized to delete this decision");
@@ -298,6 +304,8 @@ public class DecisionServiceImpl implements DecisionService {
 
         Decision decision = decisionRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Decision not found with ID: " + id));
+
+        decisionModificationValidator.validateDecisionUnlocked(decision);
 
         if (!decisionAuthorizationService.canActivateDecision(id, currentUserId)) {
             throw new UnauthorizedActionException("Not authorized to publish this decision");

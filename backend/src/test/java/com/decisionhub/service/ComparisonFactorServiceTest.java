@@ -18,6 +18,7 @@ import com.decisionhub.security.decision.AuthenticationFacade;
 import com.decisionhub.service.impl.decision.ComparisonFactorServiceImpl;
 import com.decisionhub.service.interfaces.audit.AuditService;
 import com.decisionhub.validator.decision.ComparisonFactorValidator;
+import com.decisionhub.validator.decision.DecisionModificationValidator;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -59,6 +60,8 @@ class ComparisonFactorServiceTest {
     private AuditService auditService;
     @Mock
     private AuthenticationFacade authenticationFacade;
+    @Mock
+    private DecisionModificationValidator decisionModificationValidator;
 
     @InjectMocks
     private ComparisonFactorServiceImpl comparisonFactorService;

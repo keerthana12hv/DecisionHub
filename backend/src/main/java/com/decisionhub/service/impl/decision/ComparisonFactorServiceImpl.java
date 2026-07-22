@@ -17,6 +17,7 @@ import com.decisionhub.security.decision.AuthenticationFacade;
 import com.decisionhub.service.interfaces.audit.AuditService;
 import com.decisionhub.service.interfaces.decision.ComparisonFactorService;
 import com.decisionhub.validator.decision.ComparisonFactorValidator;
+import com.decisionhub.validator.decision.DecisionModificationValidator;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -40,6 +41,7 @@ public class ComparisonFactorServiceImpl implements ComparisonFactorService {
     
     private final ComparisonMapper comparisonMapper;
     private final ComparisonFactorValidator comparisonFactorValidator;
+    private final DecisionModificationValidator decisionModificationValidator;
     private final DecisionAuthorizationService decisionAuthorizationService;
     private final AuditService auditService;
     private final AuthenticationFacade authenticationFacade;
@@ -50,6 +52,7 @@ public class ComparisonFactorServiceImpl implements ComparisonFactorService {
         log.info("Attempting to create comparison factor on board: {}", decisionId);
 
         Decision board = getActiveBoardOrThrow(decisionId);
+        decisionModificationValidator.validateDecisionUnlocked(board);
         Long currentUserId = getCurrentUserIdOrThrow();
 
         // 1. Authorization
@@ -87,6 +90,7 @@ public class ComparisonFactorServiceImpl implements ComparisonFactorService {
         log.info("Attempting to update comparison factor: {} on board: {}", factorId, decisionId);
 
         Decision board = getActiveBoardOrThrow(decisionId);
+        decisionModificationValidator.validateDecisionUnlocked(board);
         Long currentUserId = getCurrentUserIdOrThrow();
 
         // 1. Authorization
@@ -129,6 +133,7 @@ public class ComparisonFactorServiceImpl implements ComparisonFactorService {
         log.info("Attempting to delete comparison factor: {} on board: {}", factorId, decisionId);
 
         Decision board = getActiveBoardOrThrow(decisionId);
+        decisionModificationValidator.validateDecisionUnlocked(board);
         Long currentUserId = getCurrentUserIdOrThrow();
 
         // 1. Authorization

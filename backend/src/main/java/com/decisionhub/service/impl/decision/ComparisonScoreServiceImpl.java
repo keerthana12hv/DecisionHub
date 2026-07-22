@@ -22,6 +22,7 @@ import com.decisionhub.security.decision.AuthenticationFacade;
 import com.decisionhub.service.interfaces.audit.AuditService;
 import com.decisionhub.service.interfaces.decision.ComparisonScoreService;
 import com.decisionhub.validator.decision.ComparisonScoreValidator;
+import com.decisionhub.validator.decision.DecisionModificationValidator;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -50,6 +51,7 @@ public class ComparisonScoreServiceImpl implements ComparisonScoreService {
 
     private final ComparisonMapper comparisonMapper;
     private final ComparisonScoreValidator comparisonScoreValidator;
+    private final DecisionModificationValidator decisionModificationValidator;
     private final DecisionAuthorizationService decisionAuthorizationService;
     private final AuditService auditService;
     private final AuthenticationFacade authenticationFacade;
@@ -61,6 +63,7 @@ public class ComparisonScoreServiceImpl implements ComparisonScoreService {
         log.info("Attempting to submit comparison score on board: {}", decisionId);
 
         Decision board = getActiveBoardOrThrow(decisionId);
+        decisionModificationValidator.validateDecisionUnlocked(board);
         Long currentUserId = getCurrentUserIdOrThrow();
 
         // 1. Authorization
@@ -126,6 +129,7 @@ public class ComparisonScoreServiceImpl implements ComparisonScoreService {
         log.info("Attempting to update comparison score on board: {}", decisionId);
 
         Decision board = getActiveBoardOrThrow(decisionId);
+        decisionModificationValidator.validateDecisionUnlocked(board);
         Long currentUserId = getCurrentUserIdOrThrow();
 
         // 1. Authorization
@@ -171,7 +175,8 @@ public class ComparisonScoreServiceImpl implements ComparisonScoreService {
     public void deleteScore(Long decisionId, Long optionId, Long factorId, String ipAddress, String userAgent) {
         log.info("Attempting to delete comparison score on board: {} for option: {} and factor: {}", decisionId, optionId, factorId);
 
-        getActiveBoardOrThrow(decisionId);
+        Decision board = getActiveBoardOrThrow(decisionId);
+        decisionModificationValidator.validateDecisionUnlocked(board);
         Long currentUserId = getCurrentUserIdOrThrow();
 
         // 1. Authorization

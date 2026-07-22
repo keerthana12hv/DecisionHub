@@ -47,6 +47,18 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(response, HttpStatus.FORBIDDEN);
     }
 
+    @ExceptionHandler(DecisionLockedException.class)
+    public ResponseEntity<ApiErrorResponse> handleDecisionLockedException(
+            DecisionLockedException ex, HttpServletRequest request) {
+        
+        ApiErrorResponse response = new ApiErrorResponse(
+                HttpStatus.FORBIDDEN.value(), 
+                ex.getMessage(),
+                request.getRequestURI()
+        );
+        return new ResponseEntity<>(response, HttpStatus.FORBIDDEN);
+    }
+
     @ExceptionHandler(BadRequestException.class)
     public ResponseEntity<ApiErrorResponse> handleBadRequestException(
             BadRequestException ex, HttpServletRequest request) {
