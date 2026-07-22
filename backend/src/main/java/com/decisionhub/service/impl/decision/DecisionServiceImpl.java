@@ -199,7 +199,7 @@ public class DecisionServiceImpl implements DecisionService {
         Decision decision = decisionRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Decision not found with ID: " + id));
 
-        decisionModificationValidator.validateDecisionUnlocked(decision);
+        decisionModificationValidator.validateDecisionEditable(decision);
 
         // 1. Authorization
         if (!decisionAuthorizationService.canEditDecision(id, currentUserId)) {
@@ -264,7 +264,7 @@ public class DecisionServiceImpl implements DecisionService {
         Decision decision = decisionRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Decision not found with ID: " + id));
 
-        decisionModificationValidator.validateDecisionUnlocked(decision);
+        decisionModificationValidator.validateDecisionEditable(decision);
 
         // 1. Authorization
         if (!decisionAuthorizationService.canDeleteDecision(id, currentUserId)) {
@@ -305,7 +305,7 @@ public class DecisionServiceImpl implements DecisionService {
         Decision decision = decisionRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Decision not found with ID: " + id));
 
-        decisionModificationValidator.validateDecisionUnlocked(decision);
+        decisionModificationValidator.validateDecisionEditable(decision);
 
         if (!decisionAuthorizationService.canActivateDecision(id, currentUserId)) {
             throw new UnauthorizedActionException("Not authorized to publish this decision");

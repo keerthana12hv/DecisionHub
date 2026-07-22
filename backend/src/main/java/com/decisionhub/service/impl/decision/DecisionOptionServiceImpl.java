@@ -49,7 +49,7 @@ public class DecisionOptionServiceImpl implements DecisionOptionService {
         log.info("Attempting to create decision option on board: {}", decisionId);
 
         Decision board = getActiveBoardOrThrow(decisionId);
-        decisionModificationValidator.validateDecisionUnlocked(board);
+        decisionModificationValidator.validateDecisionEditable(board);
         Long currentUserId = getCurrentUserIdOrThrow();
 
         // 1. Authorization
@@ -84,7 +84,7 @@ public class DecisionOptionServiceImpl implements DecisionOptionService {
         log.info("Attempting to update option: {} on board: {}", optionId, decisionId);
 
         Decision board = getActiveBoardOrThrow(decisionId);
-        decisionModificationValidator.validateDecisionUnlocked(board);
+        decisionModificationValidator.validateDecisionEditable(board);
         Long currentUserId = getCurrentUserIdOrThrow();
 
         // 1. Authorization
@@ -127,7 +127,7 @@ public class DecisionOptionServiceImpl implements DecisionOptionService {
         log.info("Attempting to delete option: {} on board: {}", optionId, decisionId);
 
         Decision board = getActiveBoardOrThrow(decisionId);
-        decisionModificationValidator.validateDecisionUnlocked(board);
+        decisionModificationValidator.validateDecisionEditable(board);
         Long currentUserId = getCurrentUserIdOrThrow();
 
         // 1. Authorization

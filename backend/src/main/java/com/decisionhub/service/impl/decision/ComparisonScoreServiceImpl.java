@@ -63,7 +63,7 @@ public class ComparisonScoreServiceImpl implements ComparisonScoreService {
         log.info("Attempting to submit comparison score on board: {}", decisionId);
 
         Decision board = getActiveBoardOrThrow(decisionId);
-        decisionModificationValidator.validateDecisionUnlocked(board);
+        decisionModificationValidator.validateDecisionEditable(board);
         Long currentUserId = getCurrentUserIdOrThrow();
 
         // 1. Authorization
@@ -129,7 +129,7 @@ public class ComparisonScoreServiceImpl implements ComparisonScoreService {
         log.info("Attempting to update comparison score on board: {}", decisionId);
 
         Decision board = getActiveBoardOrThrow(decisionId);
-        decisionModificationValidator.validateDecisionUnlocked(board);
+        decisionModificationValidator.validateDecisionEditable(board);
         Long currentUserId = getCurrentUserIdOrThrow();
 
         // 1. Authorization
@@ -176,7 +176,7 @@ public class ComparisonScoreServiceImpl implements ComparisonScoreService {
         log.info("Attempting to delete comparison score on board: {} for option: {} and factor: {}", decisionId, optionId, factorId);
 
         Decision board = getActiveBoardOrThrow(decisionId);
-        decisionModificationValidator.validateDecisionUnlocked(board);
+        decisionModificationValidator.validateDecisionEditable(board);
         Long currentUserId = getCurrentUserIdOrThrow();
 
         // 1. Authorization

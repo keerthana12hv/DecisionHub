@@ -52,7 +52,7 @@ public class ComparisonFactorServiceImpl implements ComparisonFactorService {
         log.info("Attempting to create comparison factor on board: {}", decisionId);
 
         Decision board = getActiveBoardOrThrow(decisionId);
-        decisionModificationValidator.validateDecisionUnlocked(board);
+        decisionModificationValidator.validateDecisionEditable(board);
         Long currentUserId = getCurrentUserIdOrThrow();
 
         // 1. Authorization
@@ -90,7 +90,7 @@ public class ComparisonFactorServiceImpl implements ComparisonFactorService {
         log.info("Attempting to update comparison factor: {} on board: {}", factorId, decisionId);
 
         Decision board = getActiveBoardOrThrow(decisionId);
-        decisionModificationValidator.validateDecisionUnlocked(board);
+        decisionModificationValidator.validateDecisionEditable(board);
         Long currentUserId = getCurrentUserIdOrThrow();
 
         // 1. Authorization
@@ -133,7 +133,7 @@ public class ComparisonFactorServiceImpl implements ComparisonFactorService {
         log.info("Attempting to delete comparison factor: {} on board: {}", factorId, decisionId);
 
         Decision board = getActiveBoardOrThrow(decisionId);
-        decisionModificationValidator.validateDecisionUnlocked(board);
+        decisionModificationValidator.validateDecisionEditable(board);
         Long currentUserId = getCurrentUserIdOrThrow();
 
         // 1. Authorization
