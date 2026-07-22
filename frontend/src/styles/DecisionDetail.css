@@ -1,0 +1,53 @@
+.decision-detail-page {
+  padding: 24px 32px;
+  max-width: 900px;
+  color: #e5e7eb;
+}
+
+.decision-detail-page > h2 {
+  font-size: 1.8rem;
+  font-weight: 700;
+  margin-bottom: 8px;
+  color: #ffffff;
+}
+
+.decision-detail-page > p {
+  color: #9ca3af;
+  font-size: 0.95rem;
+  margin: 4px 0 20px;
+}
+
+.decision-moderation-controls {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 24px;
+}
+
+.decision-moderation-controls button {
+  background: rgba(108, 99, 255, 0.15);
+  color: #a5a0ff;
+  border: 1px solid rgba(108, 99, 255, 0.3);
+  border-radius: 8px;
+  padding: 8px 16px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.15s ease;
+}
+
+.decision-moderation-controls button:hover:not(:disabled) {
+  opacity: 0.8;
+}
+
+.decision-moderation-controls button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.voting-placeholder {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px dashed rgba(255, 255, 255, 0.15);
+  border-radius: 10px;
+  padding: 16px;
+  color: #9ca3af;
+}
