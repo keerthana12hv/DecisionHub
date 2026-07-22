@@ -1,0 +1,66 @@
+$kind: http-request
+name: 01. Create Rating Decision
+url: http://localhost:8080/api/decisions
+method: POST
+body:
+  type: json
+  content: "{\r
+
+    \  \"title\": \"Choose the Best Programming Language\",\r
+
+    \  \"description\": \"Testing Rating and Ranking Engine\",\r
+
+    \  \"communityId\": 1,\r
+
+    \  \"deadline\": \"2026-08-20T18:00:00\",\r
+
+    \  \"votingEndTime\": \"2026-08-18T18:00:00\",\r
+
+    \  \"votingType\": \"RATING\",\r
+
+    \  \"options\": [\r
+
+    \    {\r
+
+    \      \"title\": \"Java\",\r
+
+    \      \"description\": \"Java Programming Language\"\r
+
+    \    },\r
+
+    \    {\r
+
+    \      \"title\": \"Python\",\r
+
+    \      \"description\": \"Python Programming Language\"\r
+
+    \    }\r
+
+    \  ],\r
+
+    \  \"factors\": [\r
+
+    \    {\r
+
+    \      \"name\": \"Performance\",\r
+
+    \      \"description\": \"Execution Speed\"\r
+
+    \    },\r
+
+    \    {\r
+
+    \      \"name\": \"Ease of Learning\",\r
+
+    \      \"description\": \"Learning Curve\"\r
+
+    \    }\r
+
+    \  ]\r
+
+    }"
+auth:
+  type: bearer
+  credentials:
+    token: "{{authToken}}"
+order: 1784747417282

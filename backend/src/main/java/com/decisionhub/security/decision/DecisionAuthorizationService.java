@@ -49,4 +49,31 @@ public interface DecisionAuthorizationService {
      * Checks if a user can submit or update a comparison score on a decision.
      */
     boolean canSubmitScore(Long decisionId, Long userId);
+
+    /**
+     * Checks if a user is allowed to manage the Poll lifecycle
+     * associated with a Decision.
+     *
+     * Poll management follows Decision ownership, meaning only
+     * the creator/owner of the Decision can manage its Poll.
+     */
+    boolean canManagePoll(Long decisionId, Long userId);
+
+    /**
+     * Checks if a user is allowed to participate in voting for a decision.
+     *
+     * Voting participation rules:
+     * - PUBLIC: Any authenticated user can vote.
+     * - COMMUNITY: Only APPROVED members of the associated community can vote.
+     *
+     * Community privacy is handled by the Community membership mechanism.
+     * Decisions belonging to private communities are therefore indirectly
+     * protected through approved community membership.
+     *
+     * @param decisionId ID of the decision.
+     * @param userId     ID of the user attempting to vote.
+     * @return true if the user is allowed to participate in voting,
+     *         otherwise false.
+     */
+    boolean canParticipateInVoting(Long decisionId, Long userId);
 }
