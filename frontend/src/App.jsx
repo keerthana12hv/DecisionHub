@@ -1,4 +1,3 @@
-import ModeratorPanel from "./components/ModeratorPanel";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "./context/AuthContext";
 import { ToastProvider } from "./components/Toast";
@@ -11,6 +10,7 @@ import DecisionDetail from "./pages/DecisionDetail";
 import CreateDecision from "./pages/CreateDecision";
 import VotingPage from "./pages/VotingPage";
 import Communities from "./pages/Communities";
+import CommunityDetail from "./pages/CommunityDetails";
 import DecisionList from "./pages/DecisionList";
 import Profile from "./pages/Profile";
 import Settings from "./pages/Settings";
@@ -29,19 +29,19 @@ function App() {
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
             <Route path="/dashboard" element={<Dashboard />} />
-           
+
             <Route path="/decision/:decisionId" element={<DecisionDetail />} />
             <Route path="/create-decision" element={<CreateDecision />} />
             <Route path="/vote" element={<VotingPage />} />
             <Route path="/communities" element={<Communities />} />
+            <Route path="/communities/:communityId" element={<CommunityDetail />} />
             <Route path="/decisions" element={<DecisionList />} />
             <Route path="/profile" element={<Profile />} />
             <Route path="/settings" element={<Settings />} />
             <Route path="/notifications" element={<NotificationsPage />} />
             <Route path="/analytics" element={<Analytics />} />
-            <Route path="*" element={<NotFound />} />
             <Route path="/discussion" element={<Discussion />} />
-           <Route path="/moderator-test" element={<ModeratorPanel communityId={3} />} />
+            <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
       </ToastProvider>

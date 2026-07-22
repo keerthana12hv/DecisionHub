@@ -1,0 +1,16 @@
+﻿{
+  "title": "What should we build next?",
+  "description": "Testing decision creation for Pin/Lock feature testing",
+  "communityId": 2,
+  "isPublic": true,
+  "votingType": "SINGLE_CHOICE",
+  "anonymityType": "PUBLIC",
+  "votingEndTime": "2026-07-25T18:00:00",
+  "deadline": "2026-07-28T18:00:00",
+  "tags": ["testing"],
+  "options": [
+    { "title": "Option A", "description": "First choice" },
+    { "title": "Option B", "description": "Second choice" }
+  ],
+  "factors": []
+}

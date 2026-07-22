@@ -46,3 +46,16 @@ export const getMembers = (communityId) =>
 
 export const removeMember = (communityId, memberId) =>
   axios.delete(`${API}/communities/${communityId}/members/${memberId}`, headers());
+
+// Community Rules
+export const getRules = (communityId) =>
+  axios.get(`${API}/communities/${communityId}/rules`, headers());
+
+export const createRule = (communityId, data) =>
+  axios.post(`${API}/moderation/communities/${communityId}/rules`, data, headers());
+
+export const updateRule = (ruleId, data) =>
+  axios.put(`${API}/moderation/rules/${ruleId}`, data, headers());
+
+export const deleteRule = (ruleId) =>
+  axios.delete(`${API}/moderation/rules/${ruleId}`, headers());

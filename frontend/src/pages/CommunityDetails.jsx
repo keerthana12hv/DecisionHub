@@ -1,6 +1,9 @@
 import { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import axios from "axios";
+import "../styles/CommunityDetail.css";
+import Sidebar from "../components/Sidebar";
+import Navbar from "../components/Navbar";
 import ModeratorPanel from "../components/ModeratorPanel";
 
 const API = "http://localhost:8080/api";
@@ -18,7 +21,13 @@ export default function CommunityDetail() {
 
   useEffect(() => {
     fetchCommunity();
-    setCurrentUserId(localStorage.getItem("userId"));
+    try {
+      const t = token();
+      const payload = JSON.parse(atob(t.split(".")[1]));
+      setCurrentUserId(payload.id);
+    } catch (err) {
+      console.error("Failed to decode token:", err);
+    }
   }, [communityId]);
 
   const fetchCommunity = async () => {
@@ -32,18 +41,28 @@ export default function CommunityDetail() {
     }
   };
 
-  if (loading) return <p>Loading community...</p>;
-  if (!community) return <p>Community not found.</p>;
-
-  const isModerator = String(community.ownerId) === String(currentUserId);
+  const isModerator = community && String(community.ownerId) === String(currentUserId);
 
   return (
-    <div className="community-detail-page">
-      <h2>{community.name}</h2>
-      <p>{community.description}</p>
-      <p>Category: {community.categoryName}</p>
+    <div className="dashboard">
+      <Sidebar />
+      <div className="dashboard-main">
+        <Navbar />
+        <div className="dashboard-content animate-fade-in">
+          {loading && <p>Loading community...</p>}
+          {!loading && !community && <p>Community not found.</p>}
 
-      {isModerator && <ModeratorPanel communityId={community.id} />}
+          {!loading && community && (
+            <div className="community-detail-page">
+              <h2>{community.name}</h2>
+              <p>{community.description}</p>
+              <p>Category: {community.categoryName}</p>
+
+              {isModerator && <ModeratorPanel communityId={community.id} />}
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 }

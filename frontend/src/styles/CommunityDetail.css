@@ -1,0 +1,197 @@
+.community-detail-page {
+  padding: 24px 32px;
+  max-width: 900px;
+  color: #e5e7eb;
+}
+
+.community-detail-page > h2 {
+  font-size: 1.8rem;
+  font-weight: 700;
+  margin-bottom: 8px;
+  color: #ffffff;
+}
+
+.community-detail-page > p {
+  color: #9ca3af;
+  font-size: 0.95rem;
+  margin: 4px 0;
+}
+
+.moderator-panel {
+  margin-top: 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+
+.moderator-panel h3 {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: #ffffff;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  padding-bottom: 12px;
+}
+
+.moderator-panel section {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  padding: 20px 22px;
+}
+
+.moderator-panel h4 {
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: #c7c9fb;
+  margin-bottom: 14px;
+}
+
+.request-row,
+.member-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 14px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 10px;
+  margin-bottom: 10px;
+}
+
+.request-row span,
+.member-row span {
+  font-weight: 500;
+  color: #f3f4f6;
+}
+
+.request-row button,
+.member-row button {
+  border: none;
+  border-radius: 8px;
+  padding: 6px 14px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  margin-left: 8px;
+  transition: opacity 0.15s ease;
+}
+
+.request-row button:hover,
+.member-row button:hover {
+  opacity: 0.85;
+}
+
+/* Approve button (first in row) */
+.request-row button:nth-of-type(1) {
+  background: #6c63ff;
+  color: white;
+}
+
+/* Reject button (second in row) */
+.request-row button:nth-of-type(2) {
+  background: transparent;
+  color: #f87171;
+  border: 1px solid rgba(248, 113, 113, 0.4);
+}
+
+/* Remove button (member row) */
+.member-row button {
+  background: transparent;
+  color: #f87171;
+  border: 1px solid rgba(248, 113, 113, 0.4);
+}
+
+.community-rules h3 {
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: #c7c9fb;
+  margin-bottom: 14px;
+}
+
+.rule-form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.rule-form input,
+.rule-form textarea {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  padding: 10px 12px;
+  color: #f3f4f6;
+  font-size: 0.9rem;
+  font-family: inherit;
+}
+
+.rule-form input:focus,
+.rule-form textarea:focus {
+  outline: none;
+  border-color: #6c63ff;
+}
+
+.rule-form textarea {
+  min-height: 70px;
+  resize: vertical;
+}
+
+.rule-form button {
+  align-self: flex-start;
+  background: #6c63ff;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 8px 18px;
+  font-weight: 600;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.rule-form button[type="button"] {
+  background: transparent;
+  color: #9ca3af;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  margin-left: 8px;
+}
+
+.rule-row {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 10px;
+  padding: 14px 16px;
+  margin-bottom: 10px;
+}
+
+.rule-row strong {
+  color: #ffffff;
+  font-size: 0.98rem;
+}
+
+.rule-row p {
+  color: #9ca3af;
+  font-size: 0.88rem;
+  margin: 6px 0 10px;
+}
+
+.rule-row button {
+  border: none;
+  border-radius: 8px;
+  padding: 5px 12px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  margin-right: 8px;
+}
+
+.rule-row button:first-of-type {
+  background: rgba(108, 99, 255, 0.15);
+  color: #a5a0ff;
+}
+
+.rule-row button:last-of-type {
+  background: rgba(248, 113, 113, 0.12);
+  color: #f87171;
+}

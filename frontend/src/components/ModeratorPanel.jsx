@@ -1,4 +1,4 @@
-
+import CommunityRules from "./moderator/CommunityRules";
 import { useState, useEffect } from "react";
 import {
   getJoinRequests,
@@ -90,6 +90,10 @@ export default function ModeratorPanel({ communityId }) {
             <button onClick={() => handleRemoveMember(m.id)}>Remove</button>
           </div>
         ))}
+      </section>
+
+      <section>
+        <CommunityRules communityId={communityId} />
       </section>
     </div>
   );

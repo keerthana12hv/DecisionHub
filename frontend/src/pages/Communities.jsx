@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import Sidebar from "../components/Sidebar";
 import Navbar from "../components/Navbar";
+//import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { useToast } from "../components/Toast";
 import { FaUsers, FaUserPlus, FaArrowRight, FaTimes, FaGlobe, FaChevronRight, FaStar, FaPlusCircle, FaPaperPlane } from "react-icons/fa";
@@ -17,6 +19,7 @@ const STORAGE_KEY = "decisionhub-communities";
 
 function Communities() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const { addToast } = useToast();
 
   const [communities, setCommunities] = useState([]);
@@ -301,7 +304,7 @@ console.log("handleCreateCommunity called");
                         </div>
 
                         <div className="community-buttons-sec">
-                          <button className="btn-secondary view-btn" onClick={() => setActiveCommDetail(community)}>
+                          <button className="btn-secondary view-btn" onClick={() => navigate(`/communities/${community.id}`)}>
                             <FaArrowRight /> View Workspace
                           </button>
 
