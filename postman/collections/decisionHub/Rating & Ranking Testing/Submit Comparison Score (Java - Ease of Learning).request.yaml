@@ -1,0 +1,22 @@
+$kind: http-request
+name: Submit Comparison Score (Java - Ease of Learning)
+url: http://localhost:8080/api/decisions/2/scores
+method: POST
+body:
+  type: json
+  content: "{\r
+
+    \    \"optionId\": 3,\r
+
+    \    \"factorId\": 2,\r
+
+    \    \"score\": 70,\r
+
+    \    \"remarks\": \"Moderately easy\"\r
+
+    }"
+auth:
+  type: bearer
+  credentials:
+    token: "{{authToken}}"
+order: 4444646464812584
