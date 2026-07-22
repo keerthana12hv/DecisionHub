@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import {
   getJoinRequests,
@@ -72,10 +73,10 @@ export default function ModeratorPanel({ communityId }) {
           <p>No pending requests.</p>
         ) : (
           requests.map((r) => (
-            <div key={r.id} className="request-row">
+            <div key={r.memberId} className="request-row">
               <span>{r.username || r.email}</span>
-              <button onClick={() => handleApprove(r.id)}>Approve</button>
-              <button onClick={() => handleReject(r.id)}>Reject</button>
+              <button onClick={() => handleApprove(r.memberId)}>Approve</button>
+              <button onClick={() => handleReject(r.memberId)}>Reject</button>
             </div>
           ))
         )}

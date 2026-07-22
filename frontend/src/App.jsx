@@ -1,3 +1,4 @@
+import ModeratorPanel from "./components/ModeratorPanel";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "./context/AuthContext";
 import { ToastProvider } from "./components/Toast";
@@ -40,6 +41,7 @@ function App() {
             <Route path="/analytics" element={<Analytics />} />
             <Route path="*" element={<NotFound />} />
             <Route path="/discussion" element={<Discussion />} />
+           <Route path="/moderator-test" element={<ModeratorPanel communityId={3} />} />
           </Routes>
         </BrowserRouter>
       </ToastProvider>
