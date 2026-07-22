@@ -1,4 +1,5 @@
 $kind: http-request
+name: score 1
 url: http://localhost:8080/api/decisions/2/scores
 method: POST
 body:
@@ -18,4 +19,4 @@ auth:
   type: bearer
   credentials:
     token: "{{authToken}}"
-order: 15000
+order: 13000
