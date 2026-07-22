@@ -126,6 +126,12 @@ public class DecisionAuthorizationServiceImpl implements DecisionAuthorizationSe
 
     @Override
     @Transactional(readOnly = true)
+    public boolean canManagePoll(Long decisionId, Long userId) {
+        return isOwner(decisionId, userId);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public boolean canSubmitScore(Long decisionId, Long userId) {
         if (userId == null || decisionId == null) {
             return false;

@@ -49,4 +49,13 @@ public interface DecisionAuthorizationService {
      * Checks if a user can submit or update a comparison score on a decision.
      */
     boolean canSubmitScore(Long decisionId, Long userId);
+
+    /**
+     * Checks if a user is allowed to manage the Poll lifecycle
+     * associated with a Decision.
+     *
+     * Poll management follows Decision ownership, meaning only
+     * the creator/owner of the Decision can manage its Poll.
+     */
+    boolean canManagePoll(Long decisionId, Long userId);
 }
