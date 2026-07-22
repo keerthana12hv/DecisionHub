@@ -6,9 +6,9 @@ body:
   type: json
   content: "{\r
 
-    \  \"name\": \"javaa\",\r
+    \  \"name\": \"java\",\r
 
-    \  \"slug\": \"javaa\",\r
+    \  \"slug\": \"java\",\r
 
     \  \"description\": \"Community for Java Developers\",\r
 
