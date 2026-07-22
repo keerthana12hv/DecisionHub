@@ -93,6 +93,7 @@ public class DecisionController {
 
         DecisionResponse response = decisionService.publishDecision(id, ipAddress, userAgent);
         return ResponseEntity.ok(response);
+
     }
 
     @DeleteMapping("/{id}")
@@ -109,19 +110,7 @@ public class DecisionController {
         return ResponseEntity.noContent().build();
     }
 
-    @PostMapping("/{id}/publish")
-    @Operation(summary = "Publish a decision", description = "Publishes a draft decision (transitions state from DRAFT to ACTIVE, requires creator/owner)", security = @SecurityRequirement(name = "bearerAuth"))
-    public ResponseEntity<DecisionResponse> publishDecision(
-            @PathVariable Long id,
-            HttpServletRequest servletRequest
-    ) {
-        log.info("REST request to publish decision: {}", id);
-        String ipAddress = getClientIp(servletRequest);
-        String userAgent = servletRequest.getHeader(HttpHeaders.USER_AGENT);
 
-        DecisionResponse response = decisionService.publishDecision(id, ipAddress, userAgent);
-        return ResponseEntity.ok(response);
-    }
 
     private String getClientIp(HttpServletRequest request) {
         String xfHeader = request.getHeader("X-Forwarded-For");
