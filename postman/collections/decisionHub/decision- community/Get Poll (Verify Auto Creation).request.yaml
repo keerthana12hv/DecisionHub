@@ -1,6 +1,6 @@
 $kind: http-request
-name: list communities
-url: http://localhost:8080/api/communities
+name: Get Poll (Verify Auto Creation)
+url: http://localhost:8080/api/decisions/1/poll
 method: GET
 body:
   type: json
@@ -9,4 +9,4 @@ auth:
   type: bearer
   credentials:
     token: "{{authToken}}"
-order: 19000
+order: 2607438908554914

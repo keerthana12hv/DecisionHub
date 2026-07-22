@@ -1,6 +1,6 @@
 $kind: http-request
-name: publish decision
-url: http://localhost:8080/api/decisions/2/publish
+name: 21. Close Poll Early
+url: http://localhost:8080/api/decisions/1/poll/close
 method: POST
 body:
   type: json
@@ -9,4 +9,4 @@ auth:
   type: bearer
   credentials:
     token: "{{authToken}}"
-order: 12000
+order: 4502610187112954

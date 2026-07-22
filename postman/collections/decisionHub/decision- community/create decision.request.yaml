@@ -1,4 +1,60 @@
 $kind: http-request
-url: ""
-method: GET
+name: create decision
+url: http://localhost:8080/api/decisions
+method: POST
+body:
+  type: json
+  content: "{\r
+
+    \  \"title\": \"Which Java version should our community adopt?\",\r
+
+    \  \"description\": \"Community decision to choose the Java version for upcoming backend projects.\",\r
+
+    \  \"communityId\": 1,\r
+
+    \  \"isPublic\": true,\r
+
+    \  \"votingType\": \"SINGLE_CHOICE\",\r
+
+    \  \"anonymityType\": \"PUBLIC\",\r
+
+    \  \"votingEndTime\": \"2026-07-28T18:00:00\",\r
+
+    \  \"deadline\": \"2026-07-30T18:00:00\",\r
+
+    \  \"tags\": [\r
+
+    \    \"java\",\r
+
+    \    \"backend\"\r
+
+    \  ],\r
+
+    \  \"options\": [\r
+
+    \    {\r
+
+    \      \"title\": \"Java 17\",\r
+
+    \      \"description\": \"Long Term Support version\"\r
+
+    \    },\r
+
+    \    {\r
+
+    \      \"title\": \"Java 21\",\r
+
+    \      \"description\": \"Latest Long Term Support version\"\r
+
+    \    }\r
+
+    \  ],\r
+
+    \  \"factors\": []\r
+
+    }"
+auth:
+  type: bearer
+  credentials:
+    token: "{{authToken}}"
 order: 1784274679476
