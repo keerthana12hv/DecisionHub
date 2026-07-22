@@ -144,7 +144,7 @@ class RankingIntegrationTest {
 
         // 4. Create a Comparison Factor
         ComparisonFactorRequest factorRequest = new ComparisonFactorRequest("Performance", "Execution speed");
-        String factorResponseJson = mockMvc.perform(post("/decisions/{decisionId}/factors", decisionId)
+        String factorResponseJson = mockMvc.perform(post("/api/decisions/{decisionId}/factors", decisionId)
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + creatorToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(factorRequest)))
@@ -157,7 +157,7 @@ class RankingIntegrationTest {
     @Test
     void testGetRanking_BoardNotActive_ReturnsBadRequest() throws Exception {
         // Board is in DRAFT state
-        mockMvc.perform(get("/decisions/{decisionId}/ranking", decisionId)
+        mockMvc.perform(get("/api/decisions/{decisionId}/ranking", decisionId)
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + creatorToken))
                 .andExpect(status().isBadRequest());
     }
@@ -171,7 +171,7 @@ class RankingIntegrationTest {
 
         // 2. Submit score as Creator
         ComparisonScoreRequest requestCreator = new ComparisonScoreRequest(optionId, factorId, 90, "Excellent performance");
-        mockMvc.perform(post("/decisions/{decisionId}/scores", decisionId)
+        mockMvc.perform(post("/api/decisions/{decisionId}/scores", decisionId)
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + creatorToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(requestCreator)))
@@ -179,14 +179,14 @@ class RankingIntegrationTest {
 
         // 3. Submit score as Other User
         ComparisonScoreRequest requestOther = new ComparisonScoreRequest(optionId, factorId, 80, "Good performance");
-        mockMvc.perform(post("/decisions/{decisionId}/scores", decisionId)
+        mockMvc.perform(post("/api/decisions/{decisionId}/scores", decisionId)
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + otherUserToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(requestOther)))
                 .andExpect(status().isOk());
 
         // 4. Retrieve Ranking (Average should be (90 + 80) / 2 = 85.0)
-        mockMvc.perform(get("/decisions/{decisionId}/ranking", decisionId)
+        mockMvc.perform(get("/api/decisions/{decisionId}/ranking", decisionId)
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + creatorToken))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.decisionId").value(decisionId))
@@ -197,7 +197,7 @@ class RankingIntegrationTest {
                 .andExpect(jsonPath("$.options[0].factorBreakdown[0].weightedScore").value(85.0));
 
         // 5. Retrieve Ranking Summary
-        mockMvc.perform(get("/decisions/{decisionId}/ranking/summary", decisionId)
+        mockMvc.perform(get("/api/decisions/{decisionId}/ranking/summary", decisionId)
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + otherUserToken))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.decisionId").value(decisionId))
@@ -207,7 +207,7 @@ class RankingIntegrationTest {
 
     @Test
     void testGetRanking_Unauthenticated_ReturnsUnauthorized() throws Exception {
-        mockMvc.perform(get("/decisions/{decisionId}/ranking", decisionId))
+        mockMvc.perform(get("/api/decisions/{decisionId}/ranking", decisionId))
                 .andExpect(status().isUnauthorized());
     }
 }

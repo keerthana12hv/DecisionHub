@@ -17,6 +17,7 @@ import com.decisionhub.security.decision.AuthenticationFacade;
 import com.decisionhub.service.interfaces.audit.AuditService;
 import com.decisionhub.service.interfaces.decision.DecisionOptionService;
 import com.decisionhub.validator.decision.DecisionOptionValidator;
+import com.decisionhub.validator.decision.DecisionModificationValidator;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -37,6 +38,7 @@ public class DecisionOptionServiceImpl implements DecisionOptionService {
     
     private final DecisionMapper decisionMapper;
     private final DecisionOptionValidator decisionOptionValidator;
+    private final DecisionModificationValidator decisionModificationValidator;
     private final DecisionAuthorizationService decisionAuthorizationService;
     private final AuditService auditService;
     private final AuthenticationFacade authenticationFacade;
@@ -47,6 +49,7 @@ public class DecisionOptionServiceImpl implements DecisionOptionService {
         log.info("Attempting to create decision option on board: {}", decisionId);
 
         Decision board = getActiveBoardOrThrow(decisionId);
+        decisionModificationValidator.validateDecisionEditable(board);
         Long currentUserId = getCurrentUserIdOrThrow();
 
         // 1. Authorization
@@ -81,6 +84,7 @@ public class DecisionOptionServiceImpl implements DecisionOptionService {
         log.info("Attempting to update option: {} on board: {}", optionId, decisionId);
 
         Decision board = getActiveBoardOrThrow(decisionId);
+        decisionModificationValidator.validateDecisionEditable(board);
         Long currentUserId = getCurrentUserIdOrThrow();
 
         // 1. Authorization
@@ -123,6 +127,7 @@ public class DecisionOptionServiceImpl implements DecisionOptionService {
         log.info("Attempting to delete option: {} on board: {}", optionId, decisionId);
 
         Decision board = getActiveBoardOrThrow(decisionId);
+        decisionModificationValidator.validateDecisionEditable(board);
         Long currentUserId = getCurrentUserIdOrThrow();
 
         // 1. Authorization
@@ -153,6 +158,43 @@ public class DecisionOptionServiceImpl implements DecisionOptionService {
         auditService.log(currentUser, "OPTION_DELETED", "decision_options", optionId, oldValueJson, null, ipAddress, userAgent);
 
         log.info("Option with ID '{}' deleted successfully", optionId);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public java.util.List<OptionResponseDto> getOptions(Long decisionId) {
+        log.info("Retrieving decision options for board: {}", decisionId);
+
+        getActiveBoardOrThrow(decisionId);
+        Long currentUserId = authenticationFacade.getCurrentUserId().orElse(null);
+
+        if (!decisionAuthorizationService.canViewDecision(decisionId, currentUserId)) {
+            throw new UnauthorizedActionException("Not authorized to view decision details");
+        }
+
+        return decisionOptionRepository.findByDecisionId(decisionId).stream()
+                .map(decisionMapper::toResponseDto)
+                .collect(java.util.stream.Collectors.toList());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public OptionResponseDto getOption(Long decisionId, Long optionId) {
+        log.info("Retrieving decision option: {} for board: {}", optionId, decisionId);
+
+        getActiveBoardOrThrow(decisionId);
+        Long currentUserId = authenticationFacade.getCurrentUserId().orElse(null);
+
+        if (!decisionAuthorizationService.canViewDecision(decisionId, currentUserId)) {
+            throw new UnauthorizedActionException("Not authorized to view decision details");
+        }
+
+        DecisionOption option = getActiveOptionOrThrow(optionId);
+        if (!option.getDecision().getId().equals(decisionId)) {
+            throw new BadRequestException("Option with ID " + optionId + " does not belong to decision " + decisionId);
+        }
+
+        return decisionMapper.toResponseDto(option);
     }
 
     private Decision getActiveBoardOrThrow(Long decisionId) {

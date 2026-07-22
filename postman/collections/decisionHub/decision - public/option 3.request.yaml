@@ -1,0 +1,20 @@
+$kind: http-request
+name: option 3
+url: http://localhost:8080/api/decisions/1/options
+method: POST
+body:
+  type: json
+  content: "{\r
+
+    \    \"title\": \"ASP.NET Core\",\r
+
+    \    \"description\": \".NET Framework\",\r
+
+    \    \"criteria\": []\r
+
+    }"
+auth:
+  type: bearer
+  credentials:
+    token: "{{authToken}}"
+order: 4000

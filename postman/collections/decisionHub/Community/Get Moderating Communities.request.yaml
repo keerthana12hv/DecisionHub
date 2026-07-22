@@ -1,4 +1,9 @@
 $kind: http-request
-url: ""
+name: Get Moderating Communities
+url: http://localhost:8080/api/communities/moderating
 method: GET
+auth:
+  type: bearer
+  credentials:
+    token: "{{authToken}}"
 order: 7000

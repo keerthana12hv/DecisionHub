@@ -83,6 +83,17 @@ public class ComparisonFactorController {
         return ResponseEntity.noContent().build();
     }
 
+    @GetMapping("/{factorId}")
+    @Operation(summary = "Get comparison factor details", description = "Retrieves a single comparison factor by ID (requires view authorization)", security = @SecurityRequirement(name = "bearerAuth"))
+    public ResponseEntity<ComparisonFactorResponse> getFactor(
+            @PathVariable Long decisionId,
+            @PathVariable Long factorId
+    ) {
+        log.info("REST request to fetch factor: {} for decision: {}", factorId, decisionId);
+        ComparisonFactorResponse response = comparisonFactorService.getFactor(decisionId, factorId);
+        return ResponseEntity.ok(response);
+    }
+
     @GetMapping
     @Operation(summary = "Get comparison factors", description = "Retrieves all comparison factors for a decision (requires view authorization)", security = @SecurityRequirement(name = "bearerAuth"))
     public ResponseEntity<List<ComparisonFactorResponse>> getFactorsByDecisionId(
