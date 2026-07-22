@@ -27,9 +27,14 @@ import com.decisionhub.repository.decision.ComparisonFactorRepository;
 import com.decisionhub.repository.decision.ComparisonScoreRepository;
 import com.decisionhub.repository.decision.DecisionOptionRepository;
 import com.decisionhub.repository.decision.DecisionRepository;
+import com.decisionhub.repository.voting.PollRepository;
+import com.decisionhub.repository.voting.VoteRepository;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -42,8 +47,12 @@ import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.*;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -57,6 +66,12 @@ class DecisionIntegrationTest {
 
     @Autowired
     private ObjectMapper objectMapper;
+
+    @Autowired
+    private VoteRepository voteRepository;
+
+    @Autowired
+    private PollRepository pollRepository;
 
     @Autowired
     private DecisionRepository decisionRepository;
@@ -92,290 +107,663 @@ class DecisionIntegrationTest {
 
     @BeforeEach
     void setUp() throws Exception {
-        // Clean database tables in reverse order of dependencies
+
+        // -------------------------------------------------
+        // Clean database tables in dependency-safe order
+        // -------------------------------------------------
+
+        // Vote depends on Poll
+        voteRepository.deleteAll();
+
+        // Poll depends on Decision
+        pollRepository.deleteAll();
+
+        // ComparisonScore depends on DecisionOption,
+        // ComparisonFactor, Decision and User
         comparisonScoreRepository.deleteAll();
+
+        // Decision child entities
         comparisonFactorRepository.deleteAll();
         decisionOptionRepository.deleteAll();
+
+        // Decision can now safely be deleted
         decisionRepository.deleteAll();
+
+        // CommunityMember depends on Community and User
         communityMemberRepository.deleteAll();
+
+        // Community depends on Category and User
         communityRepository.deleteAll();
+
         categoryRepository.deleteAll();
+
+        // Remaining data
         auditLogRepository.deleteAll();
         userRepository.deleteAll();
 
+        // -------------------------------------------------
         // 1. Register and login Creator
-        RegisterRequest creatorReg = new RegisterRequest("creatoruser", "creator@test.com", "Password123!");
-        mockMvc.perform(post("/api/auth/register")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(creatorReg)))
+        // -------------------------------------------------
+
+        RegisterRequest creatorReg =
+                new RegisterRequest(
+                        "creatoruser",
+                        "creator@test.com",
+                        "Password123!"
+                );
+
+        mockMvc.perform(
+                        post("/api/auth/register")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(
+                                        objectMapper.writeValueAsString(
+                                                creatorReg
+                                        )
+                                )
+                )
                 .andExpect(status().isOk());
 
-        LoginRequest creatorLogin = new LoginRequest("creator@test.com", "Password123!");
-        String creatorLoginResponse = mockMvc.perform(post("/api/auth/login")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(creatorLogin)))
-                .andExpect(status().isOk())
-                .andReturn().getResponse().getContentAsString();
-        creatorToken = objectMapper.readValue(creatorLoginResponse, LoginResponse.class).token();
-        User creatorUser = userRepository.findByUsername("creatoruser").orElseThrow();
+        LoginRequest creatorLogin =
+                new LoginRequest(
+                        "creator@test.com",
+                        "Password123!"
+                );
+
+        String creatorLoginResponse =
+                mockMvc.perform(
+                                post("/api/auth/login")
+                                        .contentType(MediaType.APPLICATION_JSON)
+                                        .content(
+                                                objectMapper.writeValueAsString(
+                                                        creatorLogin
+                                                )
+                                        )
+                        )
+                        .andExpect(status().isOk())
+                        .andReturn()
+                        .getResponse()
+                        .getContentAsString();
+
+        creatorToken =
+                objectMapper.readValue(
+                        creatorLoginResponse,
+                        LoginResponse.class
+                ).token();
+
+        User creatorUser =
+                userRepository
+                        .findByUsername("creatoruser")
+                        .orElseThrow();
+
         creatorId = creatorUser.getId();
 
+        // -------------------------------------------------
         // 2. Register and login Other User
-        RegisterRequest otherReg = new RegisterRequest("otheruser", "other@test.com", "Password123!");
-        mockMvc.perform(post("/api/auth/register")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(otherReg)))
+        // -------------------------------------------------
+
+        RegisterRequest otherReg =
+                new RegisterRequest(
+                        "otheruser",
+                        "other@test.com",
+                        "Password123!"
+                );
+
+        mockMvc.perform(
+                        post("/api/auth/register")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(
+                                        objectMapper.writeValueAsString(
+                                                otherReg
+                                        )
+                                )
+                )
                 .andExpect(status().isOk());
 
-        LoginRequest otherLogin = new LoginRequest("other@test.com", "Password123!");
-        String otherLoginResponse = mockMvc.perform(post("/api/auth/login")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(otherLogin)))
-                .andExpect(status().isOk())
-                .andReturn().getResponse().getContentAsString();
-        otherUserToken = objectMapper.readValue(otherLoginResponse, LoginResponse.class).token();
-        otherUserId = userRepository.findByUsername("otheruser").orElseThrow().getId();
+        LoginRequest otherLogin =
+                new LoginRequest(
+                        "other@test.com",
+                        "Password123!"
+                );
+
+        String otherLoginResponse =
+                mockMvc.perform(
+                                post("/api/auth/login")
+                                        .contentType(MediaType.APPLICATION_JSON)
+                                        .content(
+                                                objectMapper.writeValueAsString(
+                                                        otherLogin
+                                                )
+                                        )
+                        )
+                        .andExpect(status().isOk())
+                        .andReturn()
+                        .getResponse()
+                        .getContentAsString();
+
+        otherUserToken =
+                objectMapper.readValue(
+                        otherLoginResponse,
+                        LoginResponse.class
+                ).token();
+
+        otherUserId =
+                userRepository
+                        .findByUsername("otheruser")
+                        .orElseThrow()
+                        .getId();
     }
 
     @Test
     void testCreateDecision_Success() throws Exception {
-        DecisionRequest request = new DecisionRequest(
-            "Evaluation of Tech Stacks",
-            "This decision compares backend technologies.",
-            null,
-            null,
-            true,
-            null,
-            null,
-            LocalDateTime.now().plusDays(5),
-            null,
-            Collections.emptyList(),
-            Collections.emptyList()
-        );
 
-        String responseJson = mockMvc.perform(post("/api/decisions")
-                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + creatorToken)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.id").isNotEmpty())
-                .andExpect(jsonPath("$.title").value("Evaluation of Tech Stacks"))
-                .andExpect(jsonPath("$.status").value("DRAFT"))
-                .andReturn().getResponse().getContentAsString();
+        DecisionRequest request =
+                new DecisionRequest(
+                        "Evaluation of Tech Stacks",
+                        "This decision compares backend technologies.",
+                        null,
+                        null,
+                        true,
+                        null,
+                        null,
+                        LocalDateTime.now().plusDays(5),
+                        null,
+                        Collections.emptyList(),
+                        Collections.emptyList()
+                );
 
-        DecisionResponse response = objectMapper.readValue(responseJson, DecisionResponse.class);
+        String responseJson =
+                mockMvc.perform(
+                                post("/api/decisions")
+                                        .header(
+                                                HttpHeaders.AUTHORIZATION,
+                                                "Bearer " + creatorToken
+                                        )
+                                        .contentType(MediaType.APPLICATION_JSON)
+                                        .content(
+                                                objectMapper.writeValueAsString(
+                                                        request
+                                                )
+                                        )
+                        )
+                        .andExpect(status().isCreated())
+                        .andExpect(
+                                jsonPath("$.id")
+                                        .isNotEmpty()
+                        )
+                        .andExpect(
+                                jsonPath("$.title")
+                                        .value("Evaluation of Tech Stacks")
+                        )
+                        .andExpect(
+                                jsonPath("$.status")
+                                        .value("DRAFT")
+                        )
+                        .andReturn()
+                        .getResponse()
+                        .getContentAsString();
+
+        DecisionResponse response =
+                objectMapper.readValue(
+                        responseJson,
+                        DecisionResponse.class
+                );
+
         assertNotNull(response.id());
 
-        // Verify DB record
-        assertTrue(decisionRepository.findById(response.id()).isPresent());
+        assertTrue(
+                decisionRepository
+                        .findById(response.id())
+                        .isPresent()
+        );
 
-        // Verify Audit Log generated
-        List<AuditLog> auditLogs = auditLogRepository.findAll();
-        assertTrue(auditLogs.stream().anyMatch(l -> l.getAction() == AuditActionType.CREATE_DECISION));
+        List<AuditLog> auditLogs =
+                auditLogRepository.findAll();
+
+        assertTrue(
+                auditLogs.stream()
+                        .anyMatch(
+                                l -> l.getAction()
+                                        == AuditActionType.CREATE_DECISION
+                        )
+        );
     }
 
     @Test
-    void testCreateDecision_CommunityDecision_Success() throws Exception {
+    void testCreateDecision_CommunityDecision_Success()
+            throws Exception {
+
         // Create Category
         Category category = new Category();
+
         category.setName("General");
         category.setSlug("general");
         category.setIsActive(true);
-        category = categoryRepository.save(category);
+
+        category =
+                categoryRepository.save(category);
 
         // Create Community
-        User owner = userRepository.findById(creatorId).orElseThrow();
+        User owner =
+                userRepository
+                        .findById(creatorId)
+                        .orElseThrow();
+
         Community community = new Community();
+
         community.setName("Java Devs");
         community.setSlug("java-devs");
-        community.setDescription("Java developer community");
+        community.setDescription(
+                "Java developer community"
+        );
         community.setCategory(category);
         community.setOwner(owner);
-        community.setVisibility(CommunityVisibility.PUBLIC);
-        community = communityRepository.save(community);
+        community.setVisibility(
+                CommunityVisibility.PUBLIC
+        );
+
+        community =
+                communityRepository.save(community);
 
         // Join Community
-        CommunityMember member = new CommunityMember();
+        CommunityMember member =
+                new CommunityMember();
+
         member.setCommunity(community);
         member.setUser(owner);
-        member.setRole(CommunityMemberRole.MEMBER);
-        member.setStatus(MembershipStatus.APPROVED);
-        member.setJoinedAt(LocalDateTime.now());
+        member.setRole(
+                CommunityMemberRole.MEMBER
+        );
+        member.setStatus(
+                MembershipStatus.APPROVED
+        );
+        member.setJoinedAt(
+                LocalDateTime.now()
+        );
+
         communityMemberRepository.save(member);
 
-        DecisionRequest request = new DecisionRequest(
-            "Which framework to use?",
-            "Comparing Spring Boot, Quarkus, Micronaut",
-            null,
-            community.getId(),
-            false,
-            null,
-            null,
-            null,
-            null,
-            Collections.emptyList(),
-            Collections.emptyList()
-        );
+        DecisionRequest request =
+                new DecisionRequest(
+                        "Which framework to use?",
+                        "Comparing Spring Boot, Quarkus, Micronaut",
+                        null,
+                        community.getId(),
+                        false,
+                        null,
+                        null,
+                        null,
+                        null,
+                        Collections.emptyList(),
+                        Collections.emptyList()
+                );
 
-        mockMvc.perform(post("/api/decisions")
-                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + creatorToken)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
+        mockMvc.perform(
+                        post("/api/decisions")
+                                .header(
+                                        HttpHeaders.AUTHORIZATION,
+                                        "Bearer " + creatorToken
+                                )
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(
+                                        objectMapper.writeValueAsString(
+                                                request
+                                        )
+                                )
+                )
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.communityName").value("Java Devs"));
+                .andExpect(
+                        jsonPath("$.communityName")
+                                .value("Java Devs")
+                );
     }
 
     @Test
-    void testUpdateDecision_Success() throws Exception {
-        // Create decision directly in DB
-        User owner = userRepository.findById(creatorId).orElseThrow();
-        Decision decision = new Decision();
-        decision.setTitle("Initial Title");
-        decision.setDescription("Initial Description");
-        decision.setCreator(owner);
-        decision.setVisibility(com.decisionhub.enums.decision.DecisionVisibility.PUBLIC);
-        decision.setStatus(DecisionStatus.DRAFT);
-        decision.setCreatedAt(LocalDateTime.now());
-        decision = decisionRepository.save(decision);
+    void testUpdateDecision_Success()
+            throws Exception {
 
-        DecisionRequest updateRequest = new DecisionRequest(
-            "Updated Title",
-            "Updated Description",
-            null,
-            null,
-            true,
-            null,
-            null,
-            null,
-            null,
-            Collections.emptyList(),
-            Collections.emptyList()
+        User owner =
+                userRepository
+                        .findById(creatorId)
+                        .orElseThrow();
+
+        Decision decision =
+                new Decision();
+
+        decision.setTitle("Initial Title");
+        decision.setDescription(
+                "Initial Description"
+        );
+        decision.setCreator(owner);
+        decision.setVisibility(
+                com.decisionhub.enums.decision.DecisionVisibility.PUBLIC
+        );
+        decision.setStatus(
+                DecisionStatus.DRAFT
+        );
+        decision.setCreatedAt(
+                LocalDateTime.now()
         );
 
-        mockMvc.perform(put("/api/decisions/{id}", decision.getId())
-                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + creatorToken)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(updateRequest)))
+        decision =
+                decisionRepository.save(decision);
+
+        DecisionRequest updateRequest =
+                new DecisionRequest(
+                        "Updated Title",
+                        "Updated Description",
+                        null,
+                        null,
+                        true,
+                        null,
+                        null,
+                        null,
+                        null,
+                        Collections.emptyList(),
+                        Collections.emptyList()
+                );
+
+        mockMvc.perform(
+                        put(
+                                "/api/decisions/{id}",
+                                decision.getId()
+                        )
+                                .header(
+                                        HttpHeaders.AUTHORIZATION,
+                                        "Bearer " + creatorToken
+                                )
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(
+                                        objectMapper.writeValueAsString(
+                                                updateRequest
+                                        )
+                                )
+                )
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.title").value("Updated Title"))
-                .andExpect(jsonPath("$.description").value("Updated Description"));
+                .andExpect(
+                        jsonPath("$.title")
+                                .value("Updated Title")
+                )
+                .andExpect(
+                        jsonPath("$.description")
+                                .value("Updated Description")
+                );
 
-        // Verify DB update
-        Decision updated = decisionRepository.findById(decision.getId()).orElseThrow();
-        assertEquals("Updated Title", updated.getTitle());
+        Decision updated =
+                decisionRepository
+                        .findById(decision.getId())
+                        .orElseThrow();
 
-        // Verify Audit Log generated
-        List<AuditLog> auditLogs = auditLogRepository.findAll();
-        assertTrue(auditLogs.stream().anyMatch(l -> l.getAction() == AuditActionType.UPDATE_DECISION));
-    }
-
-    @Test
-    void testUpdateDecision_Forbidden_NonOwner() throws Exception {
-        User owner = userRepository.findById(creatorId).orElseThrow();
-        Decision decision = new Decision();
-        decision.setTitle("Initial Title");
-        decision.setCreator(owner);
-        decision.setVisibility(com.decisionhub.enums.decision.DecisionVisibility.PUBLIC);
-        decision.setStatus(DecisionStatus.DRAFT);
-        decision.setCreatedAt(LocalDateTime.now());
-        decision = decisionRepository.save(decision);
-
-        DecisionRequest updateRequest = new DecisionRequest(
-            "Malicious Title Update",
-            null,
-            null,
-            null,
-            true,
-            null,
-            null,
-            null,
-            null,
-            Collections.emptyList(),
-            Collections.emptyList()
+        assertEquals(
+                "Updated Title",
+                updated.getTitle()
         );
 
-        mockMvc.perform(put("/api/decisions/{id}", decision.getId())
-                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + otherUserToken)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(updateRequest)))
-                .andExpect(status().isForbidden());
+        List<AuditLog> auditLogs =
+                auditLogRepository.findAll();
+
+        assertTrue(
+                auditLogs.stream()
+                        .anyMatch(
+                                l -> l.getAction()
+                                        == AuditActionType.UPDATE_DECISION
+                        )
+        );
     }
 
     @Test
-    void testDeleteDecision_Success() throws Exception {
-        User owner = userRepository.findById(creatorId).orElseThrow();
-        Decision decision = new Decision();
+    void testUpdateDecision_Forbidden_NonOwner()
+            throws Exception {
+
+        User owner =
+                userRepository
+                        .findById(creatorId)
+                        .orElseThrow();
+
+        Decision decision =
+                new Decision();
+
+        decision.setTitle("Initial Title");
+        decision.setCreator(owner);
+        decision.setVisibility(
+                com.decisionhub.enums.decision.DecisionVisibility.PUBLIC
+        );
+        decision.setStatus(
+                DecisionStatus.DRAFT
+        );
+        decision.setCreatedAt(
+                LocalDateTime.now()
+        );
+
+        decision =
+                decisionRepository.save(decision);
+
+        DecisionRequest updateRequest =
+                new DecisionRequest(
+                        "Malicious Title Update",
+                        null,
+                        null,
+                        null,
+                        true,
+                        null,
+                        null,
+                        null,
+                        null,
+                        Collections.emptyList(),
+                        Collections.emptyList()
+                );
+
+        mockMvc.perform(
+                        put(
+                                "/api/decisions/{id}",
+                                decision.getId()
+                        )
+                                .header(
+                                        HttpHeaders.AUTHORIZATION,
+                                        "Bearer " + otherUserToken
+                                )
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(
+                                        objectMapper.writeValueAsString(
+                                                updateRequest
+                                        )
+                                )
+                )
+                .andExpect(
+                        status().isForbidden()
+                );
+    }
+
+    @Test
+    void testDeleteDecision_Success()
+            throws Exception {
+
+        User owner =
+                userRepository
+                        .findById(creatorId)
+                        .orElseThrow();
+
+        Decision decision =
+                new Decision();
+
         decision.setTitle("To Be Deleted");
         decision.setCreator(owner);
-        decision.setVisibility(com.decisionhub.enums.decision.DecisionVisibility.PUBLIC);
-        decision.setStatus(DecisionStatus.DRAFT);
-        decision.setCreatedAt(LocalDateTime.now());
-        decision = decisionRepository.save(decision);
-
-        mockMvc.perform(delete("/api/decisions/{id}", decision.getId())
-                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + creatorToken))
-                .andExpect(status().isNoContent());
-
-        // Verify DB record is gone
-        assertTrue(decisionRepository.findById(decision.getId()).isEmpty());
-
-        // Verify Audit Log generated
-        List<AuditLog> auditLogs = auditLogRepository.findAll();
-        assertTrue(auditLogs.stream().anyMatch(l -> l.getAction() == AuditActionType.DELETE_DECISION));
-    }
-
-    @Test
-    void testDeleteDecision_Forbidden_NonOwner() throws Exception {
-        User owner = userRepository.findById(creatorId).orElseThrow();
-        Decision decision = new Decision();
-        decision.setTitle("Owner's Decision");
-        decision.setCreator(owner);
-        decision.setVisibility(com.decisionhub.enums.decision.DecisionVisibility.PUBLIC);
-        decision.setStatus(DecisionStatus.DRAFT);
-        decision.setCreatedAt(LocalDateTime.now());
-        decision = decisionRepository.save(decision);
-
-        mockMvc.perform(delete("/api/decisions/{id}", decision.getId())
-                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + otherUserToken))
-                .andExpect(status().isForbidden());
-
-        // Verify DB record is still present
-        assertTrue(decisionRepository.findById(decision.getId()).isPresent());
-    }
-
-    @Test
-    void testCreateDecision_WithNestedOptionsAndFactors_Success() throws Exception {
-        DecisionRequest request = new DecisionRequest(
-            "Nested Creation Test",
-            "This tests options and factors creation nested inside decision",
-            null,
-            null,
-            true,
-            null,
-            null,
-            LocalDateTime.now().plusDays(5),
-            null,
-            List.of(
-                new OptionCreateDto("MacBook", "Apple Laptop", Collections.emptyList()),
-                new OptionCreateDto("ThinkPad", "Lenovo Laptop", Collections.emptyList())
-            ),
-            List.of(
-                new ComparisonFactorRequest("Price", "Cost factor"),
-                new ComparisonFactorRequest("Performance", "CPU/RAM factor")
-            )
+        decision.setVisibility(
+                com.decisionhub.enums.decision.DecisionVisibility.PUBLIC
+        );
+        decision.setStatus(
+                DecisionStatus.DRAFT
+        );
+        decision.setCreatedAt(
+                LocalDateTime.now()
         );
 
-        mockMvc.perform(post("/api/decisions")
-                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + creatorToken)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
+        decision =
+                decisionRepository.save(decision);
+
+        mockMvc.perform(
+                        delete(
+                                "/api/decisions/{id}",
+                                decision.getId()
+                        )
+                                .header(
+                                        HttpHeaders.AUTHORIZATION,
+                                        "Bearer " + creatorToken
+                                )
+                )
+                .andExpect(
+                        status().isNoContent()
+                );
+
+        assertTrue(
+                decisionRepository
+                        .findById(decision.getId())
+                        .isEmpty()
+        );
+
+        List<AuditLog> auditLogs =
+                auditLogRepository.findAll();
+
+        assertTrue(
+                auditLogs.stream()
+                        .anyMatch(
+                                l -> l.getAction()
+                                        == AuditActionType.DELETE_DECISION
+                        )
+        );
+    }
+
+    @Test
+    void testDeleteDecision_Forbidden_NonOwner()
+            throws Exception {
+
+        User owner =
+                userRepository
+                        .findById(creatorId)
+                        .orElseThrow();
+
+        Decision decision =
+                new Decision();
+
+        decision.setTitle(
+                "Owner's Decision"
+        );
+        decision.setCreator(owner);
+        decision.setVisibility(
+                com.decisionhub.enums.decision.DecisionVisibility.PUBLIC
+        );
+        decision.setStatus(
+                DecisionStatus.DRAFT
+        );
+        decision.setCreatedAt(
+                LocalDateTime.now()
+        );
+
+        decision =
+                decisionRepository.save(decision);
+
+        mockMvc.perform(
+                        delete(
+                                "/api/decisions/{id}",
+                                decision.getId()
+                        )
+                                .header(
+                                        HttpHeaders.AUTHORIZATION,
+                                        "Bearer " + otherUserToken
+                                )
+                )
+                .andExpect(
+                        status().isForbidden()
+                );
+
+        assertTrue(
+                decisionRepository
+                        .findById(decision.getId())
+                        .isPresent()
+        );
+    }
+
+    @Test
+    void testCreateDecision_WithNestedOptionsAndFactors_Success()
+            throws Exception {
+
+        DecisionRequest request =
+                new DecisionRequest(
+                        "Nested Creation Test",
+                        "This tests options and factors creation nested inside decision",
+                        null,
+                        null,
+                        true,
+                        null,
+                        null,
+                        LocalDateTime.now().plusDays(5),
+                        null,
+                        List.of(
+                                new OptionCreateDto(
+                                        "MacBook",
+                                        "Apple Laptop",
+                                        Collections.emptyList()
+                                ),
+                                new OptionCreateDto(
+                                        "ThinkPad",
+                                        "Lenovo Laptop",
+                                        Collections.emptyList()
+                                )
+                        ),
+                        List.of(
+                                new ComparisonFactorRequest(
+                                        "Price",
+                                        "Cost factor"
+                                ),
+                                new ComparisonFactorRequest(
+                                        "Performance",
+                                        "CPU/RAM factor"
+                                )
+                        )
+                );
+
+        mockMvc.perform(
+                        post("/api/decisions")
+                                .header(
+                                        HttpHeaders.AUTHORIZATION,
+                                        "Bearer " + creatorToken
+                                )
+                                .contentType(
+                                        MediaType.APPLICATION_JSON
+                                )
+                                .content(
+                                        objectMapper.writeValueAsString(
+                                                request
+                                        )
+                                )
+                )
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.title").value("Nested Creation Test"))
-                .andExpect(jsonPath("$.options").isArray())
-                .andExpect(jsonPath("$.options[0].title").value("MacBook"))
-                .andExpect(jsonPath("$.options[1].title").value("ThinkPad"))
-                .andExpect(jsonPath("$.factors").isArray())
-                .andExpect(jsonPath("$.factors[0].name").value("Price"))
-                .andExpect(jsonPath("$.factors[1].name").value("Performance"));
+                .andExpect(
+                        jsonPath("$.title")
+                                .value("Nested Creation Test")
+                )
+                .andExpect(
+                        jsonPath("$.options")
+                                .isArray()
+                )
+                .andExpect(
+                        jsonPath("$.options[0].title")
+                                .value("MacBook")
+                )
+                .andExpect(
+                        jsonPath("$.options[1].title")
+                                .value("ThinkPad")
+                )
+                .andExpect(
+                        jsonPath("$.factors")
+                                .isArray()
+                )
+                .andExpect(
+                        jsonPath("$.factors[0].name")
+                                .value("Price")
+                )
+                .andExpect(
+                        jsonPath("$.factors[1].name")
+                                .value("Performance")
+                );
     }
 }

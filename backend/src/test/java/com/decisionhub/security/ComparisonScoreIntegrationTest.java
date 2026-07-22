@@ -6,25 +6,31 @@ import com.decisionhub.dto.request.decision.ComparisonFactorRequest;
 import com.decisionhub.dto.request.decision.ComparisonScoreRequest;
 import com.decisionhub.dto.response.authentication.LoginResponse;
 import com.decisionhub.dto.response.decision.ComparisonFactorResponse;
-import com.decisionhub.dto.response.decision.ComparisonScoreResponse;
-import com.decisionhub.entity.decision.Decision;
-import com.decisionhub.entity.decision.DecisionOption;
+import com.decisionhub.entity.administration.AuditLog;
+import com.decisionhub.entity.authentication.User;
 import com.decisionhub.entity.decision.ComparisonFactor;
 import com.decisionhub.entity.decision.ComparisonScore;
 import com.decisionhub.entity.decision.ComparisonScoreId;
+import com.decisionhub.entity.decision.Decision;
+import com.decisionhub.entity.decision.DecisionOption;
+import com.decisionhub.entity.voting.Poll;
 import com.decisionhub.enums.decision.DecisionStatus;
 import com.decisionhub.enums.decision.DecisionVisibility;
-import com.decisionhub.entity.authentication.User;
-import com.decisionhub.entity.administration.AuditLog;
-import com.decisionhub.repository.decision.ComparisonScoreRepository;
+import com.decisionhub.enums.decision.VotingType;
+import com.decisionhub.enums.voting.PollStatus;
 import com.decisionhub.repository.authentication.UserRepository;
 import com.decisionhub.repository.decision.AuditLogRepository;
 import com.decisionhub.repository.decision.ComparisonFactorRepository;
+import com.decisionhub.repository.decision.ComparisonScoreRepository;
 import com.decisionhub.repository.decision.DecisionOptionRepository;
 import com.decisionhub.repository.decision.DecisionRepository;
+import com.decisionhub.repository.voting.PollRepository;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -33,13 +39,15 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -70,15 +78,17 @@ class ComparisonScoreIntegrationTest {
     private ComparisonScoreRepository comparisonScoreRepository;
 
     @Autowired
+    private PollRepository pollRepository;
+
+    @Autowired
     private UserRepository userRepository;
 
     @Autowired
     private AuditLogRepository auditLogRepository;
 
     private String creatorToken;
-    private String otherUserToken;
+
     private Long creatorId;
-    private Long otherUserId;
 
     private Long decisionId;
     private Long optionId;
@@ -86,277 +96,736 @@ class ComparisonScoreIntegrationTest {
 
     @BeforeEach
     void setUp() throws Exception {
-        // Clean database tables in reverse order
+
+        /*
+         * Clean database tables in dependency-safe order.
+         * Poll must be removed before Decision because Poll
+         * references Decision through decision_id.
+         */
         comparisonScoreRepository.deleteAll();
+        pollRepository.deleteAll();
         comparisonFactorRepository.deleteAll();
         decisionOptionRepository.deleteAll();
         decisionRepository.deleteAll();
         auditLogRepository.deleteAll();
         userRepository.deleteAll();
 
-        // 1. Register and login Creator (UPDATED TO USE RECORDS)
-        RegisterRequest creatorReg = new RegisterRequest("creatoruser", "creator@test.com", "Password123!");
-        
-        mockMvc.perform(post("/api/auth/register")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(creatorReg)))
+        // -------------------------------------------------
+        // 1. Register and login Creator
+        // -------------------------------------------------
+
+        RegisterRequest creatorReg =
+                new RegisterRequest(
+                        "creatoruser",
+                        "creator@test.com",
+                        "Password123!"
+                );
+
+        mockMvc.perform(
+                        post("/api/auth/register")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(
+                                        objectMapper.writeValueAsString(
+                                                creatorReg
+                                        )
+                                )
+                )
                 .andExpect(status().isOk());
 
-        LoginRequest creatorLogin = new LoginRequest("creator@test.com", "Password123!");
-        
-        String creatorLoginResponse = mockMvc.perform(post("/api/auth/login")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(creatorLogin)))
-                .andExpect(status().isOk())
-                .andReturn().getResponse().getContentAsString();
-                
-        // Changed .getToken() to .token()
-        creatorToken = objectMapper.readValue(creatorLoginResponse, LoginResponse.class).token();
-        User creatorUser = userRepository.findByUsername("creatoruser").orElseThrow();
+        LoginRequest creatorLogin =
+                new LoginRequest(
+                        "creator@test.com",
+                        "Password123!"
+                );
+
+        String creatorLoginResponse =
+                mockMvc.perform(
+                                post("/api/auth/login")
+                                        .contentType(
+                                                MediaType.APPLICATION_JSON
+                                        )
+                                        .content(
+                                                objectMapper.writeValueAsString(
+                                                        creatorLogin
+                                                )
+                                        )
+                        )
+                        .andExpect(status().isOk())
+                        .andReturn()
+                        .getResponse()
+                        .getContentAsString();
+
+        creatorToken =
+                objectMapper.readValue(
+                        creatorLoginResponse,
+                        LoginResponse.class
+                ).token();
+
+        User creatorUser =
+                userRepository
+                        .findByUsername("creatoruser")
+                        .orElseThrow();
+
         creatorId = creatorUser.getId();
 
-        // 2. Register and login Other User (UPDATED TO USE RECORDS)
-        RegisterRequest otherReg = new RegisterRequest("otheruser", "other@test.com", "Password123!");
-        
-        mockMvc.perform(post("/api/auth/register")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(otherReg)))
+        // -------------------------------------------------
+        // 2. Register and login Other User
+        // -------------------------------------------------
+
+        RegisterRequest otherReg =
+                new RegisterRequest(
+                        "otheruser",
+                        "other@test.com",
+                        "Password123!"
+                );
+
+        mockMvc.perform(
+                        post("/api/auth/register")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(
+                                        objectMapper.writeValueAsString(
+                                                otherReg
+                                        )
+                                )
+                )
                 .andExpect(status().isOk());
 
-        LoginRequest otherLogin = new LoginRequest("other@test.com", "Password123!");
-        
-        String otherLoginResponse = mockMvc.perform(post("/api/auth/login")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(otherLogin)))
-                .andExpect(status().isOk())
-                .andReturn().getResponse().getContentAsString();
-                
-        // Changed .getToken() to .token()
-        otherUserToken = objectMapper.readValue(otherLoginResponse, LoginResponse.class).token();
-        otherUserId = userRepository.findByUsername("otheruser").orElseThrow().getId();
+        LoginRequest otherLogin =
+                new LoginRequest(
+                        "other@test.com",
+                        "Password123!"
+                );
 
-        // 3. Create a default Decision Board in DRAFT state directly in DB
+        mockMvc.perform(
+                        post("/api/auth/login")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(
+                                        objectMapper.writeValueAsString(
+                                                otherLogin
+                                        )
+                                )
+                )
+                .andExpect(status().isOk());
+
+        // -------------------------------------------------
+        // 3. Create DRAFT RATING_BASED Decision
+        // -------------------------------------------------
+
         Decision decision = new Decision();
+
         decision.setTitle("Framework Comparison");
-        decision.setDescription("Select a backend Java framework");
+        decision.setDescription(
+                "Select a backend Java framework"
+        );
         decision.setCreator(creatorUser);
-        decision.setVisibility(DecisionVisibility.PUBLIC);
-        decision.setStatus(DecisionStatus.DRAFT);
-        decision.setCreatedAt(java.time.LocalDateTime.now());
-        decision = decisionRepository.save(decision);
+        decision.setVisibility(
+                DecisionVisibility.PUBLIC
+        );
+        decision.setStatus(
+                DecisionStatus.DRAFT
+        );
+        decision.setVotingType(
+                VotingType.RATING_BASED
+        );
+        decision.setVotingEndTime(
+                LocalDateTime.now().plusHours(2)
+        );
+        decision.setCreatedAt(
+                LocalDateTime.now()
+        );
+
+        decision =
+                decisionRepository.save(decision);
+
         decisionId = decision.getId();
 
-        // Create Options directly in DB
-        DecisionOption option1 = new DecisionOption();
+        // -------------------------------------------------
+        // 4. Create Options
+        // -------------------------------------------------
+
+        DecisionOption option1 =
+                new DecisionOption();
+
         option1.setOptionName("Spring Boot");
-        option1.setDescription("Enterprise stack");
+        option1.setDescription(
+                "Enterprise stack"
+        );
         option1.setDecision(decision);
-        decisionOptionRepository.save(option1);
+
+        option1 =
+                decisionOptionRepository.save(option1);
+
         optionId = option1.getId();
 
-        DecisionOption option2 = new DecisionOption();
+        DecisionOption option2 =
+                new DecisionOption();
+
         option2.setOptionName("Quarkus");
-        option2.setDescription("Cloud native");
+        option2.setDescription(
+                "Cloud native"
+        );
         option2.setDecision(decision);
+
         decisionOptionRepository.save(option2);
 
-        // 4. Create a default Comparison Factor via REST API
-        ComparisonFactorRequest factorRequest = new ComparisonFactorRequest("Performance", "Execution speed");
-        String factorResponseJson = mockMvc.perform(post("/api/decisions/{decisionId}/factors", decisionId)
-                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + creatorToken)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(factorRequest)))
-                .andExpect(status().isCreated())
-                .andReturn().getResponse().getContentAsString();
-        
-        factorId = objectMapper.readValue(factorResponseJson, ComparisonFactorResponse.class).id();
+        // -------------------------------------------------
+        // 5. Create Comparison Factor
+        // -------------------------------------------------
+
+        ComparisonFactorRequest factorRequest =
+                new ComparisonFactorRequest(
+                        "Performance",
+                        "Execution speed"
+                );
+
+        String factorResponseJson =
+                mockMvc.perform(
+                                post(
+                                        "/api/decisions/{decisionId}/factors",
+                                        decisionId
+                                )
+                                        .header(
+                                                HttpHeaders.AUTHORIZATION,
+                                                "Bearer " + creatorToken
+                                        )
+                                        .contentType(
+                                                MediaType.APPLICATION_JSON
+                                        )
+                                        .content(
+                                                objectMapper.writeValueAsString(
+                                                        factorRequest
+                                                )
+                                        )
+                        )
+                        .andExpect(status().isCreated())
+                        .andReturn()
+                        .getResponse()
+                        .getContentAsString();
+
+        factorId =
+                objectMapper.readValue(
+                        factorResponseJson,
+                        ComparisonFactorResponse.class
+                ).id();
+    }
+
+    /**
+     * Activates the Decision and creates the Poll fixture required
+     * by rating-based participation.
+     *
+     * These integration tests modify the Decision directly through
+     * the repository, so DecisionPublishedEvent is not triggered.
+     */
+    private void activateDecisionAndCreatePoll() {
+
+        Decision decision =
+                decisionRepository
+                        .findById(decisionId)
+                        .orElseThrow();
+
+        decision.setStatus(
+                DecisionStatus.ACTIVE
+        );
+
+        decisionRepository.save(decision);
+
+        Poll poll = new Poll();
+
+        poll.setDecision(decision);
+        poll.setStatus(PollStatus.OPEN);
+        poll.setEndTime(
+                LocalDateTime.now().plusHours(1)
+        );
+        poll.setCreatedAt(
+                LocalDateTime.now()
+        );
+        poll.setUpdatedAt(
+                LocalDateTime.now()
+        );
+
+        pollRepository.save(poll);
     }
 
     @Test
-    void testSubmitScore_BoardNotActive_ReturnsBadRequest() throws Exception {
-        ComparisonScoreRequest request = new ComparisonScoreRequest(optionId, factorId, 80, "Validation check");
+    void testSubmitScore_BoardNotActive_ReturnsBadRequest()
+            throws Exception {
 
-        mockMvc.perform(post("/api/decisions/{decisionId}/scores", decisionId)
-                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + creatorToken)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
+        ComparisonScoreRequest request =
+                new ComparisonScoreRequest(
+                        optionId,
+                        factorId,
+                        80,
+                        "Validation check"
+                );
+
+        mockMvc.perform(
+                        post(
+                                "/api/decisions/{decisionId}/scores",
+                                decisionId
+                        )
+                                .header(
+                                        HttpHeaders.AUTHORIZATION,
+                                        "Bearer " + creatorToken
+                                )
+                                .contentType(
+                                        MediaType.APPLICATION_JSON
+                                )
+                                .content(
+                                        objectMapper.writeValueAsString(
+                                                request
+                                        )
+                                )
+                )
                 .andExpect(status().isBadRequest());
     }
 
     @Test
-    void testSubmitScore_Success_CreateAndUpdate() throws Exception {
-        // 1. Transition status to ACTIVE directly in DB
-        Decision d = decisionRepository.findById(decisionId).orElseThrow();
-        d.setStatus(DecisionStatus.ACTIVE);
-        decisionRepository.save(d);
+    void testSubmitScore_Success_CreateAndUpdate()
+            throws Exception {
 
-        // 2. Submit score (Create)
-        ComparisonScoreRequest request = new ComparisonScoreRequest(optionId, factorId, 85, "Excellent startup");
-        mockMvc.perform(post("/api/decisions/{decisionId}/scores", decisionId)
-                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + creatorToken)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
+        activateDecisionAndCreatePoll();
+
+        ComparisonScoreRequest request =
+                new ComparisonScoreRequest(
+                        optionId,
+                        factorId,
+                        85,
+                        "Excellent startup"
+                );
+
+        mockMvc.perform(
+                        post(
+                                "/api/decisions/{decisionId}/scores",
+                                decisionId
+                        )
+                                .header(
+                                        HttpHeaders.AUTHORIZATION,
+                                        "Bearer " + creatorToken
+                                )
+                                .contentType(
+                                        MediaType.APPLICATION_JSON
+                                )
+                                .content(
+                                        objectMapper.writeValueAsString(
+                                                request
+                                        )
+                                )
+                )
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.score").value(85))
-                .andExpect(jsonPath("$.remarks").value("Excellent startup"));
+                .andExpect(
+                        jsonPath("$.score")
+                                .value(85)
+                )
+                .andExpect(
+                        jsonPath("$.remarks")
+                                .value("Excellent startup")
+                );
 
-        // Verify Audit Log for creation
-        List<AuditLog> auditLogs = auditLogRepository.findAll();
-        assertTrue(auditLogs.stream().anyMatch(l -> l.getAction() == com.decisionhub.enums.administration.AuditActionType.CREATE_DECISION));
+        List<AuditLog> auditLogs =
+                auditLogRepository.findAll();
 
-        // 3. Submit score again (Update via POST/upsert)
-        ComparisonScoreRequest updateRequest = new ComparisonScoreRequest(optionId, factorId, 95, "Updated higher score");
-        mockMvc.perform(post("/api/decisions/{decisionId}/scores", decisionId)
-                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + creatorToken)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(updateRequest)))
+        assertTrue(
+                auditLogs.stream()
+                        .anyMatch(
+                                l -> l.getAction()
+                                        == com.decisionhub.enums.administration.AuditActionType.CREATE_DECISION
+                        )
+        );
+
+        ComparisonScoreRequest updateRequest =
+                new ComparisonScoreRequest(
+                        optionId,
+                        factorId,
+                        95,
+                        "Updated higher score"
+                );
+
+        mockMvc.perform(
+                        post(
+                                "/api/decisions/{decisionId}/scores",
+                                decisionId
+                        )
+                                .header(
+                                        HttpHeaders.AUTHORIZATION,
+                                        "Bearer " + creatorToken
+                                )
+                                .contentType(
+                                        MediaType.APPLICATION_JSON
+                                )
+                                .content(
+                                        objectMapper.writeValueAsString(
+                                                updateRequest
+                                        )
+                                )
+                )
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.score").value(95))
-                .andExpect(jsonPath("$.remarks").value("Updated higher score"));
+                .andExpect(
+                        jsonPath("$.score")
+                                .value(95)
+                )
+                .andExpect(
+                        jsonPath("$.remarks")
+                                .value("Updated higher score")
+                );
 
-        // Verify Audit Log for update
-        List<AuditLog> updatedLogs = auditLogRepository.findAll();
-        assertTrue(updatedLogs.stream().anyMatch(l -> l.getAction() == com.decisionhub.enums.administration.AuditActionType.UPDATE_DECISION));
+        List<AuditLog> updatedLogs =
+                auditLogRepository.findAll();
+
+        assertTrue(
+                updatedLogs.stream()
+                        .anyMatch(
+                                l -> l.getAction()
+                                        == com.decisionhub.enums.administration.AuditActionType.UPDATE_DECISION
+                        )
+        );
     }
 
     @Test
-    void testSubmitScore_ValidationFails_InvalidRange() throws Exception {
-        // Transition status to ACTIVE directly in DB
-        Decision d = decisionRepository.findById(decisionId).orElseThrow();
-        d.setStatus(DecisionStatus.ACTIVE);
-        decisionRepository.save(d);
+    void testSubmitScore_ValidationFails_InvalidRange()
+            throws Exception {
 
-        // Score exceeds 100
-        ComparisonScoreRequest request = new ComparisonScoreRequest(optionId, factorId, 120, "Out of bounds");
+        activateDecisionAndCreatePoll();
 
-        mockMvc.perform(post("/api/decisions/{decisionId}/scores", decisionId)
-                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + creatorToken)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
+        ComparisonScoreRequest request =
+                new ComparisonScoreRequest(
+                        optionId,
+                        factorId,
+                        120,
+                        "Out of bounds"
+                );
+
+        mockMvc.perform(
+                        post(
+                                "/api/decisions/{decisionId}/scores",
+                                decisionId
+                        )
+                                .header(
+                                        HttpHeaders.AUTHORIZATION,
+                                        "Bearer " + creatorToken
+                                )
+                                .contentType(
+                                        MediaType.APPLICATION_JSON
+                                )
+                                .content(
+                                        objectMapper.writeValueAsString(
+                                                request
+                                        )
+                                )
+                )
                 .andExpect(status().isBadRequest());
     }
 
     @Test
-    void testGetScores_Success() throws Exception {
-        // Transition status to ACTIVE directly in DB
-        Decision d = decisionRepository.findById(decisionId).orElseThrow();
-        d.setStatus(DecisionStatus.ACTIVE);
-        decisionRepository.save(d);
+    void testGetScores_Success()
+            throws Exception {
 
-        // Submit score
-        ComparisonScoreRequest request = new ComparisonScoreRequest(optionId, factorId, 85, "Great");
-        mockMvc.perform(post("/api/decisions/{decisionId}/scores", decisionId)
-                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + creatorToken)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
+        activateDecisionAndCreatePoll();
+
+        ComparisonScoreRequest request =
+                new ComparisonScoreRequest(
+                        optionId,
+                        factorId,
+                        85,
+                        "Great"
+                );
+
+        mockMvc.perform(
+                        post(
+                                "/api/decisions/{decisionId}/scores",
+                                decisionId
+                        )
+                                .header(
+                                        HttpHeaders.AUTHORIZATION,
+                                        "Bearer " + creatorToken
+                                )
+                                .contentType(
+                                        MediaType.APPLICATION_JSON
+                                )
+                                .content(
+                                        objectMapper.writeValueAsString(
+                                                request
+                                        )
+                                )
+                )
                 .andExpect(status().isOk());
 
-        // Fetch scores
-        mockMvc.perform(get("/api/decisions/{decisionId}/scores", decisionId)
-                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + creatorToken))
+        mockMvc.perform(
+                        get(
+                                "/api/decisions/{decisionId}/scores",
+                                decisionId
+                        )
+                                .header(
+                                        HttpHeaders.AUTHORIZATION,
+                                        "Bearer " + creatorToken
+                                )
+                )
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].score").value(85));
+                .andExpect(
+                        jsonPath("$[0].score")
+                                .value(85)
+                );
     }
 
     @Test
-    void testDeleteScore_Success() throws Exception {
-        // Transition status to ACTIVE directly in DB
-        Decision d = decisionRepository.findById(decisionId).orElseThrow();
-        d.setStatus(DecisionStatus.ACTIVE);
-        decisionRepository.save(d);
+    void testDeleteScore_Success()
+            throws Exception {
 
-        // Submit score
-        ComparisonScoreRequest request = new ComparisonScoreRequest(optionId, factorId, 85, "Great");
-        mockMvc.perform(post("/api/decisions/{decisionId}/scores", decisionId)
-                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + creatorToken)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
+        activateDecisionAndCreatePoll();
+
+        ComparisonScoreRequest request =
+                new ComparisonScoreRequest(
+                        optionId,
+                        factorId,
+                        85,
+                        "Great"
+                );
+
+        mockMvc.perform(
+                        post(
+                                "/api/decisions/{decisionId}/scores",
+                                decisionId
+                        )
+                                .header(
+                                        HttpHeaders.AUTHORIZATION,
+                                        "Bearer " + creatorToken
+                                )
+                                .contentType(
+                                        MediaType.APPLICATION_JSON
+                                )
+                                .content(
+                                        objectMapper.writeValueAsString(
+                                                request
+                                        )
+                                )
+                )
                 .andExpect(status().isOk());
 
-        // Delete score
-        mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete("/api/decisions/{decisionId}/scores/{optionId}/{factorId}", decisionId, optionId, factorId)
-                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + creatorToken))
+        mockMvc.perform(
+                        delete(
+                                "/api/decisions/{decisionId}/scores/{optionId}/{factorId}",
+                                decisionId,
+                                optionId,
+                                factorId
+                        )
+                                .header(
+                                        HttpHeaders.AUTHORIZATION,
+                                        "Bearer " + creatorToken
+                                )
+                )
                 .andExpect(status().isNoContent());
 
-        // Assert deleted from repo
-        ComparisonScoreId id = new ComparisonScoreId(optionId, factorId, creatorId);
-        assertTrue(comparisonScoreRepository.findById(id).isEmpty());
+        ComparisonScoreId id =
+                new ComparisonScoreId(
+                        optionId,
+                        factorId,
+                        creatorId
+                );
 
-        // Assert audit log exists for SCORE_DELETED
-        List<AuditLog> auditLogs = auditLogRepository.findAll();
-        assertTrue(auditLogs.stream().anyMatch(l -> l.getAction() == com.decisionhub.enums.administration.AuditActionType.DELETE_DECISION));
+        assertTrue(
+                comparisonScoreRepository
+                        .findById(id)
+                        .isEmpty()
+        );
+
+        List<AuditLog> auditLogs =
+                auditLogRepository.findAll();
+
+        assertTrue(
+                auditLogs.stream()
+                        .anyMatch(
+                                l -> l.getAction()
+                                        == com.decisionhub.enums.administration.AuditActionType.DELETE_DECISION
+                        )
+        );
     }
 
     @Test
-    void testOptimisticLocking_ConcurrentUpdates() throws Exception {
-        // Transition status to ACTIVE directly in DB
-        Decision d = decisionRepository.findById(decisionId).orElseThrow();
-        d.setStatus(DecisionStatus.ACTIVE);
-        decisionRepository.save(d);
+    void testOptimisticLocking_ConcurrentUpdates()
+            throws Exception {
 
-        // Submit score (Create)
-        ComparisonScoreRequest request = new ComparisonScoreRequest(optionId, factorId, 80, "Initial");
-        mockMvc.perform(post("/api/decisions/{decisionId}/scores", decisionId)
-                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + creatorToken)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
+        activateDecisionAndCreatePoll();
+
+        ComparisonScoreRequest request =
+                new ComparisonScoreRequest(
+                        optionId,
+                        factorId,
+                        80,
+                        "Initial"
+                );
+
+        mockMvc.perform(
+                        post(
+                                "/api/decisions/{decisionId}/scores",
+                                decisionId
+                        )
+                                .header(
+                                        HttpHeaders.AUTHORIZATION,
+                                        "Bearer " + creatorToken
+                                )
+                                .contentType(
+                                        MediaType.APPLICATION_JSON
+                                )
+                                .content(
+                                        objectMapper.writeValueAsString(
+                                                request
+                                        )
+                                )
+                )
                 .andExpect(status().isOk());
 
-        // Simulate concurrent updates by reading the score in two threads/transactions
-        org.springframework.transaction.support.TransactionTemplate txTemplate = new org.springframework.transaction.support.TransactionTemplate(transactionManager);
+        org.springframework.transaction.support.TransactionTemplate txTemplate =
+                new org.springframework.transaction.support.TransactionTemplate(
+                        transactionManager
+                );
 
         try {
-            txTemplate.execute(status -> {
-                ComparisonScoreId id = new ComparisonScoreId(optionId, factorId, creatorId);
-                ComparisonScore score1 = comparisonScoreRepository.findById(id).orElseThrow();
 
-                // Transaction 2
-                org.springframework.transaction.support.TransactionTemplate txNew = new org.springframework.transaction.support.TransactionTemplate(transactionManager);
-                txNew.setPropagationBehavior(org.springframework.transaction.TransactionDefinition.PROPAGATION_REQUIRES_NEW);
+            txTemplate.execute(status -> {
+
+                ComparisonScoreId id =
+                        new ComparisonScoreId(
+                                optionId,
+                                factorId,
+                                creatorId
+                        );
+
+                ComparisonScore score1 =
+                        comparisonScoreRepository
+                                .findById(id)
+                                .orElseThrow();
+
+                org.springframework.transaction.support.TransactionTemplate txNew =
+                        new org.springframework.transaction.support.TransactionTemplate(
+                                transactionManager
+                        );
+
+                txNew.setPropagationBehavior(
+                        org.springframework.transaction.TransactionDefinition
+                                .PROPAGATION_REQUIRES_NEW
+                );
+
                 txNew.executeWithoutResult(status2 -> {
-                    ComparisonScore score2 = comparisonScoreRepository.findById(id).orElseThrow();
+
+                    ComparisonScore score2 =
+                            comparisonScoreRepository
+                                    .findById(id)
+                                    .orElseThrow();
+
                     score2.setScore(90);
-                    comparisonScoreRepository.saveAndFlush(score2);
+
+                    comparisonScoreRepository
+                            .saveAndFlush(score2);
                 });
 
-                // Try to modify score1
                 score1.setScore(95);
-                comparisonScoreRepository.saveAndFlush(score1);
-                org.junit.jupiter.api.Assertions.fail("Expected OptimisticLockingFailureException");
+
+                comparisonScoreRepository
+                        .saveAndFlush(score1);
+
+                org.junit.jupiter.api.Assertions.fail(
+                        "Expected OptimisticLockingFailureException"
+                );
+
                 return null;
             });
-        } catch (org.springframework.transaction.UnexpectedRollbackException | org.springframework.orm.ObjectOptimisticLockingFailureException | org.hibernate.StaleObjectStateException e) {
-            // Succeeded! Optimistic locking worked
+
+        } catch (
+                org.springframework.transaction.UnexpectedRollbackException
+                | org.springframework.orm.ObjectOptimisticLockingFailureException
+                | org.hibernate.StaleObjectStateException e
+        ) {
+            // Optimistic locking worked as expected.
         }
     }
 
     @Test
-    void testGetScore_Success() throws Exception {
-        // Transition status to ACTIVE directly in DB
-        Decision d = decisionRepository.findById(decisionId).orElseThrow();
-        d.setStatus(DecisionStatus.ACTIVE);
-        decisionRepository.save(d);
+    void testGetScore_Success()
+            throws Exception {
 
-        // Submit score
-        ComparisonScoreRequest request = new ComparisonScoreRequest(optionId, factorId, 85, "Great");
-        mockMvc.perform(post("/api/decisions/{decisionId}/scores", decisionId)
-                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + creatorToken)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
+        activateDecisionAndCreatePoll();
+
+        ComparisonScoreRequest request =
+                new ComparisonScoreRequest(
+                        optionId,
+                        factorId,
+                        85,
+                        "Great"
+                );
+
+        mockMvc.perform(
+                        post(
+                                "/api/decisions/{decisionId}/scores",
+                                decisionId
+                        )
+                                .header(
+                                        HttpHeaders.AUTHORIZATION,
+                                        "Bearer " + creatorToken
+                                )
+                                .contentType(
+                                        MediaType.APPLICATION_JSON
+                                )
+                                .content(
+                                        objectMapper.writeValueAsString(
+                                                request
+                                        )
+                                )
+                )
                 .andExpect(status().isOk());
 
-        // Get single score
-        mockMvc.perform(get("/api/decisions/{decisionId}/scores/{optionId}/{factorId}", decisionId, optionId, factorId)
-                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + creatorToken))
+        mockMvc.perform(
+                        get(
+                                "/api/decisions/{decisionId}/scores/{optionId}/{factorId}",
+                                decisionId,
+                                optionId,
+                                factorId
+                        )
+                                .header(
+                                        HttpHeaders.AUTHORIZATION,
+                                        "Bearer " + creatorToken
+                                )
+                )
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.score").value(85))
-                .andExpect(jsonPath("$.remarks").value("Great"));
+                .andExpect(
+                        jsonPath("$.score")
+                                .value(85)
+                )
+                .andExpect(
+                        jsonPath("$.remarks")
+                                .value("Great")
+                );
     }
 
     @Test
-    void testGetScore_NotFound() throws Exception {
-        mockMvc.perform(get("/api/decisions/{decisionId}/scores/{optionId}/{factorId}", decisionId, optionId, 999L)
-                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + creatorToken))
+    void testGetScore_NotFound()
+            throws Exception {
+
+        /*
+         * Read operations don't require an OPEN Poll, but the
+         * Decision must be ACTIVE according to the score service.
+         */
+        Decision decision =
+                decisionRepository
+                        .findById(decisionId)
+                        .orElseThrow();
+
+        decision.setStatus(
+                DecisionStatus.ACTIVE
+        );
+
+        decisionRepository.save(decision);
+
+        mockMvc.perform(
+                        get(
+                                "/api/decisions/{decisionId}/scores/{optionId}/{factorId}",
+                                decisionId,
+                                optionId,
+                                999L
+                        )
+                                .header(
+                                        HttpHeaders.AUTHORIZATION,
+                                        "Bearer " + creatorToken
+                                )
+                )
                 .andExpect(status().isNotFound());
     }
 }
