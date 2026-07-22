@@ -69,8 +69,6 @@ class DecisionServiceTest {
     private com.decisionhub.validator.decision.DecisionValidator decisionValidator = new com.decisionhub.validator.decision.DecisionValidator();
     @Mock
     private org.springframework.context.ApplicationEventPublisher eventPublisher;
-    @Mock
-    private DecisionModificationValidator decisionModificationValidator;
 
     @InjectMocks
     private DecisionServiceImpl decisionService;

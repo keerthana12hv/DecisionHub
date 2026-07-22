@@ -24,7 +24,7 @@ public record DecisionResponse(
     boolean pinned,
     boolean locked
 ) {
-    // 13-argument version from HEAD branch (with votingType, votingEndTime; defaults pinned=false, locked=false)
+
     public DecisionResponse(
         Long id,
         String title,
@@ -44,7 +44,6 @@ public record DecisionResponse(
              votingType, votingEndTime, options, factors, createdAt, false, false);
     }
 
-    // 13-argument version from backend branch (with pinned, locked; defaults votingType=RATING_BASED, votingEndTime=calculated)
     public DecisionResponse(
         Long id,
         String title,
@@ -61,10 +60,11 @@ public record DecisionResponse(
         boolean locked
     ) {
         this(id, title, description, creator, categoryName, communityName, status, deadline,
-             VotingType.RATING_BASED, deadline != null ? deadline.minusHours(2) : null, options, factors, createdAt, pinned, locked);
+             VotingType.RATING_BASED,
+             deadline != null ? deadline.minusHours(2) : null,
+             options, factors, createdAt, pinned, locked);
     }
 
-    // 11-argument deprecated constructor (without votingType, votingEndTime, pinned, locked)
     @Deprecated
     public DecisionResponse(
         Long id,
@@ -80,6 +80,8 @@ public record DecisionResponse(
         LocalDateTime createdAt
     ) {
         this(id, title, description, creator, categoryName, communityName, status, deadline,
-             VotingType.RATING_BASED, deadline != null ? deadline.minusHours(2) : null, options, factors, createdAt, false, false);
+             VotingType.RATING_BASED,
+             deadline != null ? deadline.minusHours(2) : null,
+             options, factors, createdAt, false, false);
     }
 }
