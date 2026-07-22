@@ -1,7 +1,7 @@
 $kind: http-request
-name: publish
-url: http://localhost:8080/api/decisions/1/publish
-method: POST
+name: Verify Vote
+url: http://localhost:8080/api/decisions/1/votes/me
+method: GET
 body:
   type: json
   content: ""
@@ -9,4 +9,4 @@ auth:
   type: bearer
   credentials:
     token: "{{authToken}}"
-order: 3878872331451187
+order: 4481531087541101

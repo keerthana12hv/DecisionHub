@@ -1,0 +1,22 @@
+$kind: http-request
+name: Submit Comparison Score
+url: http://localhost:8080/api/decisions/2/scores
+method: POST
+body:
+  type: json
+  content: "{\r
+
+    \    \"optionId\": 3,\r
+
+    \    \"factorId\": 1,\r
+
+    \    \"score\": 90,\r
+
+    \    \"remarks\": \"Excellent performance\"\r
+
+    }"
+auth:
+  type: bearer
+  credentials:
+    token: "{{authToken}}"
+order: 4405810310993450
