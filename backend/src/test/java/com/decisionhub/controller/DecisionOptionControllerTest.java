@@ -78,7 +78,7 @@ class DecisionOptionControllerTest {
         when(decisionOptionService.createOption(eq(decisionId), any(OptionCreateDto.class), any(), any()))
                 .thenReturn(response);
 
-        mockMvc.perform(post("/decisions/{decisionId}/options", decisionId)
+        mockMvc.perform(post("/api/decisions/{decisionId}/options", decisionId)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isCreated())
@@ -91,7 +91,7 @@ class DecisionOptionControllerTest {
         Long decisionId = 1L;
         OptionCreateDto request = new OptionCreateDto("", "Description", Collections.emptyList());
 
-        mockMvc.perform(post("/decisions/{decisionId}/options", decisionId)
+        mockMvc.perform(post("/api/decisions/{decisionId}/options", decisionId)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest());
@@ -107,7 +107,7 @@ class DecisionOptionControllerTest {
         when(decisionOptionService.updateOption(eq(decisionId), eq(optionId), any(OptionCreateDto.class), any(), any()))
                 .thenReturn(response);
 
-        mockMvc.perform(put("/decisions/{decisionId}/options/{optionId}", decisionId, optionId)
+        mockMvc.perform(put("/api/decisions/{decisionId}/options/{optionId}", decisionId, optionId)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
@@ -121,7 +121,7 @@ class DecisionOptionControllerTest {
         
         doNothing().when(decisionOptionService).deleteOption(eq(decisionId), eq(optionId), any(), any());
 
-        mockMvc.perform(delete("/decisions/{decisionId}/options/{optionId}", decisionId, optionId))
+        mockMvc.perform(delete("/api/decisions/{decisionId}/options/{optionId}", decisionId, optionId))
                 .andExpect(status().isNoContent());
     }
 }

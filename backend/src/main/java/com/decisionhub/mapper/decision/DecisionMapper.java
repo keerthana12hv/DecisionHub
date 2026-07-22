@@ -19,7 +19,7 @@ import org.mapstruct.NullValuePropertyMappingStrategy;
 )
 public interface DecisionMapper {
 
-    @Mapping(target = "categoryName", ignore = true)
+    @Mapping(target = "categoryName", source = "community.category.name")
     @Mapping(target = "communityName", source = "community.name")
     @Mapping(target = "factors", source = "comparisonFactors")
     DecisionResponse toResponse(Decision decision);
@@ -44,6 +44,5 @@ public interface DecisionMapper {
     DecisionOption toEntity(OptionCreateDto dto);
 
     @Mapping(target = "title", source = "optionName")
-    @Mapping(target = "comparisonScores", ignore = true)
     OptionResponseDto toResponseDto(DecisionOption option);
 }

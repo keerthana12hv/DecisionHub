@@ -80,7 +80,7 @@ class ComparisonScoreControllerTest {
         when(comparisonScoreService.submitScore(eq(decisionId), any(ComparisonScoreRequest.class), any(), any()))
                 .thenReturn(response);
 
-        mockMvc.perform(post("/decisions/{decisionId}/scores", decisionId)
+        mockMvc.perform(post("/api/decisions/{decisionId}/scores", decisionId)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
@@ -93,7 +93,7 @@ class ComparisonScoreControllerTest {
         Long decisionId = 1L;
         ComparisonScoreRequest request = new ComparisonScoreRequest(null, 3L, 85, "Good");
 
-        mockMvc.perform(post("/decisions/{decisionId}/scores", decisionId)
+        mockMvc.perform(post("/api/decisions/{decisionId}/scores", decisionId)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest());
@@ -111,7 +111,7 @@ class ComparisonScoreControllerTest {
         when(comparisonScoreService.updateScore(eq(decisionId), eq("score123"), any(ComparisonScoreRequest.class), any(), any()))
                 .thenReturn(response);
 
-        mockMvc.perform(put("/decisions/{decisionId}/scores/{scoreId}", decisionId, "score123")
+        mockMvc.perform(put("/api/decisions/{decisionId}/scores/{scoreId}", decisionId, "score123")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
@@ -130,7 +130,7 @@ class ComparisonScoreControllerTest {
         when(comparisonScoreService.getScoresByDecisionId(eq(decisionId)))
                 .thenReturn(Collections.singletonList(response));
 
-        mockMvc.perform(get("/decisions/{decisionId}/scores", decisionId))
+        mockMvc.perform(get("/api/decisions/{decisionId}/scores", decisionId))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].score").value(75))
                 .andExpect(jsonPath("$[0].remarks").value("Ok"));
@@ -147,7 +147,7 @@ class ComparisonScoreControllerTest {
         when(comparisonScoreService.getMyScoresByDecisionId(eq(decisionId)))
                 .thenReturn(Collections.singletonList(response));
 
-        mockMvc.perform(get("/decisions/{decisionId}/scores/me", decisionId))
+        mockMvc.perform(get("/api/decisions/{decisionId}/scores/me", decisionId))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].score").value(95))
                 .andExpect(jsonPath("$[0].remarks").value("Amazing"));
@@ -159,7 +159,7 @@ class ComparisonScoreControllerTest {
         Long optionId = 2L;
         Long factorId = 3L;
 
-        mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete("/decisions/{decisionId}/scores/{optionId}/{factorId}", decisionId, optionId, factorId))
+        mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete("/api/decisions/{decisionId}/scores/{optionId}/{factorId}", decisionId, optionId, factorId))
                 .andExpect(status().isNoContent());
 
         org.mockito.Mockito.verify(comparisonScoreService).deleteScore(eq(decisionId), eq(optionId), eq(factorId), any(), any());

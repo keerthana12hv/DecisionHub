@@ -179,6 +179,26 @@ public class ComparisonFactorServiceImpl implements ComparisonFactorService {
                 .collect(Collectors.toList());
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public ComparisonFactorResponse getFactor(Long decisionId, Long factorId) {
+        log.info("Retrieving comparison factor: {} for board: {}", factorId, decisionId);
+
+        getActiveBoardOrThrow(decisionId);
+        Long currentUserId = authenticationFacade.getCurrentUserId().orElse(null);
+
+        if (!decisionAuthorizationService.canViewDecision(decisionId, currentUserId)) {
+            throw new UnauthorizedActionException("Not authorized to view decision details");
+        }
+
+        ComparisonFactor factor = getFactorOrThrow(factorId);
+        if (!factor.getDecision().getId().equals(decisionId)) {
+            throw new BadRequestException("Comparison factor with ID " + factorId + " does not belong to decision " + decisionId);
+        }
+
+        return comparisonMapper.toResponse(factor);
+    }
+
     private Decision getActiveBoardOrThrow(Long id) {
         return decisionRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Decision not found with ID: " + id));

@@ -74,7 +74,7 @@ class RankingControllerTest {
 
         when(rankingService.getRanking(decisionId)).thenReturn(response);
 
-        mockMvc.perform(get("/decisions/{decisionId}/ranking", decisionId))
+        mockMvc.perform(get("/api/decisions/{decisionId}/ranking", decisionId))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.decisionId").value(decisionId))
                 .andExpect(jsonPath("$.options[0].optionTitle").value("Option Title"))
@@ -92,7 +92,7 @@ class RankingControllerTest {
 
         when(rankingService.getRankingSummary(decisionId)).thenReturn(response);
 
-        mockMvc.perform(get("/decisions/{decisionId}/ranking/summary", decisionId))
+        mockMvc.perform(get("/api/decisions/{decisionId}/ranking/summary", decisionId))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.decisionId").value(decisionId))
                 .andExpect(jsonPath("$.options[0].optionTitle").value("Option Title"))

@@ -1,21 +1,20 @@
 $kind: http-request
-name: create decision
-url: http://localhost:8080/api/decisions
-method: POST
+name: update decision
+url: http://localhost:8080/api/decisions/1
+method: PUT
 body:
   type: json
   content: "{\r
 
-    \  \"title\": \"Best Programming Language\",\r
+    \  \"title\": \"Best Java Backend Framework\",\r
 
-    \  \"description\": \"Compare programming languages using multiple
-    factors.\",\r
+    \  \"description\": \"Updated description for testing.\",\r
 
     \  \"communityId\": null,\r
 
     \  \"isPublic\": true,\r
 
-    \  \"votingType\": \"RATING_BASED\",\r
+    \  \"votingType\": \"SINGLE_CHOICE\",\r
 
     \  \"anonymityType\": \"PUBLIC\",\r
 
@@ -25,9 +24,11 @@ body:
 
     \  \"tags\": [\r
 
-    \    \"programming\",\r
+    \    \"java\",\r
 
-    \    \"comparison\"\r
+    \    \"backend\",\r
+
+    \    \"spring\"\r
 
     \  ]\r
 
@@ -36,4 +37,4 @@ auth:
   type: bearer
   credentials:
     token: "{{authToken}}"
-order: 1000
+order: 5000

@@ -1,7 +1,6 @@
 $kind: http-request
-name: leave community
-url: http://localhost:8080/api/communities/2/leave
-method: POST
+url: http://localhost:8080/api/decisions/2/scores
+method: GET
 body:
   type: json
   content: ""
@@ -9,4 +8,4 @@ auth:
   type: bearer
   credentials:
     token: "{{authToken}}"
-order: 1000
+order: 3542046972045108
