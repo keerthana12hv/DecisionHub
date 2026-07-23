@@ -435,3 +435,46 @@
   padding: 0 12px;
   font-size: 0.8rem;
 }
+.vote-action-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 16px;
+  flex-wrap: wrap;
+}
+
+.vote-status-confirmed {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #34d399;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.remove-vote-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.option-selected-icon {
+  color: #8b5cf6;
+  margin-left: 8px;
+}
+
+.voting-option-block {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  text-align: left;
+  cursor: pointer;
+}
+
+.results-note {
+  margin-top: 14px;
+  font-size: 0.78rem;
+  color: var(--text-muted, #9ca3af);
+  font-style: italic;
+}
