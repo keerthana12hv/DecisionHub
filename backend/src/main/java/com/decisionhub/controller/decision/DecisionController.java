@@ -81,23 +81,21 @@ public class DecisionController {
         return ResponseEntity.ok(response);
     }
 
-}
+    @PutMapping("/{id}/publish")
+    @Operation(summary = "Publish Decision", description = "Changes a decision from DRAFT to ACTIVE. A published decision can receive comparison scores.", security = @SecurityRequirement(name = "bearerAuth"))
+    public ResponseEntity<DecisionResponse> publishDecision(
+            @PathVariable Long id,
+            HttpServletRequest servletRequest
+    ) {
+        log.info("REST request to publish decision: {}", id);
+        String ipAddress = getClientIp(servletRequest);
+        String userAgent = servletRequest.getHeader(HttpHeaders.USER_AGENT);
 
-@PutMapping("/{id}/publish")
-@Operation(summary = "Publish Decision", description = "Changes a decision from DRAFT to ACTIVE. A published decision can receive comparison scores.", security = @SecurityRequirement(name = "bearerAuth"))
-public ResponseEntity<DecisionResponse> publishDecision(
-        @PathVariable Long id,
-        HttpServletRequest servletRequest
-) {
-    log.info("REST request to publish decision: {}", id);
-    String ipAddress = getClientIp(servletRequest);
-    String userAgent = servletRequest.getHeader(HttpHeaders.USER_AGENT);
+        DecisionResponse response = decisionService.publishDecision(id, ipAddress, userAgent);
+        return ResponseEntity.ok(response);
+    }
 
-    DecisionResponse response = decisionService.publishDecision(id, ipAddress, userAgent);
-    return ResponseEntity.ok(response);
-}
-
-@DeleteMapping("/{id}")
+    @DeleteMapping("/{id}")
     @Operation(summary = "Delete a decision", description = "Deletes a decision and associated entities (requires creator/owner)", security = @SecurityRequirement(name = "bearerAuth"))
     public ResponseEntity<Void> deleteDecision(
             @PathVariable Long id,
@@ -110,8 +108,6 @@ public ResponseEntity<DecisionResponse> publishDecision(
         decisionService.deleteDecision(id, ipAddress, userAgent);
         return ResponseEntity.noContent().build();
     }
-
-
 
     private String getClientIp(HttpServletRequest request) {
         String xfHeader = request.getHeader("X-Forwarded-For");
