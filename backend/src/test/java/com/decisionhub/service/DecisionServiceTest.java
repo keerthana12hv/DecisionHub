@@ -22,6 +22,7 @@ import com.decisionhub.security.decision.AuthenticationFacade;
 import com.decisionhub.security.decision.DecisionAuthorizationService;
 import com.decisionhub.service.impl.decision.DecisionServiceImpl;
 import com.decisionhub.service.interfaces.audit.AuditService;
+import com.decisionhub.validator.decision.DecisionModificationValidator;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;

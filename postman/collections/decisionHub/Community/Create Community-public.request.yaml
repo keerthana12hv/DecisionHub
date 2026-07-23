@@ -1,13 +1,14 @@
 $kind: http-request
+name: Create Community-public
 url: http://localhost:8080/api/communities
 method: POST
 body:
   type: json
   content: "{\r
 
-    \  \"name\": \"Java Developers\",\r
+    \  \"name\": \"Javadev\",\r
 
-    \  \"slug\": \"java-developers\",\r
+    \  \"slug\": \"javadev\",\r
 
     \  \"description\": \"Community for Java Developers\",\r
 

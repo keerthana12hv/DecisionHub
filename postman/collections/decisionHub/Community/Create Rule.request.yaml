@@ -3,9 +3,16 @@ url: http://localhost:8080/api/moderation/communities/1/rules
 method: POST
 body:
   type: json
-  content: "{\r\n  \"title\": \"Respect Everyone\",\r\n  \"description\": \"Always be respectful to all members of the community.\"\r\n}"
+  content: "{\r
+
+    \  \"title\": \"Respect Everyone\",\r
+
+    \  \"description\": \"Always be respectful to all members of the
+    community.\"\r
+
+    }"
 auth:
   type: bearer
   credentials:
     token: "{{authToken}}"
-order: 5001
+order: 6000

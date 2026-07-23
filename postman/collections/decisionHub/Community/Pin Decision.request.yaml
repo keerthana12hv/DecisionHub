@@ -5,4 +5,4 @@ auth:
   type: bearer
   credentials:
     token: "{{authToken}}"
-order: 5005
+order: 10000

@@ -1,0 +1,12 @@
+$kind: http-request
+name: get decision
+url: http://localhost:8080/api/decisions/1
+method: GET
+body:
+  type: json
+  content: ""
+auth:
+  type: bearer
+  credentials:
+    token: "{{authToken}}"
+order: 17000

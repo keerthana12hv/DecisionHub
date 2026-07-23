@@ -1,0 +1,12 @@
+$kind: http-request
+name: 21. Close Poll Early
+url: http://localhost:8080/api/decisions/1/poll/close
+method: POST
+body:
+  type: json
+  content: ""
+auth:
+  type: bearer
+  credentials:
+    token: "{{authToken}}"
+order: 4502610187112954

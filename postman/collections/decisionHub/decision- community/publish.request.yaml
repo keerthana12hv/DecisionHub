@@ -1,4 +1,12 @@
 $kind: http-request
-url: ""
-method: GET
+name: publish
+url: http://localhost:8080/api/decisions/1/publish
+method: POST
+body:
+  type: json
+  content: ""
+auth:
+  type: bearer
+  credentials:
+    token: "{{authToken}}"
 order: 3878872331451187

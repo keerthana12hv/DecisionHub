@@ -6,9 +6,9 @@ body:
   type: json
   content: "{\r
 
-    \  \"name\": \"javaa\",\r
+    \  \"name\": \"java\",\r
 
-    \  \"slug\": \"javaa\",\r
+    \  \"slug\": \"java\",\r
 
     \  \"description\": \"Community for Java Developers\",\r
 
@@ -21,4 +21,4 @@ auth:
   type: bearer
   credentials:
     token: "{{authToken}}"
-order: 2227
+order: 2000

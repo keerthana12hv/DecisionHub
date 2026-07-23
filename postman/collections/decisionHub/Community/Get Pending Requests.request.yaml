@@ -1,9 +1,9 @@
 $kind: http-request
 name: Get Pending Requests
-url: http://localhost:8080/api/communities/6/requests
+url: http://localhost:8080/api/communities/2/requests
 method: GET
 auth:
   type: bearer
   credentials:
     token: "{{authToken}}"
-order: 8000
+order: 5817

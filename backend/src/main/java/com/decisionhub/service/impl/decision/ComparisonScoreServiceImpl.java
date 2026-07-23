@@ -1,5 +1,8 @@
 package com.decisionhub.service.impl.decision;
 
+import com.decisionhub.entity.voting.Poll;
+import com.decisionhub.repository.voting.PollRepository;
+import com.decisionhub.validator.voting.PollValidator;
 import com.decisionhub.dto.request.decision.ComparisonScoreRequest;
 import com.decisionhub.dto.response.decision.ComparisonScoreResponse;
 import com.decisionhub.entity.decision.Decision;
@@ -22,6 +25,7 @@ import com.decisionhub.security.decision.AuthenticationFacade;
 import com.decisionhub.service.interfaces.audit.AuditService;
 import com.decisionhub.service.interfaces.decision.ComparisonScoreService;
 import com.decisionhub.validator.decision.ComparisonScoreValidator;
+import com.decisionhub.validator.decision.DecisionModificationValidator;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -47,9 +51,12 @@ public class ComparisonScoreServiceImpl implements ComparisonScoreService {
     private final ComparisonFactorRepository comparisonFactorRepository;
     private final ComparisonScoreRepository comparisonScoreRepository;
     private final UserRepository userRepository;
+    private final PollRepository pollRepository;
 
     private final ComparisonMapper comparisonMapper;
     private final ComparisonScoreValidator comparisonScoreValidator;
+    private final DecisionModificationValidator decisionModificationValidator;
+    private final PollValidator pollValidator;
     private final DecisionAuthorizationService decisionAuthorizationService;
     private final AuditService auditService;
     private final AuthenticationFacade authenticationFacade;
@@ -61,12 +68,21 @@ public class ComparisonScoreServiceImpl implements ComparisonScoreService {
         log.info("Attempting to submit comparison score on board: {}", decisionId);
 
         Decision board = getActiveBoardOrThrow(decisionId);
+        decisionModificationValidator.validateDecisionEditable(board);
         Long currentUserId = getCurrentUserIdOrThrow();
 
-        // 1. Authorization
-        if (!decisionAuthorizationService.canSubmitScore(decisionId, currentUserId)) {
-            throw new UnauthorizedActionException("Not authorized to submit scores for this decision");
+        // 1. Voting Participation Authorization
+        if (!decisionAuthorizationService.canParticipateInVoting(
+                decisionId,
+                currentUserId
+        )) {
+            throw new UnauthorizedActionException(
+                    "Not authorized to participate in voting for this decision"
+            );
         }
+
+        // 2. Poll Lifecycle Validation
+        validatePollOpenForParticipation(decisionId);
 
         User currentUser = userRepository.findById(currentUserId)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with ID: " + currentUserId));
@@ -77,10 +93,10 @@ public class ComparisonScoreServiceImpl implements ComparisonScoreService {
         ComparisonFactor factor = comparisonFactorRepository.findById(request.factorId())
                 .orElseThrow(() -> new ResourceNotFoundException("Comparison factor not found with ID: " + request.factorId()));
 
-        // 2. Business Validation
+        // 3. Business Validation
         comparisonScoreValidator.validateSubmit(board, option, factor, request);
 
-        // 3. Check for existing score to perform Upsert
+        // 4. Check for existing score to perform Upsert
         Optional<ComparisonScore> existingScoreOpt = comparisonScoreRepository.findById(
                 new ComparisonScoreId(request.optionId(), request.factorId(), currentUserId)
         );
@@ -126,17 +142,26 @@ public class ComparisonScoreServiceImpl implements ComparisonScoreService {
         log.info("Attempting to update comparison score on board: {}", decisionId);
 
         Decision board = getActiveBoardOrThrow(decisionId);
+        decisionModificationValidator.validateDecisionEditable(board);
         Long currentUserId = getCurrentUserIdOrThrow();
 
-        // 1. Authorization
-        if (!decisionAuthorizationService.canSubmitScore(decisionId, currentUserId)) {
-            throw new UnauthorizedActionException("Not authorized to manage scores for this decision");
+        // 1. Voting Participation Authorization
+        if (!decisionAuthorizationService.canParticipateInVoting(
+                decisionId,
+                currentUserId
+        )) {
+            throw new UnauthorizedActionException(
+                    "Not authorized to participate in voting for this decision"
+            );
         }
+
+        // 2. Poll Lifecycle Validation
+        validatePollOpenForParticipation(decisionId);
 
         User currentUser = userRepository.findById(currentUserId)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with ID: " + currentUserId));
 
-        // 2. Fetch existing score or throw ResourceNotFoundException
+        // 3. Fetch existing score or throw ResourceNotFoundException
         ComparisonScore scoreEntity = comparisonScoreRepository.findById(
                 new ComparisonScoreId(request.optionId(), request.factorId(), currentUserId)
         ).orElseThrow(() -> new ResourceNotFoundException("Comparison score not found for the specified Option and Factor by this user"));
@@ -147,10 +172,10 @@ public class ComparisonScoreServiceImpl implements ComparisonScoreService {
         ComparisonFactor factor = comparisonFactorRepository.findById(request.factorId())
                 .orElseThrow(() -> new ResourceNotFoundException("Comparison factor not found with ID: " + request.factorId()));
 
-        // 3. Business Validation
+        // 4. Business Validation
         comparisonScoreValidator.validateSubmit(board, option, factor, request);
 
-        // 4. Update
+        // 5. Update
         String oldValueJson = String.format("{\"score\":%d,\"remarks\":\"%s\"}", scoreEntity.getScore(), scoreEntity.getRemarks());
         scoreEntity.setScore(request.score());
         scoreEntity.setRemarks(request.remarks());
@@ -171,23 +196,32 @@ public class ComparisonScoreServiceImpl implements ComparisonScoreService {
     public void deleteScore(Long decisionId, Long optionId, Long factorId, String ipAddress, String userAgent) {
         log.info("Attempting to delete comparison score on board: {} for option: {} and factor: {}", decisionId, optionId, factorId);
 
-        getActiveBoardOrThrow(decisionId);
+        Decision board = getActiveBoardOrThrow(decisionId);
+        decisionModificationValidator.validateDecisionEditable(board);
         Long currentUserId = getCurrentUserIdOrThrow();
 
-        // 1. Authorization
-        if (!decisionAuthorizationService.canSubmitScore(decisionId, currentUserId)) {
-            throw new UnauthorizedActionException("Not authorized to manage scores for this decision");
+        // 1. Voting Participation Authorization
+        if (!decisionAuthorizationService.canParticipateInVoting(
+                decisionId,
+                currentUserId
+        )) {
+            throw new UnauthorizedActionException(
+                    "Not authorized to participate in voting for this decision"
+            );
         }
+
+        // 2. Poll Lifecycle Validation
+        validatePollOpenForParticipation(decisionId);
 
         User currentUser = userRepository.findById(currentUserId)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with ID: " + currentUserId));
 
-        // 2. Fetch existing score or throw ResourceNotFoundException
+        // 3. Fetch existing score or throw ResourceNotFoundException
         ComparisonScore scoreEntity = comparisonScoreRepository.findById(
                 new ComparisonScoreId(optionId, factorId, currentUserId)
         ).orElseThrow(() -> new ResourceNotFoundException("Comparison score not found for the specified Option and Factor by this user"));
 
-        // 3. Delete
+        // 4. Delete
         String oldValueJson = String.format("{\"score\":%d,\"remarks\":\"%s\"}", scoreEntity.getScore(), scoreEntity.getRemarks());
         comparisonScoreRepository.delete(scoreEntity);
         comparisonScoreRepository.flush();
@@ -264,8 +298,18 @@ public class ComparisonScoreServiceImpl implements ComparisonScoreService {
     private Decision getActiveBoardOrThrow(Long id) {
         Decision decision = decisionRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Decision not found with ID: " + id));
+
+        // Comparison scoring and ranking are available only
+        // after the Decision has been published and activated.
+        if (decision.getStatus()
+                != com.decisionhub.enums.decision.DecisionStatus.ACTIVE) {
+
+            throw new BadRequestException(
+                    "Comparison scores are only available for ACTIVE decisions"
+            );
+        }
+
         validateRatingBased(decision);
-        validatePollOpen(decision);
         return decision;
     }
 
@@ -275,8 +319,26 @@ public class ComparisonScoreServiceImpl implements ComparisonScoreService {
         }
     }
 
-    private void validatePollOpen(Decision decision) {
-        // TODO: Future Poll Management Integration - validate that the associated Poll is OPEN/active.
+    /**
+     * Validates that the Poll associated with the Decision
+     * is currently open and available for participation.
+     *
+     * This check is applied only to operations that modify
+     * a user's voting participation, such as submitting,
+     * updating, or deleting comparison scores.
+     *
+     * Read operations remain available after the Poll closes.
+     *
+     * @param decisionId ID of the parent Decision
+     */
+    private void validatePollOpenForParticipation(Long decisionId) {
+
+        Poll poll = pollRepository.findByDecisionId(decisionId)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Poll not found for decision ID: " + decisionId
+                ));
+
+        pollValidator.validateOpenForParticipation(poll);
     }
 
     private Long getCurrentUserIdOrThrow() {

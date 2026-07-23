@@ -17,6 +17,7 @@ import com.decisionhub.security.decision.AuthenticationFacade;
 import com.decisionhub.service.interfaces.audit.AuditService;
 import com.decisionhub.service.interfaces.decision.DecisionOptionService;
 import com.decisionhub.validator.decision.DecisionOptionValidator;
+import com.decisionhub.validator.decision.DecisionModificationValidator;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -37,6 +38,7 @@ public class DecisionOptionServiceImpl implements DecisionOptionService {
     
     private final DecisionMapper decisionMapper;
     private final DecisionOptionValidator decisionOptionValidator;
+    private final DecisionModificationValidator decisionModificationValidator;
     private final DecisionAuthorizationService decisionAuthorizationService;
     private final AuditService auditService;
     private final AuthenticationFacade authenticationFacade;
@@ -47,6 +49,7 @@ public class DecisionOptionServiceImpl implements DecisionOptionService {
         log.info("Attempting to create decision option on board: {}", decisionId);
 
         Decision board = getActiveBoardOrThrow(decisionId);
+        decisionModificationValidator.validateDecisionEditable(board);
         Long currentUserId = getCurrentUserIdOrThrow();
 
         // 1. Authorization
@@ -81,6 +84,7 @@ public class DecisionOptionServiceImpl implements DecisionOptionService {
         log.info("Attempting to update option: {} on board: {}", optionId, decisionId);
 
         Decision board = getActiveBoardOrThrow(decisionId);
+        decisionModificationValidator.validateDecisionEditable(board);
         Long currentUserId = getCurrentUserIdOrThrow();
 
         // 1. Authorization
@@ -123,6 +127,7 @@ public class DecisionOptionServiceImpl implements DecisionOptionService {
         log.info("Attempting to delete option: {} on board: {}", optionId, decisionId);
 
         Decision board = getActiveBoardOrThrow(decisionId);
+        decisionModificationValidator.validateDecisionEditable(board);
         Long currentUserId = getCurrentUserIdOrThrow();
 
         // 1. Authorization

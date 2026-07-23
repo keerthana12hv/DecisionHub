@@ -3,9 +3,15 @@ url: http://localhost:8080/api/moderation/rules/1
 method: PUT
 body:
   type: json
-  content: "{\r\n  \"title\": \"Respect Everyone (Updated)\",\r\n  \"description\": \"Updated description for community rules.\"\r\n}"
+  content: "{\r
+
+    \  \"title\": \"Respect Everyone (Updated)\",\r
+
+    \  \"description\": \"Updated description for community rules.\"\r
+
+    }"
 auth:
   type: bearer
   credentials:
     token: "{{authToken}}"
-order: 5002
+order: 7000
