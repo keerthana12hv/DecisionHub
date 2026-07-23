@@ -1,20 +1,40 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { FaArrowRight, FaVoteYea } from "react-icons/fa";
+import axios from "axios";
+import { FaArrowRight, FaVoteYea, FaThumbtack, FaLock } from "react-icons/fa";
 import "../styles/RecentDecision.css";
+
+const API = "http://localhost:8080/api";
+const token = () =>
+  localStorage.getItem("token") ||
+  localStorage.getItem("authToken") ||
+  localStorage.getItem("jwt");
+const headers = () => ({ headers: { Authorization: `Bearer ${token()}` } });
 
 function RecentDecision() {
   const [decisions, setDecisions] = useState([]);
+  const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
   useEffect(() => {
-    const stored = localStorage.getItem("decisionhub-decisions");
-    if (stored) {
-      const all = JSON.parse(stored);
-      // Get the last 3 decisions
-      setDecisions(all.slice(-3).reverse());
-    }
+    fetchRecentDecisions();
   }, []);
+
+  const fetchRecentDecisions = async () => {
+    try {
+      setLoading(true);
+      const res = await axios.get(`${API}/decisions`, headers());
+      // Most recently created first, limit to 3
+      const sorted = [...res.data].sort(
+        (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
+      );
+      setDecisions(sorted.slice(0, 3));
+    } catch (err) {
+      console.error("Failed to load recent decisions:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="recent-decisions-container">
@@ -30,33 +50,34 @@ function RecentDecision() {
           <span>Decision Title</span>
           <span>Category</span>
           <span>Status</span>
-          <span>Votes</span>
           <span style={{ textAlign: "right" }}>Action</span>
         </div>
 
-        {decisions.length === 0 ? (
+        {loading ? (
+          <div className="empty-table-row">Loading...</div>
+        ) : decisions.length === 0 ? (
           <div className="empty-table-row">No decisions created yet.</div>
         ) : (
-          decisions.map((decision) => {
-            const totalVotes = decision.options.reduce((sum, opt) => sum + opt.votes, 0);
-            return (
-              <div className="table-row" key={decision.id}>
-                <span className="decision-title-cell">{decision.title}</span>
-                <span className="decision-cat-cell">{decision.category}</span>
-                <span>
-                  <span className={`status-badge ${decision.status.toLowerCase()}`}>
-                    {decision.status}
-                  </span>
+          decisions.map((decision) => (
+            <div className="table-row" key={decision.id}>
+              <span className="decision-title-cell">
+                {decision.pinned && <FaThumbtack title="Pinned" style={{ marginRight: 6, fontSize: "0.8em" }} />}
+                {decision.locked && <FaLock title="Locked" style={{ marginRight: 6, fontSize: "0.8em" }} />}
+                {decision.title}
+              </span>
+              <span className="decision-cat-cell">{decision.categoryName}</span>
+              <span>
+                <span className={`status-badge ${decision.status.toLowerCase()}`}>
+                  {decision.status}
                 </span>
-                <span className="votes-count-cell">{totalVotes} votes</span>
-                <span className="action-cell">
-                  <button className="row-action-btn" onClick={() => navigate("/vote")}>
-                    <FaVoteYea /> Vote
-                  </button>
-                </span>
-              </div>
-            );
-          })
+              </span>
+              <span className="action-cell">
+                <button className="row-action-btn" onClick={() => navigate(`/decision/${decision.id}`)}>
+                  <FaVoteYea /> View
+                </button>
+              </span>
+            </div>
+          ))
         )}
       </div>
     </div>

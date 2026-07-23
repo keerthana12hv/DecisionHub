@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import axios from "axios";
 import Sidebar from "../components/Sidebar";
 import Navbar from "../components/Navbar";
 import StatCard from "../components/StatCard";
@@ -6,58 +7,75 @@ import QuickAction from "../components/QuickAction";
 import RecentDecision from "../components/RecentDecision";
 import Activity from "../components/Activity";
 import NotificationCard from "../components/NotificationCard";
-import { FaPlus, FaVoteYea, FaUsers, FaChartPie, FaInbox, FaHourglassHalf } from "react-icons/fa";
+import { FaPlus, FaInbox, FaChartPie, FaUsers, FaShieldAlt, FaHourglassHalf } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import "../styles/Dashboard.css";
 
+const API = "http://localhost:8080/api";
+const token = () =>
+  localStorage.getItem("token") ||
+  localStorage.getItem("authToken") ||
+  localStorage.getItem("jwt");
+const headers = () => ({ headers: { Authorization: `Bearer ${token()}` } });
+
 function Dashboard() {
   const navigate = useNavigate();
   const { user } = useAuth();
-  
+
   const [stats, setStats] = useState({
     decisionsCount: 0,
-    votesCount: 0,
+    activePollsCount: 0,
     communitiesCount: 0,
-    activePollsCount: 0
+    moderatingCount: 0
   });
 
   const [deadlines, setDeadlines] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Check if user is logged in, otherwise redirect to login
     if (!user) {
       navigate("/login");
       return;
     }
-
-    // Load data from LocalStorage
-    const storedDecisions = JSON.parse(localStorage.getItem("decisionhub-decisions") || "[]");
-    const storedCommunities = JSON.parse(localStorage.getItem("decisionhub-communities") || "[]");
-
-    const totalVotes = storedDecisions.reduce((sum, d) => {
-      const v = d.options.reduce((s, o) => s + o.votes, 0);
-      return sum + v;
-    }, 0);
-
-    const activePolls = storedDecisions.filter(d => d.status === "Active");
-    const joinedComms = storedCommunities.filter(c => c.joined);
-
-    setStats({
-      decisionsCount: storedDecisions.length,
-      votesCount: totalVotes,
-      communitiesCount: joinedComms.length,
-      activePollsCount: activePolls.length
-    });
-
-    // Get active deadlines
-    const upcoming = activePolls
-      .map(d => ({ id: d.id, title: d.title, deadline: d.deadline }))
-      .slice(0, 2);
-    setDeadlines(upcoming);
+    loadDashboardData();
   }, [user, navigate]);
 
-  const isAdmin = user?.role === "ADMIN";
+  const loadDashboardData = async () => {
+    try {
+      setLoading(true);
+      const [decisionsRes, communitiesRes, moderatingRes] = await Promise.all([
+        axios.get(`${API}/decisions`, headers()),
+        axios.get(`${API}/communities/my`, headers()),
+        axios.get(`${API}/communities/moderating`, headers())
+      ]);
+
+      const decisions = decisionsRes.data;
+      const communities = communitiesRes.data;
+      const moderating = moderatingRes.data;
+
+      const activePolls = decisions.filter((d) => d.status === "ACTIVE");
+
+      setStats({
+        decisionsCount: decisions.length,
+        activePollsCount: activePolls.length,
+        communitiesCount: communities.length,
+        moderatingCount: moderating.length
+      });
+
+      const upcoming = activePolls
+        .filter((d) => d.deadline)
+        .slice(0, 3)
+        .map((d) => ({ id: d.id, title: d.title, deadline: d.deadline }));
+      setDeadlines(upcoming);
+    } catch (err) {
+      console.error("Failed to load dashboard data:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const isModerator = user?.role === "MODERATOR" || stats.moderatingCount > 0;
 
   if (!user) return null;
 
@@ -69,7 +87,6 @@ function Dashboard() {
         <Navbar />
 
         <div className="dashboard-content animate-fade-in">
-          {/* Welcome Banner */}
           <div className="welcome-banner glass-panel animate-glow">
             <div className="welcome-text">
               <h1>Welcome Back, {user.username} 👋</h1>
@@ -77,59 +94,54 @@ function Dashboard() {
                 Collaborate with your team, cast votes on key initiatives,
                 and analyze polling trends from a single dashboard workspace.
               </p>
-              {isAdmin && (
-                <button
-                  className="btn-primary banner-btn"
-                  onClick={() => navigate("/create-decision")}
-                >
-                  <FaPlus /> Create Decision
-                </button>
-              )}
+              <button
+                className="btn-primary banner-btn"
+                onClick={() => navigate("/create-decision")}
+              >
+                <FaPlus /> Create Decision
+              </button>
             </div>
             <div className="welcome-image">
-              <img src={user.photo} alt={user.username} />
+              {user.photo ? (
+                <img src={user.photo} alt={user.username} />
+              ) : (
+                <div className="avatar-fallback">
+                  {user.username?.[0]?.toUpperCase() || "?"}
+                </div>
+              )}
             </div>
           </div>
 
-          {/* Statistics Grid */}
           <div className="stats-grid">
             <StatCard
               title="Total Decisions"
-              value={stats.decisionsCount}
+              value={loading ? "…" : stats.decisionsCount}
               icon={<FaInbox />}
-              trend="+2 new this week"
-            />
-            <StatCard
-              title="Total Votes"
-              value={stats.votesCount}
-              icon={<FaVoteYea />}
-              trend="+34 today"
-            />
-            <StatCard
-              title="Joined Communities"
-              value={stats.communitiesCount}
-              icon={<FaUsers />}
-              trend="Active in all"
             />
             <StatCard
               title="Active Polls"
-              value={stats.activePollsCount}
+              value={loading ? "…" : stats.activePollsCount}
               icon={<FaChartPie />}
-              trend="Closing soon"
+            />
+            <StatCard
+              title="Joined Communities"
+              value={loading ? "…" : stats.communitiesCount}
+              icon={<FaUsers />}
+            />
+            <StatCard
+              title="Communities Moderating"
+              value={loading ? "…" : stats.moderatingCount}
+              icon={<FaShieldAlt />}
             />
           </div>
 
-          {/* Core Content Grid */}
           <div className="dashboard-columns">
-            {/* Left Column: Quick Actions & Decisions Table */}
             <div className="dashboard-left-column">
               <QuickAction />
               <RecentDecision />
             </div>
 
-            {/* Right Column: Deadlines, Activity, Notifications */}
             <div className="dashboard-right-column">
-              {/* Upcoming Deadlines */}
               <div className="deadlines-container">
                 <h2 className="section-title">Upcoming Deadlines</h2>
                 <div className="deadlines-card glass-panel">
@@ -141,7 +153,7 @@ function Dashboard() {
                         <FaHourglassHalf className="deadline-icon" />
                         <div>
                           <h4>{d.title}</h4>
-                          <p>Closes on: {d.deadline}</p>
+                          <p>Closes on: {new Date(d.deadline).toLocaleDateString()}</p>
                         </div>
                       </div>
                     ))
