@@ -195,3 +195,69 @@
   background: rgba(248, 113, 113, 0.12);
   color: #f87171;
 }
+.community-decisions-section {
+  margin-top: 24px;
+  margin-bottom: 32px;
+}
+
+.community-decisions-section h3 {
+  font-size: 1.15rem;
+  font-weight: 600;
+  color: #ffffff;
+  margin-bottom: 14px;
+}
+
+.empty-community-decisions {
+  color: #9ca3af;
+  font-size: 0.9rem;
+}
+
+.community-decisions-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.community-decision-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  padding: 12px 16px;
+}
+
+.community-decision-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.community-decision-title {
+  font-weight: 600;
+  color: #f3f4f6;
+  font-size: 0.92rem;
+}
+
+.community-decision-view-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(108, 99, 255, 0.15);
+  color: #a5a0ff;
+  border: 1px solid rgba(108, 99, 255, 0.3);
+  border-radius: 8px;
+  padding: 6px 14px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.community-decision-view-btn:hover {
+  opacity: 0.85;
+}

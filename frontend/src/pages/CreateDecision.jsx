@@ -5,6 +5,7 @@ import Sidebar from "../components/Sidebar";
 import Navbar from "../components/Navbar";
 import { useAuth } from "../context/AuthContext";
 import { useToast } from "../components/Toast";
+import { getCommunities } from "../services/communityService";
 import { FaArrowLeft, FaPlusCircle, FaTrash, FaEnvelope, FaTimes, FaLock } from "react-icons/fa";
 import "../styles/CreateDecision.css";
 
@@ -24,33 +25,70 @@ function CreateDecision() {
   const { user } = useAuth();
   const { addToast } = useToast();
 
+  // Any authenticated user can create a decision.
+  // Admins should not create regular decision boards (per spec), so we block that role instead.
   useEffect(() => {
-    if (user && user.role !== "ADMIN") {
-      addToast("Access Denied: Only Admins can create decisions.", "error");
+    if (user && user.role === "ADMIN") {
+      addToast("Admins do not create regular decision boards.", "error");
       navigate("/dashboard");
     }
   }, [user, navigate, addToast]);
 
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
-  const [category, setCategory] = useState("");
-  const [visibility, setVisibility] = useState("Public");
-  const [deadline, setDeadline] = useState("");
+  const [visibility, setVisibility] = useState("PUBLIC"); // PUBLIC | PRIVATE | COMMUNITY
+  const [deadline, setDeadline] = useState("");         // Decision deadline (discussion closes)
+  const [votingEndTime, setVotingEndTime] = useState(""); // Poll end time (voting closes) — matches backend field name
   const [votingType, setVotingType] = useState("SINGLE_CHOICE");
   const [submitting, setSubmitting] = useState(false);
 
+  // Community visibility support
+  const [myCommunities, setMyCommunities] = useState([]);
+  const [communityId, setCommunityId] = useState("");
+  const [communitiesLoading, setCommunitiesLoading] = useState(false);
+
   const [options, setOptions] = useState([
-    { id: 1, text: "" },
-    { id: 2, text: "" }
+    { id: 1, title: "", description: "" },
+    { id: 2, title: "", description: "" }
   ]);
 
-  const [factors, setFactors] = useState([{ id: 1, text: "" }]);
+  const [factors, setFactors] = useState([{ id: 1, name: "", description: "" }]);
 
   const [emailInput, setEmailInput] = useState("");
   const [invitedEmails, setInvitedEmails] = useState([]);
 
+  // Load communities the user is actually a member of, only when Community visibility is chosen
+  useEffect(() => {
+    if (visibility !== "COMMUNITY") return;
+    let cancelled = false;
+
+    const loadMyCommunities = async () => {
+      setCommunitiesLoading(true);
+      try {
+        const data = await getCommunities();
+        if (!cancelled) {
+          setMyCommunities(data.filter((c) => c.isMember));
+        }
+      } catch (err) {
+        console.error("Failed to load communities:", err);
+        addToast("Failed to load your communities.", "error");
+      } finally {
+        if (!cancelled) setCommunitiesLoading(false);
+      }
+    };
+
+    loadMyCommunities();
+    return () => {
+      cancelled = true;
+    };
+  }, [visibility, addToast]);
+
+  // Category is derived from the selected community — never asked directly (per workflow spec)
+  const selectedCommunity = myCommunities.find((c) => String(c.id) === String(communityId));
+  const derivedCategoryName = selectedCommunity?.categoryName || "";
+
   const addOptionField = () => {
-    setOptions([...options, { id: Date.now(), text: "" }]);
+    setOptions([...options, { id: Date.now(), title: "", description: "" }]);
   };
 
   const removeOptionField = (id) => {
@@ -61,12 +99,12 @@ function CreateDecision() {
     setOptions(options.filter((opt) => opt.id !== id));
   };
 
-  const handleOptionChange = (id, val) => {
-    setOptions(options.map((opt) => (opt.id === id ? { ...opt, text: val } : opt)));
+  const handleOptionChange = (id, field, val) => {
+    setOptions(options.map((opt) => (opt.id === id ? { ...opt, [field]: val } : opt)));
   };
 
   const addFactorField = () => {
-    setFactors([...factors, { id: Date.now(), text: "" }]);
+    setFactors([...factors, { id: Date.now(), name: "", description: "" }]);
   };
 
   const removeFactorField = (id) => {
@@ -77,8 +115,8 @@ function CreateDecision() {
     setFactors(factors.filter((f) => f.id !== id));
   };
 
-  const handleFactorChange = (id, val) => {
-    setFactors(factors.map((f) => (f.id === id ? { ...f, text: val } : f)));
+  const handleFactorChange = (id, field, val) => {
+    setFactors(factors.map((f) => (f.id === id ? { ...f, [field]: val } : f)));
   };
 
   const handleAddEmail = (e) => {
@@ -106,18 +144,26 @@ function CreateDecision() {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (options.some((opt) => !opt.text.trim())) {
-      addToast("Please fill in all options.", "error");
+    if (options.some((opt) => !opt.title.trim())) {
+      addToast("Please fill in all option titles.", "error");
       return;
     }
 
-    if (votingType === "RATING_BASED" && factors.some((f) => !f.text.trim())) {
-      addToast("Please fill in all comparison factors.", "error");
+    if (votingType === "RATING_BASED" && factors.some((f) => !f.name.trim())) {
+      addToast("Please fill in all comparison factor names.", "error");
       return;
     }
 
-    if (visibility === "Private" && invitedEmails.length === 0) {
+    if (visibility === "PRIVATE" && invitedEmails.length === 0) {
       addToast("Please invite at least one member for private decisions.", "error");
+      return;
+    }
+    // NOTE: invitedEmails currently has no confirmed backend field to send to —
+    // Swagger's POST /api/decisions schema has no invite mechanism yet. Blocked
+    // pending backend's answer; not included in the submit payload below.
+
+    if (visibility === "COMMUNITY" && !communityId) {
+      addToast("Please select a community.", "error");
       return;
     }
 
@@ -130,11 +176,20 @@ function CreateDecision() {
           title,
           description,
           votingType,
+          // Schema uses isPublic (boolean) + communityId, not a visibility string.
+          // PRIVATE (invite-only) has no backend field yet — sent as non-public,
+          // non-community until backend confirms how invites are handled.
+          isPublic: visibility === "PUBLIC",
+          communityId: visibility === "COMMUNITY" ? communityId : null,
           deadline: deadline ? new Date(deadline).toISOString() : null,
-          options: options.map((opt) => ({ title: opt.text })),
-          comparisonFactors:
+          votingEndTime: votingEndTime ? new Date(votingEndTime).toISOString() : null,
+          options: options.map((opt) => ({
+            title: opt.title,
+            description: opt.description
+          })),
+          factors:
             votingType === "RATING_BASED"
-              ? factors.map((f) => ({ name: f.text }))
+              ? factors.map((f) => ({ name: f.name, description: f.description }))
               : []
         },
         headers()
@@ -155,7 +210,7 @@ function CreateDecision() {
     }
   };
 
-  if (user?.role !== "ADMIN") return null;
+  if (user?.role === "ADMIN") return null;
 
   return (
     <div className="dashboard">
@@ -169,34 +224,19 @@ function CreateDecision() {
                 <FaArrowLeft /> Back
               </button>
               <h1>Create Decision Poll</h1>
-              <p>Formulate a question, set categories/deadlines, and add voting choices.</p>
+              <p>Formulate a question, set visibility/deadlines, and add voting choices.</p>
             </div>
 
             <form onSubmit={handleSubmit} className="create-form-panel glass-panel">
-              <div className="form-group-grid">
-                <div className="form-group">
-                  <label>Decision Title</label>
-                  <input
-                    type="text"
-                    placeholder="e.g. Choose our cloud provider"
-                    value={title}
-                    onChange={(e) => setTitle(e.target.value)}
-                    required
-                  />
-                </div>
-
-                <div className="form-group">
-                  <label>Category</label>
-                  <select value={category} onChange={(e) => setCategory(e.target.value)} required>
-                    <option value="">Select Category</option>
-                    <option>Education</option>
-                    <option>Career</option>
-                    <option>Technology</option>
-                    <option>Business</option>
-                    <option>Travel</option>
-                    <option>Others</option>
-                  </select>
-                </div>
+              <div className="form-group">
+                <label>Decision Title</label>
+                <input
+                  type="text"
+                  placeholder="e.g. Choose our cloud provider"
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  required
+                />
               </div>
 
               <div className="form-group">
@@ -213,30 +253,79 @@ function CreateDecision() {
               <div className="form-group-grid">
                 <div className="form-group">
                   <label>Visibility</label>
-                  <select value={visibility} onChange={(e) => setVisibility(e.target.value)}>
-                    <option value="Public">Public (Anyone can view & vote)</option>
-                    <option value="Private">Private (Invite-only via email)</option>
+                  <select
+                    value={visibility}
+                    onChange={(e) => {
+                      setVisibility(e.target.value);
+                      setCommunityId("");
+                    }}
+                  >
+                    <option value="PUBLIC">Public (Anyone can view & vote)</option>
+                    <option value="PRIVATE">Private (Invite-only via email)</option>
+                    <option value="COMMUNITY">Community (Members only)</option>
                   </select>
                 </div>
 
                 <div className="form-group">
-                  <label>Voting Deadline</label>
+                  <label>Voting Type</label>
+                  <select value={votingType} onChange={(e) => setVotingType(e.target.value)}>
+                    <option value="SINGLE_CHOICE">Single Choice</option>
+                    <option value="MULTIPLE_CHOICE">Multiple Choice</option>
+                    <option value="RATING_BASED">Rating Based</option>
+                  </select>
+                </div>
+              </div>
+
+              {visibility === "COMMUNITY" && (
+                <div className="form-group animate-fade-in">
+                  <label>Select Community</label>
+                  <select
+                    value={communityId}
+                    onChange={(e) => setCommunityId(e.target.value)}
+                    required
+                  >
+                    <option value="">
+                      {communitiesLoading ? "Loading your communities..." : "Select Community"}
+                    </option>
+                    {myCommunities.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.name}
+                      </option>
+                    ))}
+                  </select>
+                  {!communitiesLoading && myCommunities.length === 0 && (
+                    <p className="section-subtitle">
+                      You haven't joined any communities yet.
+                    </p>
+                  )}
+                  {derivedCategoryName && (
+                    <p className="section-subtitle">Category: {derivedCategoryName}</p>
+                  )}
+                </div>
+              )}
+
+              <div className="form-group-grid">
+                <div className="form-group">
+                  <label>Decision Deadline</label>
                   <input
                     type="date"
                     value={deadline}
                     onChange={(e) => setDeadline(e.target.value)}
                     required
                   />
+                  <p className="section-subtitle">When discussion/comments close.</p>
                 </div>
-              </div>
 
-              <div className="form-group">
-                <label>Voting Type</label>
-                <select value={votingType} onChange={(e) => setVotingType(e.target.value)}>
-                  <option value="SINGLE_CHOICE">Single Choice</option>
-                  <option value="MULTIPLE_CHOICE">Multiple Choice</option>
-                  <option value="RATING_BASED">Rating Based</option>
-                </select>
+                <div className="form-group">
+                  <label>Poll End Time</label>
+                  <input
+                    type="date"
+                    value={votingEndTime}
+                    onChange={(e) => setVotingEndTime(e.target.value)}
+                    required
+                  />
+                  <p className="section-subtitle">When voting closes (may be before the deadline).</p>
+                </div>
               </div>
 
               <div className="form-section-options">
@@ -249,10 +338,16 @@ function CreateDecision() {
                       <span className="option-index-lbl">Option {index + 1}</span>
                       <input
                         type="text"
-                        placeholder={`Enter Option ${index + 1} text`}
-                        value={option.text}
-                        onChange={(e) => handleOptionChange(option.id, e.target.value)}
+                        placeholder={`Enter Option ${index + 1} title`}
+                        value={option.title}
+                        onChange={(e) => handleOptionChange(option.id, "title", e.target.value)}
                         required
+                      />
+                      <input
+                        type="text"
+                        placeholder="Description (optional)"
+                        value={option.description}
+                        onChange={(e) => handleOptionChange(option.id, "description", e.target.value)}
                       />
                       <button
                         type="button"
@@ -285,9 +380,15 @@ function CreateDecision() {
                         <input
                           type="text"
                           placeholder={`Enter Factor ${index + 1} name`}
-                          value={factor.text}
-                          onChange={(e) => handleFactorChange(factor.id, e.target.value)}
+                          value={factor.name}
+                          onChange={(e) => handleFactorChange(factor.id, "name", e.target.value)}
                           required
+                        />
+                        <input
+                          type="text"
+                          placeholder="Description (optional)"
+                          value={factor.description}
+                          onChange={(e) => handleFactorChange(factor.id, "description", e.target.value)}
                         />
                         <button
                           type="button"
@@ -307,13 +408,16 @@ function CreateDecision() {
                 </div>
               )}
 
-              {visibility === "Private" && (
+              {visibility === "PRIVATE" && (
                 <div className="form-section-invites animate-fade-in">
                   <div className="invites-title-sec">
                     <FaLock />
                     <h3>Invite Authorized Members</h3>
                   </div>
                   <p className="section-subtitle">Only added email addresses will be authorized to access this decision.</p>
+                  <p className="section-subtitle" style={{ color: "#b45309" }}>
+                    ⚠ Pending backend confirmation — invites are not yet sent with the decision.
+                  </p>
 
                   <div className="email-input-bar">
                     <input
