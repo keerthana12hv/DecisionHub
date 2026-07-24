@@ -12,5 +12,6 @@ public record CommunityResponse(
         Long ownerId,
         String ownerUsername,
         CommunityVisibility visibility,
-        Integer memberCount
+        Integer memberCount, // 👈 Added comma here
+        Boolean isMember
 ) {}

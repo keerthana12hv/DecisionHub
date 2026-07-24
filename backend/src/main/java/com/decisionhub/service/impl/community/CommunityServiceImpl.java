@@ -3,6 +3,8 @@ package com.decisionhub.service.impl.community;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -14,7 +16,7 @@ import com.decisionhub.dto.request.community.UpdateCommunityRequest;
 import com.decisionhub.dto.response.community.CommunityJoinRequestResponse;
 import com.decisionhub.dto.response.community.CommunityMemberResponse;
 import com.decisionhub.dto.response.community.CommunityResponse;
-import com.decisionhub.dto.response.community.JoinCommunityResponse; // 👈 NEW IMPORT
+import com.decisionhub.dto.response.community.JoinCommunityResponse;
 import com.decisionhub.entity.authentication.User;
 import com.decisionhub.entity.community.Category;
 import com.decisionhub.entity.community.Community;
@@ -101,18 +103,31 @@ public class CommunityServiceImpl implements CommunityService {
 
         communityMemberRepository.save(member);
 
-        return CommunityMapper.toResponse(community);
+        return CommunityMapper.toResponse(community, true);
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<CommunityResponse> getAllCommunities() {
+        User currentUser = getCurrentUser();
+
+        Set<Long> joinedCommunityIds = communityMemberRepository.findByUser(currentUser)
+                .stream()
+                .filter(member -> member.getStatus() == MembershipStatus.APPROVED)
+                .map(member -> member.getCommunity().getId())
+                .collect(Collectors.toSet());
+
         return communityRepository.findByDeletedAtIsNull()
                 .stream()
-                .map(CommunityMapper::toResponse)
+                .map(community -> {
+                    boolean isMember = joinedCommunityIds.contains(community.getId());
+                    return CommunityMapper.toResponse(community, isMember);
+                })
                 .toList();
     }
 
     @Override
+    @Transactional(readOnly = true)
     public CommunityResponse getCommunityById(Long communityId) {
         
         Community community = communityRepository.findById(communityId)
@@ -122,7 +137,13 @@ public class CommunityServiceImpl implements CommunityService {
             throw new ResourceNotFoundException("Community not found");
         }
 
-        return CommunityMapper.toResponse(community);
+        User currentUser = getCurrentUser();
+        boolean isMember = communityMemberRepository
+                .findByCommunityAndUser(community, currentUser)
+                .map(member -> member.getStatus() == MembershipStatus.APPROVED)
+                .orElse(false);
+
+        return CommunityMapper.toResponse(community, isMember);
     }
 
     @Override
@@ -165,7 +186,7 @@ public class CommunityServiceImpl implements CommunityService {
 
         community = communityRepository.save(community);
 
-        return CommunityMapper.toResponse(community);
+        return CommunityMapper.toResponse(community, true);
     }
 
     @Override
@@ -190,7 +211,6 @@ public class CommunityServiceImpl implements CommunityService {
         communityRepository.save(community);
     }
 
-    // ✅ FIXED: Returns the JoinCommunityResponse DTO
     @Override
     public JoinCommunityResponse joinCommunity(Long communityId) {
 
@@ -311,7 +331,7 @@ public class CommunityServiceImpl implements CommunityService {
                 .filter(member -> member.getStatus() == MembershipStatus.APPROVED)
                 .map(CommunityMember::getCommunity)
                 .filter(community -> community.getDeletedAt() == null)
-                .map(CommunityMapper::toResponse)
+                .map(community -> CommunityMapper.toResponse(community, true))
                 .toList();
     }
 
@@ -323,7 +343,7 @@ public class CommunityServiceImpl implements CommunityService {
         return communityRepository.findByOwner(currentUser)
                 .stream()
                 .filter(community -> community.getDeletedAt() == null)
-                .map(CommunityMapper::toResponse)
+                .map(community -> CommunityMapper.toResponse(community, true))
                 .toList();
     }
 
