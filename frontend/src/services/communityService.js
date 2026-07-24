@@ -59,3 +59,20 @@ export const updateRule = (ruleId, data) =>
 
 export const deleteRule = (ruleId) =>
   axios.delete(`${API}/moderation/rules/${ruleId}`, headers());
+
+// Decisions (used for moderator decision moderation)
+export const getDecisions = (params) =>
+  axios.get(`${API}/decisions`, { ...headers(), params });
+
+// Decision Moderation
+export const lockDecision = (decisionId) =>
+  axios.put(`${API}/moderation/decisions/${decisionId}/lock`, {}, headers());
+
+export const unlockDecision = (decisionId) =>
+  axios.put(`${API}/moderation/decisions/${decisionId}/unlock`, {}, headers());
+
+export const pinDecision = (decisionId) =>
+  axios.put(`${API}/moderation/decisions/${decisionId}/pin`, {}, headers());
+
+export const unpinDecision = (decisionId) =>
+  axios.put(`${API}/moderation/decisions/${decisionId}/unpin`, {}, headers());

@@ -1,16 +1,15 @@
+import DecisionModeration from "./moderator/DecisionModeration";
+import CommunityMembers from "./moderator/CommunityMembers";
 import CommunityRules from "./moderator/CommunityRules";
 import { useState, useEffect } from "react";
 import {
   getJoinRequests,
   approveRequest,
-  rejectRequest,
-  getMembers,
-  removeMember
+  rejectRequest
 } from "../services/communityService";
 
 export default function ModeratorPanel({ communityId }) {
   const [requests, setRequests] = useState([]);
-  const [members, setMembers] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -20,12 +19,8 @@ export default function ModeratorPanel({ communityId }) {
   const fetchAll = async () => {
     try {
       setLoading(true);
-      const [reqRes, memRes] = await Promise.all([
-        getJoinRequests(communityId),
-        getMembers(communityId)
-      ]);
+      const reqRes = await getJoinRequests(communityId);
       setRequests(reqRes.data);
-      setMembers(memRes.data);
     } catch (err) {
       console.error("Failed to load moderator data:", err);
     } finally {
@@ -51,16 +46,6 @@ export default function ModeratorPanel({ communityId }) {
     }
   };
 
-  const handleRemoveMember = async (memberId) => {
-    if (!window.confirm("Remove this member from the community?")) return;
-    try {
-      await removeMember(communityId, memberId);
-      fetchAll();
-    } catch (err) {
-      console.error("Failed to remove member:", err);
-    }
-  };
-
   if (loading) return <p>Loading moderator panel...</p>;
 
   return (
@@ -83,14 +68,13 @@ export default function ModeratorPanel({ communityId }) {
       </section>
 
       <section>
-        <h4>Members ({members.length})</h4>
-        {members.map((m) => (
-          <div key={m.id} className="member-row">
-            <span>{m.username || m.email}</span>
-            <button onClick={() => handleRemoveMember(m.id)}>Remove</button>
-          </div>
-        ))}
+        <CommunityMembers communityId={communityId} />
       </section>
+
+      <section>
+        <CommunityRules communityId={communityId} />
+      </section>
+
 
       <section>
         <CommunityRules communityId={communityId} />
