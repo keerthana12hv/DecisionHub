@@ -4,6 +4,8 @@ import axios from "axios";
 import Sidebar from "../components/Sidebar";
 import Navbar from "../components/Navbar";
 import RatingPanel from "../components/RatingPanel";
+import PollResultsPanel from "../components/PollResultsPanel";
+import EditBoardPanel from "../components/EditBoardPanel";
 import DecisionModerationControls from "../components/moderator/DecisionModerationControls";
 import "../styles/DecisionDetail.css";
 
@@ -18,13 +20,15 @@ const headers = () => ({
   headers: { Authorization: `Bearer ${token()}` }
 });
 
-// Turns "Food Variety" into the same key format CreateDecision.jsx uses — kept in
-// sync so the matrix can look up each option's stored criterion value by name.
-const findCriterionValue = (option, criterionName) => {
-  const match = option.criteria?.find(
-    (c) => c.criterionName?.toLowerCase() === criterionName.toLowerCase()
-  );
-  return match?.remarks || match?.score || "—";
+// Options store values in comparisonScores keyed by factorId (confirmed from the real
+// API response) — match the factor's id, not a criterionName field that doesn't exist.
+// NOTE: score can legitimately be 0, and remarks can legitimately be "" — using ||
+// treated both as falsy and always fell through to "—". Check explicitly instead.
+const findCriterionValue = (option, factor) => {
+  const match = (option.comparisonScores || []).find((s) => s.factorId === factor.id);
+  if (!match) return "—";
+  if (match.remarks && match.remarks.trim() !== "") return match.remarks;
+  return match.score;
 };
 
 export default function DecisionDetail() {
@@ -51,16 +55,32 @@ export default function DecisionDetail() {
     }
   }, [decisionId]);
 
-  const fetchDecision = async () => {
+  // Live vote counts: poll the decision every 5s while the poll is still open,
+  // so other users' votes/ratings show up without a manual reload.
+  useEffect(() => {
+    if (!decision) return;
+    const pollOpen = decision.poll?.status === "OPEN" || decision.status === "ACTIVE";
+    if (!pollOpen) return;
+
+    const intervalId = setInterval(() => {
+      fetchDecision(true);
+    }, 5000);
+
+    return () => clearInterval(intervalId);
+  }, [decisionId, decision?.status, decision?.poll?.status]);
+
+  // silent=true is used for background polling refreshes so they update the
+  // data without toggling `loading` and re-flashing the whole page.
+  const fetchDecision = async (silent = false) => {
     try {
-      setLoading(true);
+      if (!silent) setLoading(true);
       const res = await axios.get(`${API}/decisions/${decisionId}`, headers());
       setDecision(res.data);
     } catch (err) {
       console.error("Failed to fetch decision:", err);
-      setError("Could not load this decision.");
+      if (!silent) setError("Could not load this decision.");
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   };
 
@@ -172,7 +192,7 @@ export default function DecisionDetail() {
                               <td>{factor.name}</td>
                               {decision.options.map((opt) => (
                                 <td key={opt.id}>
-                                  {findCriterionValue(opt, factor.name)}
+                                  {findCriterionValue(opt, factor)}
                                 </td>
                               ))}
                             </tr>
@@ -186,6 +206,7 @@ export default function DecisionDetail() {
                     <RatingPanel
                       decision={decision}
                       pollOpen={decision.poll?.status === "OPEN" || decision.status === "ACTIVE"}
+                      onScoreSubmitted={fetchDecision}
                     />
                   ) : (
                     <div className="available-options">
@@ -229,13 +250,20 @@ export default function DecisionDetail() {
 
               {activeTab === "poll-results" && (
                 <div className="detail-tab-content">
-                  <p className="tab-placeholder">Poll Results — coming soon.</p>
+                  <PollResultsPanel decision={decision} />
                 </div>
               )}
 
               {activeTab === "edit-board" && (
                 <div className="detail-tab-content">
-                  <p className="tab-placeholder">Edit Board — coming soon.</p>
+                  <EditBoardPanel
+                    decision={decision}
+                    onSaved={(updated) => {
+                      setDecision(updated);
+                      setActiveTab("overview");
+                    }}
+                    onCancel={() => setActiveTab("overview")}
+                  />
                 </div>
               )}
             </div>

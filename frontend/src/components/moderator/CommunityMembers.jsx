@@ -1,11 +1,12 @@
 import { useState, useEffect } from "react";
-import { FaUsers, FaUserMinus, FaShieldAlt, FaCrown } from "react-icons/fa";
+import { FaUsers, FaUserMinus, FaShieldAlt } from "react-icons/fa";
 import { getCommunityMembers, removeMember } from "../../services/moderationService";
 import { useToast } from "../Toast";
 import { useAuth } from "../../context/AuthContext";
 
+// Confirmed from Swagger's CommunityMemberResponse schema: role is only ever
+// "MODERATOR" or "MEMBER" — there is no "OWNER" value returned by the backend.
 const ROLE_CONFIG = {
-  OWNER: { label: "Owner", icon: <FaCrown />, className: "role-owner" },
   MODERATOR: { label: "Moderator", icon: <FaShieldAlt />, className: "role-mod" },
   MEMBER: { label: "Member", icon: <FaUsers />, className: "role-member" },
 };
@@ -36,7 +37,7 @@ export default function CommunityMembers({ communityId }) {
     if (!window.confirm(`Remove ${username} from this community?`)) return;
     try {
       await removeMember(communityId, memberId);
-      setMembers((prev) => prev.filter((m) => m.id !== memberId));
+      setMembers((prev) => prev.filter((m) => m.memberId !== memberId));
       addToast(`${username} removed from community`, "success");
     } catch {
       addToast("Failed to remove member", "error");
@@ -44,9 +45,8 @@ export default function CommunityMembers({ communityId }) {
   };
 
   const canRemove = (member) => {
-    // Cannot remove self, owner, or another moderator
+    // Cannot remove self or another moderator
     if (member.userId === user?.id) return false;
-    if (member.role === "OWNER") return false;
     if (member.role === "MODERATOR") return false;
     return true;
   };
@@ -67,7 +67,7 @@ export default function CommunityMembers({ communityId }) {
           {members.map((member) => {
             const roleConfig = ROLE_CONFIG[member.role] || ROLE_CONFIG.MEMBER;
             return (
-              <div key={member.id} className="mod-card">
+              <div key={member.memberId} className="mod-card">
                 <div className="mod-card-info">
                   <div className="mod-avatar">
                     {member.username?.[0]?.toUpperCase() || "U"}
@@ -90,7 +90,7 @@ export default function CommunityMembers({ communityId }) {
                   {canRemove(member) && (
                     <button
                       className="mod-btn mod-btn-reject"
-                      onClick={() => handleRemove(member.id, member.username)}
+                      onClick={() => handleRemove(member.memberId, member.username)}
                     >
                       <FaUserMinus /> Remove
                     </button>

@@ -206,7 +206,7 @@ function DecisionList() {
                             <td className="actions-col">
                               <button
                                 className="action-row-btn-icon vote"
-                                onClick={() => navigate(`/decision/${decision.id}`)}
+                               onClick={() => navigate(`/decisions/${decision.id}`)}
                                 title="View Decision"
                               >
                                 <FaArrowRight />
