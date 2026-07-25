@@ -1,122 +1,105 @@
-import "./CommunityMembers.css";
-import React, { useEffect, useState, useCallback } from "react";
-import { getMembers, removeMember } from "../../services/communityService";
-// This assumes CommunityMembers.jsx lives in src/components/moderator/
-// (same folder as JoinRequestsPanel.jsx). If you place it elsewhere, adjust accordingly:
-//   - in src/components/        -> "../services/communityService"
-//   - in src/pages/             -> "../services/communityService"
+import { useState, useEffect } from "react";
+import { FaUsers, FaUserMinus, FaShieldAlt, FaCrown } from "react-icons/fa";
+import { getCommunityMembers, removeMember } from "../../services/moderationService";
+import { useToast } from "../Toast";
+import { useAuth } from "../../context/AuthContext";
+
+const ROLE_CONFIG = {
+  OWNER: { label: "Owner", icon: <FaCrown />, className: "role-owner" },
+  MODERATOR: { label: "Moderator", icon: <FaShieldAlt />, className: "role-mod" },
+  MEMBER: { label: "Member", icon: <FaUsers />, className: "role-member" },
+};
 
 export default function CommunityMembers({ communityId }) {
+  const { user } = useAuth();
+  const { addToast } = useToast();
   const [members, setMembers] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [removingId, setRemovingId] = useState(null); // tracks which row is mid-delete
 
-  const fetchMembers = useCallback(async () => {
-    setLoading(true);
-    setError(null);
+  useEffect(() => {
+    fetchMembers();
+  }, [communityId]);
+
+  const fetchMembers = async () => {
     try {
-      const res = await getMembers(communityId);
-      setMembers(res.data);
-    } catch (err) {
-      console.error("Failed to fetch members:", err);
-      setError("Could not load community members. Please try again.");
+      setLoading(true);
+      const data = await getCommunityMembers(communityId);
+      setMembers(data);
+    } catch {
+      addToast("Failed to load members", "error");
     } finally {
       setLoading(false);
     }
-  }, [communityId]);
-
-  useEffect(() => {
-    if (communityId) {
-      fetchMembers();
-    }
-  }, [communityId, fetchMembers]);
+  };
 
   const handleRemove = async (memberId, username) => {
-    const confirmed = window.confirm(
-      `Remove ${username} from this community? This action cannot be undone.`
-    );
-    if (!confirmed) return;
-
-    setRemovingId(memberId);
-    setError(null);
+    if (!window.confirm(`Remove ${username} from this community?`)) return;
     try {
       await removeMember(communityId, memberId);
-      // Refresh list after successful removal
-      await fetchMembers();
-    } catch (err) {
-      console.error("Failed to remove member:", err);
-      setError(
-        err.response?.data?.message ||
-          "Could not remove member. Please try again."
-      );
-    } finally {
-      setRemovingId(null);
+      setMembers((prev) => prev.filter((m) => m.id !== memberId));
+      addToast(`${username} removed from community`, "success");
+    } catch {
+      addToast("Failed to remove member", "error");
     }
   };
 
-  if (loading) {
-    return <div className="members-loading">Loading members...</div>;
-  }
+  const canRemove = (member) => {
+    // Cannot remove self, owner, or another moderator
+    if (member.userId === user?.id) return false;
+    if (member.role === "OWNER") return false;
+    if (member.role === "MODERATOR") return false;
+    return true;
+  };
+
+  if (loading) return <div className="mod-loading">Loading members...</div>;
 
   return (
-    <div className="community-members">
-      <h2>Community Members</h2>
-
-      {error && <div className="members-error">{error}</div>}
+    <div className="mod-section">
+      <h3 className="mod-section-title">
+        <FaUsers /> Community Members
+        <span className="mod-badge">{members.length}</span>
+      </h3>
 
       {members.length === 0 ? (
-        <p className="members-empty">No members found in this community.</p>
+        <p className="mod-empty">No members found.</p>
       ) : (
-        <table className="members-table">
-          <thead>
-            <tr>
-              <th>Username</th>
-              <th>Email</th>
-              <th>Role</th>
-              <th>Joined Date</th>
-              <th>Action</th>
-            </tr>
-          </thead>
-          <tbody>
-            {members
-              .filter((member) => member.status !== "PENDING") // pending requests belong on the Requests tab, not here
-              .map((member) => {
-                const isModerator = member.role === "MODERATOR";
-                const isRemoving = removingId === member.memberId;
-
-                return (
-                  <tr key={member.memberId}>
-                    <td>{member.username}</td>
-                    <td>{member.email}</td>
-                    <td>
-                      <span className={`role-badge role-${member.role?.toLowerCase()}`}>
-                        {member.role}
-                      </span>
-                    </td>
-                    <td>
+        <div className="mod-list">
+          {members.map((member) => {
+            const roleConfig = ROLE_CONFIG[member.role] || ROLE_CONFIG.MEMBER;
+            return (
+              <div key={member.id} className="mod-card">
+                <div className="mod-card-info">
+                  <div className="mod-avatar">
+                    {member.username?.[0]?.toUpperCase() || "U"}
+                  </div>
+                  <div>
+                    <p className="mod-name">{member.username}</p>
+                    <p className="mod-email">{member.email}</p>
+                    <p className="mod-meta">
+                      Joined:{" "}
                       {member.joinedAt
                         ? new Date(member.joinedAt).toLocaleDateString()
-                        : "-"}
-                    </td>
-                    <td>
-                      {isModerator ? (
-                        <span className="no-action">—</span>
-                      ) : (
-                        <button
-                          className="remove-btn"
-                          disabled={isRemoving}
-                          onClick={() => handleRemove(member.memberId, member.username)}
-                        >
-                          {isRemoving ? "Removing..." : "Remove"}
-                        </button>
-                      )}
-                    </td>
-                  </tr>
-                );
-              })}
-          </tbody>
-        </table>
+                        : "—"}
+                    </p>
+                  </div>
+                </div>
+                <div className="mod-card-right">
+                  <span className={`mod-role-badge ${roleConfig.className}`}>
+                    {roleConfig.icon} {roleConfig.label}
+                  </span>
+                  {canRemove(member) && (
+                    <button
+                      className="mod-btn mod-btn-reject"
+                      onClick={() => handleRemove(member.id, member.username)}
+                    >
+                      <FaUserMinus /> Remove
+                    </button>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
       )}
     </div>
   );

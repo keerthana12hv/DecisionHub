@@ -1,16 +1,28 @@
 import { useState, useEffect } from "react";
 import {
-  getDecisions,
+  FaLock, FaLockOpen, FaThumbtack, FaGavel, FaSpinner,
+} from "react-icons/fa";
+import {
   lockDecision,
   unlockDecision,
   pinDecision,
-  unpinDecision
-} from "../../services/communityService";
+  unpinDecision,
+} from "../../services/moderationService";
+import { useToast } from "../Toast";
+import axios from "axios";
+
+const API = "http://localhost:8080/api";
+const token = () =>
+  localStorage.getItem("token") ||
+  localStorage.getItem("authToken") ||
+  localStorage.getItem("jwt");
+const headers = () => ({ headers: { Authorization: `Bearer ${token()}` } });
 
 export default function DecisionModeration({ communityId }) {
+  const { addToast } = useToast();
   const [decisions, setDecisions] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [actingId, setActingId] = useState(null);
+  const [actioning, setActioning] = useState(null);
 
   useEffect(() => {
     fetchDecisions();
@@ -19,90 +31,139 @@ export default function DecisionModeration({ communityId }) {
   const fetchDecisions = async () => {
     try {
       setLoading(true);
-      const res = await getDecisions({ communityId });
+      const res = await axios.get(
+        `${API}/decisions?communityId=${communityId}`,
+        headers()
+      );
       setDecisions(res.data);
-    } catch (err) {
-      console.error("Failed to load decisions:", err);
+    } catch {
+      addToast("Failed to load decisions", "error");
     } finally {
       setLoading(false);
     }
   };
 
-  const handleToggleLock = async (decision) => {
-    setActingId(decision.id);
+  const handleAction = async (decisionId, action) => {
+    setActioning(decisionId + action);
     try {
-      if (decision.locked) {
-        await unlockDecision(decision.id);
-      } else {
-        await lockDecision(decision.id);
+      if (action === "lock") {
+        await lockDecision(decisionId);
+        updateDecision(decisionId, { discussionLocked: true });
+        addToast("Discussion locked", "success");
+      } else if (action === "unlock") {
+        await unlockDecision(decisionId);
+        updateDecision(decisionId, { discussionLocked: false });
+        addToast("Discussion unlocked", "success");
+      } else if (action === "pin") {
+        await pinDecision(decisionId);
+        updateDecision(decisionId, { pinned: true });
+        addToast("Decision pinned", "success");
+      } else if (action === "unpin") {
+        await unpinDecision(decisionId);
+        updateDecision(decisionId, { pinned: false });
+        addToast("Decision unpinned", "success");
       }
-      await fetchDecisions();
-    } catch (err) {
-      console.error("Failed to toggle lock:", err);
+    } catch {
+      addToast("Action failed. Please try again.", "error");
     } finally {
-      setActingId(null);
+      setActioning(null);
     }
   };
 
-  const handleTogglePin = async (decision) => {
-    setActingId(decision.id);
-    try {
-      if (decision.pinned) {
-        await unpinDecision(decision.id);
-      } else {
-        await pinDecision(decision.id);
-      }
-      await fetchDecisions();
-    } catch (err) {
-      console.error("Failed to toggle pin:", err);
-    } finally {
-      setActingId(null);
-    }
+  const updateDecision = (id, updates) => {
+    setDecisions((prev) =>
+      prev.map((d) => (d.id === id ? { ...d, ...updates } : d))
+    );
   };
 
-  if (loading) return <p>Loading decisions...</p>;
+  const isActioning = (id, action) => actioning === id + action;
+
+  if (loading) return <div className="mod-loading">Loading decisions...</div>;
 
   return (
-    <div className="decision-moderation">
-      <h4>Decisions ({decisions.length})</h4>
+    <div className="mod-section">
+      <h3 className="mod-section-title">
+        <FaGavel /> Decision Moderation
+      </h3>
+
       {decisions.length === 0 ? (
-        <p>No decisions found for this community.</p>
+        <p className="mod-empty">No decisions in this community yet.</p>
       ) : (
-        <table className="decision-mod-table">
-          <thead>
-            <tr>
-              <th>Title</th>
-              <th>Status</th>
-              <th>Locked</th>
-              <th>Pinned</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {decisions.map((d) => (
-              <tr key={d.id}>
-                <td>{d.title}</td>
-                <td>{d.status}</td>
-                <td>{d.locked ? "Yes" : "No"}</td>
-                <td>{d.pinned ? "Yes" : "No"}</td>
-                <td>
+        <div className="mod-list">
+          {decisions.map((decision) => (
+            <div key={decision.id} className="mod-card mod-card-decision">
+              <div className="mod-card-info">
+                <div>
+                  <p className="mod-name">
+                    {decision.pinned && (
+                      <span className="mod-pin-icon" title="Pinned">
+                        <FaThumbtack />
+                      </span>
+                    )}
+                    {decision.title}
+                  </p>
+                  <p className="mod-meta">
+                    Status: <strong>{decision.status}</strong> &nbsp;|&nbsp;
+                    Discussion:{" "}
+                    <strong>
+                      {decision.discussionLocked ? "🔒 Locked" : "🔓 Open"}
+                    </strong>
+                  </p>
+                </div>
+              </div>
+
+              <div className="mod-decision-actions">
+                {/* Lock / Unlock Discussion */}
+                {decision.discussionLocked ? (
                   <button
-                    disabled={actingId === d.id}
-                    onClick={() => handleToggleLock(d)}
+                    className="mod-btn mod-btn-approve"
+                    disabled={isActioning(decision.id, "unlock")}
+                    onClick={() => handleAction(decision.id, "unlock")}
                   >
-                    {d.locked ? "Unlock" : "Lock"}
+                    {isActioning(decision.id, "unlock") ? (
+                      <FaSpinner className="spin" />
+                    ) : (
+                      <FaLockOpen />
+                    )}
+                    &nbsp;Unlock
                   </button>
+                ) : (
                   <button
-                    disabled={actingId === d.id}
-                    onClick={() => handleTogglePin(d)}
+                    className="mod-btn mod-btn-reject"
+                    disabled={isActioning(decision.id, "lock")}
+                    onClick={() => handleAction(decision.id, "lock")}
                   >
-                    {d.pinned ? "Unpin" : "Pin"}
+                    {isActioning(decision.id, "lock") ? (
+                      <FaSpinner className="spin" />
+                    ) : (
+                      <FaLock />
+                    )}
+                    &nbsp;Lock
                   </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+                )}
+
+                {/* Pin / Unpin Decision */}
+                {decision.pinned ? (
+                  <button
+                    className="mod-btn mod-btn-ghost"
+                    disabled={isActioning(decision.id, "unpin")}
+                    onClick={() => handleAction(decision.id, "unpin")}
+                  >
+                    <FaThumbtack /> Unpin
+                  </button>
+                ) : (
+                  <button
+                    className="mod-btn mod-btn-pin"
+                    disabled={isActioning(decision.id, "pin")}
+                    onClick={() => handleAction(decision.id, "pin")}
+                  >
+                    <FaThumbtack /> Pin
+                  </button>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
       )}
     </div>
   );

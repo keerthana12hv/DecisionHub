@@ -51,3 +51,228 @@
   padding: 16px;
   color: #9ca3af;
 }
+
+/* ─── Tags & Description card ──────────────────────── */
+
+.detail-page-tags {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.tag-pill {
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: 12px;
+  color: #a5a0ff;
+  background: rgba(108, 99, 255, 0.15);
+  border: 1px solid rgba(108, 99, 255, 0.3);
+}
+
+.status-pill {
+  color: #4ade80;
+  background: rgba(34, 197, 94, 0.15);
+  border-color: rgba(34, 197, 94, 0.3);
+}
+
+.description-context-card {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  padding: 20px;
+  margin-bottom: 28px;
+}
+
+.description-context-card h3 {
+  color: #ffffff;
+  font-size: 1.1rem;
+  margin: 0 0 10px;
+}
+
+.description-context-card p {
+  color: #9ca3af;
+  font-size: 0.9rem;
+  margin: 0;
+}
+
+/* ─── Tabs ─────────────────────────────────────────── */
+
+.detail-tabs {
+  display: flex;
+  gap: 4px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  margin-bottom: 24px;
+}
+
+.detail-tab-btn {
+  background: transparent;
+  border: none;
+  color: #9ca3af;
+  font-size: 0.9rem;
+  font-weight: 600;
+  padding: 10px 16px;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  transition: color 0.15s ease, border-color 0.15s ease;
+}
+
+.detail-tab-btn:hover {
+  color: #e5e7eb;
+}
+
+.detail-tab-btn.active {
+  color: #a5a0ff;
+  border-bottom-color: #a5a0ff;
+}
+
+.detail-tab-content {
+  animation: fadeIn 0.2s ease;
+}
+
+.tab-placeholder {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px dashed rgba(255, 255, 255, 0.15);
+  border-radius: 10px;
+  padding: 16px;
+  color: #9ca3af;
+}
+
+/* ─── Comparison Matrix ────────────────────────────── */
+
+.comparison-matrix {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  padding: 20px;
+  margin-bottom: 28px;
+}
+
+.comparison-matrix h3 {
+  color: #ffffff;
+  font-size: 1.1rem;
+  margin: 0 0 16px;
+}
+
+.comparison-matrix table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.comparison-matrix th,
+.comparison-matrix td {
+  text-align: left;
+  padding: 10px 12px;
+  font-size: 0.9rem;
+}
+
+.comparison-matrix th {
+  color: #a5a0ff;
+  font-weight: 600;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.comparison-matrix td {
+  color: #e5e7eb;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.comparison-matrix td:first-child {
+  color: #9ca3af;
+  font-weight: 500;
+}
+
+/* ─── Available Options ────────────────────────────── */
+
+.available-options h3 {
+  color: #ffffff;
+  font-size: 1.1rem;
+  margin: 0 0 16px;
+}
+
+.options-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 16px;
+}
+
+.option-card {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  padding: 18px;
+  transition: border-color 0.15s ease;
+}
+
+.option-card.voted {
+  border-color: #a5a0ff;
+  box-shadow: 0 0 0 1px rgba(165, 160, 255, 0.3);
+}
+
+.option-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+}
+
+.option-card-header h4 {
+  color: #ffffff;
+  font-size: 1rem;
+  margin: 0;
+}
+
+.vote-count-badge {
+  font-size: 0.75rem;
+  color: #a5a0ff;
+  background: rgba(108, 99, 255, 0.15);
+  border: 1px solid rgba(108, 99, 255, 0.3);
+  border-radius: 12px;
+  padding: 3px 10px;
+  white-space: nowrap;
+}
+
+.option-card p {
+  color: #9ca3af;
+  font-size: 0.85rem;
+  margin: 0 0 16px;
+}
+
+.btn-vote,
+.btn-voted {
+  width: 100%;
+  border-radius: 8px;
+  padding: 10px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.15s ease;
+}
+
+.btn-vote {
+  background: rgba(108, 99, 255, 0.15);
+  color: #a5a0ff;
+  border: 1px solid rgba(108, 99, 255, 0.3);
+}
+
+.btn-vote:hover:not(:disabled) {
+  opacity: 0.8;
+}
+
+.btn-voted {
+  background: rgba(34, 197, 94, 0.15);
+  color: #4ade80;
+  border: 1px solid rgba(34, 197, 94, 0.3);
+  cursor: default;
+}
+
+.btn-vote:disabled,
+.btn-voted:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}

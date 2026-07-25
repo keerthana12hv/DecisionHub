@@ -75,10 +75,7 @@ export default function ModeratorPanel({ communityId }) {
         <CommunityRules communityId={communityId} />
       </section>
 
-
-      <section>
-        <CommunityRules communityId={communityId} />
-      </section>
+      
     </div>
   );
 }

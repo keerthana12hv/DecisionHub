@@ -12,7 +12,10 @@ export default function RatingPanel({ decision, pollOpen }) {
   const fetchRanking = async () => {
     try {
       const res = await getRanking(decision.id);
-      setRanking(res.data);
+      console.log("Ranking API response shape:", res.data); // TEMP — check this in console to confirm real field names
+      const data = res.data;
+      const list = Array.isArray(data) ? data : data?.results || data?.rankings || [];
+      setRanking(list);
     } catch (err) {
       console.error("Failed to fetch ranking:", err);
     }
@@ -40,7 +43,7 @@ export default function RatingPanel({ decision, pollOpen }) {
         <thead>
           <tr>
             <th>Option</th>
-            {decision.comparisonFactors.map((f) => (
+            {decision.factors.map((f) => (
               <th key={f.id}>{f.name}</th>
             ))}
           </tr>
@@ -48,8 +51,8 @@ export default function RatingPanel({ decision, pollOpen }) {
         <tbody>
           {decision.options.map((opt) => (
             <tr key={opt.id}>
-              <td>{opt.optionName}</td>
-              {decision.comparisonFactors.map((factor) => (
+              <td>{opt.title}</td>
+              {decision.factors.map((factor) => (
                 <td key={factor.id}>
                   <input
                     type="range"

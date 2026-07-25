@@ -54,6 +54,13 @@ function Sidebar() {
               <FaCog /> <span>Manage Decisions</span>
             </Link>
           </li>
+             {(user?.role === "MODERATOR" || user?.role === "ADMIN") && (
+      <li className={isActive("/moderator-dashboard")}>
+        <Link to="/moderator-dashboard">
+          <FaUserShield /> <span>Moderator</span>
+        </Link>
+      </li>
+    )}
 
           <li className={isActive("/vote")}>
             <Link to="/vote">

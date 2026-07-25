@@ -15,7 +15,7 @@ const token = () =>
 const headers = () => ({ headers: { Authorization: `Bearer ${token()}` } });
 
 export default function CommunityDetail() {
-  const { communityId } = useParams();
+  const { id: communityId } = useParams();
   const navigate = useNavigate();
   const [community, setCommunity] = useState(null);
   const [decisions, setDecisions] = useState([]);
@@ -102,7 +102,7 @@ export default function CommunityDetail() {
                         </div>
                         <button
                           className="community-decision-view-btn"
-                          onClick={() => navigate(`/decision/${d.id}`)}
+                          onClick={() => navigate(`/decisions/${d.id}`)}
                         >
                           View <FaArrowRight />
                         </button>
