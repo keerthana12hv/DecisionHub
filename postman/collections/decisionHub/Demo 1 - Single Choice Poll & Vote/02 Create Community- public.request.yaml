@@ -1,0 +1,36 @@
+$kind: http-request
+name: 02 Create Community- public
+url: http://localhost:8080/api/communities
+method: POST
+body:
+  type: json
+  content: "{\r
+
+    \  \"name\": \"BIT Final Year Student\",\r
+
+    \  \"slug\": \"bit-final-year-student\",\r
+
+    \  \"description\": \"Community for final year students to collaborate and make decisions.\",\r
+
+    \  \"categoryId\": 1,\r
+
+    \  \"visibility\": \"PUBLIC\"\r
+
+    }"
+auth:
+  type: bearer
+  credentials:
+    token: "{{authToken}}"
+scripts:
+  - type: afterResponse
+    code: "const response = pm.response.json();\r
+
+      \r
+
+      pm.collectionVariables.set(\"communityId\", response.id);\r
+
+      \r
+
+      console.log(\"Community ID:\", response.id);"
+    language: text/javascript
+order: 2000

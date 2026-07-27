@@ -1,9 +1,9 @@
 package com.decisionhub.validator.decision;
  
 import com.decisionhub.entity.decision.Decision;
+import com.decisionhub.enums.decision.DecisionStatus;
 import com.decisionhub.dto.request.decision.ComparisonFactorRequest;
 import com.decisionhub.entity.decision.ComparisonFactor;
-import com.decisionhub.enums.decision.DecisionStatus;
 import com.decisionhub.exception.BadRequestException;
 import com.decisionhub.repository.decision.ComparisonFactorRepository;
 

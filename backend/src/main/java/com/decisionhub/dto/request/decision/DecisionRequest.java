@@ -1,7 +1,5 @@
 package com.decisionhub.dto.request.decision;
 
-import com.decisionhub.enums.decision.AnonymityType;
-import com.decisionhub.enums.decision.VotingType;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -10,6 +8,9 @@ import jakarta.validation.constraints.Size;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Set;
+
+import com.decisionhub.enums.decision.AnonymityType;
+import com.decisionhub.enums.decision.VotingType;
 
 public record DecisionRequest(
     @NotBlank(message = "Decision title is required")

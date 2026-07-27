@@ -1,8 +1,9 @@
 package com.decisionhub.dto.response.decision;
 
-import com.decisionhub.enums.decision.DecisionStatus;
 import java.time.Instant;
 import java.util.List;
+
+import com.decisionhub.enums.decision.DecisionStatus;
 
 public record RankingResponse(
     Long decisionId,

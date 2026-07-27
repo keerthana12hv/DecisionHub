@@ -1,0 +1,22 @@
+$kind: http-request
+name: 16 Update Score
+url: http://localhost:8080/api/decisions/{{decisionId}}/scores
+method: POST
+body:
+  type: json
+  content: "{\r
+
+    \    \"optionId\": {{postgresOptionId}},\r
+
+    \    \"factorId\": {{performanceFactorId}},\r
+
+    \    \"score\": 98,\r
+
+    \    \"remarks\": \"Updated after performance benchmarking.\"\r
+
+    }"
+auth:
+  type: bearer
+  credentials:
+    token: "{{authToken}}"
+order: 16000

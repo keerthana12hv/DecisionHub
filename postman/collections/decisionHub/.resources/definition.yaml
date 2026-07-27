@@ -1,2 +1,13 @@
 $kind: collection
 name: decisionHub
+variables:
+  communityId: ""
+  decisionId: ""
+  goaOptionId: ""
+  coorgOptionId: ""
+  mysoreOptionId: ""
+  postgresOptionId: ""
+  mysqlOptionId: ""
+  mongodbOptionId: ""
+  performanceFactorId: ""
+  scalabilityFactorId: ""

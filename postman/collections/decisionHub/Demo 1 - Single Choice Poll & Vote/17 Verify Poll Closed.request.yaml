@@ -1,0 +1,9 @@
+$kind: http-request
+name: 17 Verify Poll Closed
+url: http://localhost:8080/api/decisions/{{decisionId}}/poll
+method: GET
+auth:
+  type: bearer
+  credentials:
+    token: "{{authToken}}"
+order: 18000

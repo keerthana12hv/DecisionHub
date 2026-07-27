@@ -1,0 +1,122 @@
+$kind: http-request
+name: 6 create decision
+url: http://localhost:8080/api/decisions
+method: POST
+body:
+  type: json
+  content: "{\r
+
+    \  \"title\": \"Best Database for DecisionHub Platform\",\r
+
+    \  \"description\": \"Evaluate database technologies based on multiple comparison factors before selecting the most suitable one.\",\r
+
+    \  \"communityId\": {{communityId}},\r
+
+    \  \"isPublic\": false,\r
+
+    \  \"votingType\": \"RATING_BASED\",\r
+
+    \  \"anonymityType\": \"PUBLIC\",\r
+
+    \  \"votingEndTime\": \"2026-08-15T18:00:00\",\r
+
+    \  \"deadline\": \"2026-08-16T18:00:00\",\r
+
+    \  \"tags\": [\r
+
+    \    \"Database\",\r
+
+    \    \"Architecture\",\r
+
+    \    \"Technology\"\r
+
+    \  ],\r
+
+    \  \"options\": [\r
+
+    \    {\r
+
+    \      \"title\": \"PostgreSQL\",\r
+
+    \      \"description\": \"Open-source relational database\",\r
+
+    \      \"criteria\": []\r
+
+    \    },\r
+
+    \    {\r
+
+    \      \"title\": \"MySQL\",\r
+
+    \      \"description\": \"Popular relational database\",\r
+
+    \      \"criteria\": []\r
+
+    \    },\r
+
+    \    {\r
+
+    \      \"title\": \"MongoDB\",\r
+
+    \      \"description\": \"NoSQL document database\",\r
+
+    \      \"criteria\": []\r
+
+    \    }\r
+
+    \  ],\r
+
+    \  \"factors\": [\r
+
+    \    {\r
+
+    \      \"name\": \"Performance\"\r
+
+    \    },\r
+
+    \    {\r
+
+    \      \"name\": \"Scalability\"\r
+
+    \    },\r
+
+    \    {\r
+
+    \      \"name\": \"Ease of Maintenance\"\r
+
+    \    }\r
+
+    \  ]\r
+
+    }"
+auth:
+  type: bearer
+  credentials:
+    token: "{{authToken}}"
+scripts:
+  - type: afterResponse
+    code: "const response = pm.response.json();\r
+
+      \r
+
+      pm.collectionVariables.set(\"decisionId\", response.id);\r
+
+      \r
+
+      // Option IDs\r
+
+      pm.collectionVariables.set(\"postgresOptionId\", response.options[0].id);\r
+
+      pm.collectionVariables.set(\"mysqlOptionId\", response.options[1].id);\r
+
+      pm.collectionVariables.set(\"mongodbOptionId\", response.options[2].id);\r
+
+      \r
+
+      // Factor IDs\r
+
+      pm.collectionVariables.set(\"performanceFactorId\", response.factors[0].id);\r
+
+      pm.collectionVariables.set(\"scalabilityFactorId\", response.factors[1].id);"
+    language: text/javascript
+order: 6000
