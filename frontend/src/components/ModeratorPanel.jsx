@@ -1,6 +1,5 @@
 import DecisionModeration from "./moderator/DecisionModeration";
 import CommunityMembers from "./moderator/CommunityMembers";
-import CommunityRules from "./moderator/CommunityRules";
 import { useState, useEffect } from "react";
 import {
   getJoinRequests,
@@ -70,12 +69,6 @@ export default function ModeratorPanel({ communityId }) {
       <section>
         <CommunityMembers communityId={communityId} />
       </section>
-
-      <section>
-        <CommunityRules communityId={communityId} />
-      </section>
-
-      
     </div>
   );
 }
