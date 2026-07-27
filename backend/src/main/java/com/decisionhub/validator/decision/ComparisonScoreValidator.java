@@ -2,9 +2,9 @@ package com.decisionhub.validator.decision;
 
 import com.decisionhub.entity.decision.Decision;
 import com.decisionhub.entity.decision.DecisionOption;
+import com.decisionhub.enums.decision.DecisionStatus;
 import com.decisionhub.dto.request.decision.ComparisonScoreRequest;
 import com.decisionhub.entity.decision.ComparisonFactor;
-import com.decisionhub.enums.decision.DecisionStatus;
 import com.decisionhub.exception.BadRequestException;
 import org.springframework.stereotype.Component;
 

@@ -1,0 +1,22 @@
+$kind: http-request
+name: 12 Submit Score - PostgreSQL → Scalability
+url: http://localhost:8080/api/decisions/{{decisionId}}/scores
+method: POST
+body:
+  type: json
+  content: "{\r
+
+    \    \"optionId\": {{postgresOptionId}},\r
+
+    \    \"factorId\": {{scalabilityFactorId}},\r
+
+    \    \"score\": 90,\r
+
+    \    \"remarks\": \"Scales well for enterprise applications.\"\r
+
+    }"
+auth:
+  type: bearer
+  credentials:
+    token: "{{authToken}}"
+order: 12000
