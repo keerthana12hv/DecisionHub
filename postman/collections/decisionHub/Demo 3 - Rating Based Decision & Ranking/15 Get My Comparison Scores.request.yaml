@@ -1,0 +1,12 @@
+$kind: http-request
+name: 15 Get My Comparison Scores
+url: http://localhost:8080/api/decisions/{{decisionId}}/scores/me
+method: GET
+body:
+  type: json
+  content: ""
+auth:
+  type: bearer
+  credentials:
+    token: "{{authToken}}"
+order: 15000
