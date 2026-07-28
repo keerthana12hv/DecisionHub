@@ -6,10 +6,10 @@ import com.decisionhub.entity.authentication.User;
 import com.decisionhub.entity.community.Community;
 import com.decisionhub.entity.decision.Decision;
 import com.decisionhub.entity.decision.DecisionOption;
-import com.decisionhub.entity.decision.ComparisonFactor;
-import com.decisionhub.entity.decision.ComparisonScore;
 import com.decisionhub.enums.decision.DecisionStatus;
 import com.decisionhub.enums.decision.DecisionVisibility;
+import com.decisionhub.entity.decision.ComparisonFactor;
+import com.decisionhub.entity.decision.ComparisonScore;
 import com.decisionhub.exception.BadRequestException;
 import com.decisionhub.exception.ResourceNotFoundException;
 import com.decisionhub.exception.UnauthorizedActionException;
@@ -249,7 +249,6 @@ public class DecisionServiceImpl implements DecisionService {
         log.info("Decision with ID '{}' updated successfully", id);
         return decisionMapper.toResponse(updatedDecision);
     }
-
 
 
     @Override

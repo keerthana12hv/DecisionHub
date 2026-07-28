@@ -13,6 +13,14 @@ export const getCommunities = async () => {
   return res.data;
 };
 
+// Communities the CURRENT USER is an approved member of — this is what
+// should populate the "Choose Community" dropdown when creating a Private
+// decision, since a decision needs a community the creator actually belongs to.
+export const getMyCommunities = async () => {
+  const res = await axios.get(`${API}/communities/my`, headers());
+  return res.data;
+};
+
 export const createCommunity = async (data) => {
   const res = await axios.post(`${API}/communities`, data, headers());
   return res.data;
@@ -46,3 +54,33 @@ export const getMembers = (communityId) =>
 
 export const removeMember = (communityId, memberId) =>
   axios.delete(`${API}/communities/${communityId}/members/${memberId}`, headers());
+
+// Community Rules
+export const getRules = (communityId) =>
+  axios.get(`${API}/communities/${communityId}/rules`, headers());
+
+export const createRule = (communityId, data) =>
+  axios.post(`${API}/moderation/communities/${communityId}/rules`, data, headers());
+
+export const updateRule = (ruleId, data) =>
+  axios.put(`${API}/moderation/rules/${ruleId}`, data, headers());
+
+export const deleteRule = (ruleId) =>
+  axios.delete(`${API}/moderation/rules/${ruleId}`, headers());
+
+// Decisions (used for moderator decision moderation)
+export const getDecisions = (params) =>
+  axios.get(`${API}/decisions`, { ...headers(), params });
+
+// Decision Moderation
+export const lockDecision = (decisionId) =>
+  axios.put(`${API}/moderation/decisions/${decisionId}/lock`, {}, headers());
+
+export const unlockDecision = (decisionId) =>
+  axios.put(`${API}/moderation/decisions/${decisionId}/unlock`, {}, headers());
+
+export const pinDecision = (decisionId) =>
+  axios.put(`${API}/moderation/decisions/${decisionId}/pin`, {}, headers());
+
+export const unpinDecision = (decisionId) =>
+  axios.put(`${API}/moderation/decisions/${decisionId}/unpin`, {}, headers());

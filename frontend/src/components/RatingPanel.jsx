@@ -1,8 +1,16 @@
 import { useState, useEffect } from "react";
 import { submitScore, getRanking } from "../services/voteService";
 
-export default function RatingPanel({ decision, pollOpen }) {
-  const [scores, setScores] = useState({});
+export default function RatingPanel({ decision, pollOpen, onScoreSubmitted }) {
+  // Prefill from any scores already submitted (comparisonScores, keyed by factorId)
+  const initialScores = {};
+  (decision.options || []).forEach((opt) => {
+    (opt.comparisonScores || []).forEach((cs) => {
+      initialScores[`${opt.id}-${cs.factorId}`] = cs.score;
+    });
+  });
+
+  const [scores, setScores] = useState(initialScores);
   const [ranking, setRanking] = useState(null);
 
   useEffect(() => {
@@ -12,7 +20,10 @@ export default function RatingPanel({ decision, pollOpen }) {
   const fetchRanking = async () => {
     try {
       const res = await getRanking(decision.id);
-      setRanking(res.data);
+      console.log("Ranking API response shape:", res.data); // TEMP — check this in console to confirm real field names
+      const data = res.data;
+      const list = Array.isArray(data) ? data : data?.results || data?.rankings || [];
+      setRanking(list);
     } catch (err) {
       console.error("Failed to fetch ranking:", err);
     }
@@ -27,6 +38,9 @@ export default function RatingPanel({ decision, pollOpen }) {
     if (value == null) return;
     try {
       await submitScore(decision.id, optionId, factorId, value);
+      // Let the parent page know a score was saved so it can refetch the
+      // decision and refresh the Comparison Matrix without a manual reload.
+      if (onScoreSubmitted) onScoreSubmitted();
     } catch (err) {
       console.error("Failed to submit score:", err);
     }
@@ -40,7 +54,7 @@ export default function RatingPanel({ decision, pollOpen }) {
         <thead>
           <tr>
             <th>Option</th>
-            {decision.comparisonFactors.map((f) => (
+            {decision.factors.map((f) => (
               <th key={f.id}>{f.name}</th>
             ))}
           </tr>
@@ -48,12 +62,12 @@ export default function RatingPanel({ decision, pollOpen }) {
         <tbody>
           {decision.options.map((opt) => (
             <tr key={opt.id}>
-              <td>{opt.optionName}</td>
-              {decision.comparisonFactors.map((factor) => (
+              <td>{opt.title}</td>
+              {decision.factors.map((factor) => (
                 <td key={factor.id}>
                   <input
                     type="range"
-                    min="0"
+                    min="1"
                     max="100"
                     disabled={!pollOpen}
                     value={scores[`${opt.id}-${factor.id}`] ?? 50}

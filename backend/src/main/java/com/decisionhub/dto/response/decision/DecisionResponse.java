@@ -8,24 +8,6 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 public record DecisionResponse(
-    Long id,
-    String title,
-    String description,
-    UserResponse creator,
-    String categoryName,
-    String communityName,
-    DecisionStatus status,
-    LocalDateTime deadline,
-    VotingType votingType,
-    LocalDateTime votingEndTime,
-    List<OptionResponseDto> options,
-    List<ComparisonFactorResponse> factors,
-    LocalDateTime createdAt,
-    boolean pinned,
-    boolean locked
-) {
-
-    public DecisionResponse(
         Long id,
         String title,
         String description,
@@ -38,50 +20,68 @@ public record DecisionResponse(
         LocalDateTime votingEndTime,
         List<OptionResponseDto> options,
         List<ComparisonFactorResponse> factors,
-        LocalDateTime createdAt
-    ) {
-        this(id, title, description, creator, categoryName, communityName, status, deadline,
-             votingType, votingEndTime, options, factors, createdAt, false, false);
-    }
-
-    public DecisionResponse(
-        Long id,
-        String title,
-        String description,
-        UserResponse creator,
-        String categoryName,
-        String communityName,
-        DecisionStatus status,
-        LocalDateTime deadline,
-        List<OptionResponseDto> options,
-        List<ComparisonFactorResponse> factors,
         LocalDateTime createdAt,
         boolean pinned,
         boolean locked
+) {
+
+    public DecisionResponse(
+            Long id,
+            String title,
+            String description,
+            UserResponse creator,
+            String categoryName,
+            String communityName,
+            DecisionStatus status,
+            LocalDateTime deadline,
+            VotingType votingType,
+            LocalDateTime votingEndTime,
+            List<OptionResponseDto> options,
+            List<ComparisonFactorResponse> factors,
+            LocalDateTime createdAt
     ) {
         this(id, title, description, creator, categoryName, communityName, status, deadline,
-             VotingType.RATING_BASED,
-             deadline != null ? deadline.minusHours(2) : null,
-             options, factors, createdAt, pinned, locked);
+                votingType, votingEndTime, options, factors, createdAt, false, false);
+    }
+
+    public DecisionResponse(
+            Long id,
+            String title,
+            String description,
+            UserResponse creator,
+            String categoryName,
+            String communityName,
+            DecisionStatus status,
+            LocalDateTime deadline,
+            List<OptionResponseDto> options,
+            List<ComparisonFactorResponse> factors,
+            LocalDateTime createdAt,
+            boolean pinned,
+            boolean locked
+    ) {
+        this(id, title, description, creator, categoryName, communityName, status, deadline,
+                VotingType.RATING_BASED,
+                deadline != null ? deadline.minusHours(2) : null,
+                options, factors, createdAt, pinned, locked);
     }
 
     @Deprecated
     public DecisionResponse(
-        Long id,
-        String title,
-        String description,
-        UserResponse creator,
-        String categoryName,
-        String communityName,
-        DecisionStatus status,
-        LocalDateTime deadline,
-        List<OptionResponseDto> options,
-        List<ComparisonFactorResponse> factors,
-        LocalDateTime createdAt
+            Long id,
+            String title,
+            String description,
+            UserResponse creator,
+            String categoryName,
+            String communityName,
+            DecisionStatus status,
+            LocalDateTime deadline,
+            List<OptionResponseDto> options,
+            List<ComparisonFactorResponse> factors,
+            LocalDateTime createdAt
     ) {
         this(id, title, description, creator, categoryName, communityName, status, deadline,
-             VotingType.RATING_BASED,
-             deadline != null ? deadline.minusHours(2) : null,
-             options, factors, createdAt, false, false);
+                VotingType.RATING_BASED,
+                deadline != null ? deadline.minusHours(2) : null,
+                options, factors, createdAt, false, false);
     }
 }

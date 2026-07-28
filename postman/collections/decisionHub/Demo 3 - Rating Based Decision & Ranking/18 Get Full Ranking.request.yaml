@@ -1,0 +1,9 @@
+$kind: http-request
+name: 18 Get Full Ranking
+url: http://localhost:8080/api/decisions/{{decisionId}}/ranking
+method: GET
+auth:
+  type: bearer
+  credentials:
+    token: "{{authToken}}"
+order: 17640

@@ -1,0 +1,36 @@
+$kind: http-request
+name: 02 Create Community- public
+url: http://localhost:8080/api/communities
+method: POST
+body:
+  type: json
+  content: "{\r
+
+    \    \"name\": \"Database Architects Hub\",\r
+
+    \    \"slug\": \"database-architects-hub\",\r
+
+    \    \"description\": \"Community for evaluating and selecting the best database technologies for enterprise applications.\",\r
+
+    \    \"categoryId\": 1,\r
+
+    \    \"visibility\": \"PUBLIC\"\r
+
+    }"
+auth:
+  type: bearer
+  credentials:
+    token: "{{authToken}}"
+scripts:
+  - type: afterResponse
+    code: "const response = pm.response.json();\r
+
+      \r
+
+      pm.collectionVariables.set(\"communityId\", response.id);\r
+
+      \r
+
+      console.log(\"Community ID:\", response.id);"
+    language: text/javascript
+order: 2000
