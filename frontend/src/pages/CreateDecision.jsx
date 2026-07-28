@@ -209,10 +209,10 @@ function CreateDecision() {
 
       const decisionId = createRes.data.id;
 
-      // Publish — DRAFT → ACTIVE, auto-creates Poll
-      await axios.put(`${API}/decisions/${decisionId}/publish`, {}, headers());
-
-      addToast("Decision created successfully!", "success");
+      // Per the Draft -> Edit -> Publish workflow, the decision stays DRAFT
+      // here — it is NOT auto-published. The creator reviews/edits it on its
+      // detail page and explicitly clicks Publish (in Edit Board) when ready.
+      addToast("Decision saved as a draft. Review it, then publish when ready.", "success");
       navigate(`/decisions/${decisionId}`);
     } catch (err) {
       console.error("Failed to create/publish decision:", err.response?.data || err.message);

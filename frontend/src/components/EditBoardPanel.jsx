@@ -1,6 +1,5 @@
 import { useState } from "react";
 import axios from "axios";
-import { submitScore } from "../services/voteService";
 
 const API = "http://localhost:8080/api";
 
@@ -13,46 +12,32 @@ const headers = () => ({
   headers: { Authorization: `Bearer ${token()}`, "Content-Type": "application/json" }
 });
 
-const CATEGORY_OPTIONS = [
-  "Technology",
-  "Career",
-  "Finance",
-  "Lifestyle",
-  "Travel",
-  "Programming",
-  "Team Building"
-];
-
-const toKey = (label) => label.trim().toLowerCase().replace(/\s+/g, "_");
-
 export default function EditBoardPanel({ decision, onSaved, onCancel }) {
+  // Per spec: Draft = everything editable. Published (ACTIVE) or Closed =
+  // only Poll End Time can change, everything else is read-only.
+  const isDraft = decision.status === "DRAFT";
+
   const [title, setTitle] = useState(decision.title || "");
-  const [category, setCategory] = useState(decision.categoryName || CATEGORY_OPTIONS[0]);
-  // NOTE: categoryName is currently always null from the backend, even after sending
-  // tags at creation — the tags→category link isn't confirmed working yet.
   const [description, setDescription] = useState(decision.description || "");
   const [criteria, setCriteria] = useState((decision.factors || []).map((f) => f.name));
   const [criterionInput, setCriterionInput] = useState("");
   const [saving, setSaving] = useState(false);
+  const [publishing, setPublishing] = useState(false);
   const [error, setError] = useState(null);
 
+  // votingEndTime uses the raw value from GET as its default so an unedited
+  // save doesn't accidentally reformat/change it (backend rejects reformatted-
+  // but-identical values as "modified").
+  const [votingEndTime, setVotingEndTime] = useState(
+    decision.votingEndTime ? decision.votingEndTime.slice(0, 16) : ""
+  );
+
   const [options, setOptions] = useState(
-    (decision.options || []).map((opt) => {
-      const criteriaValues = {};
-      (decision.factors || []).forEach((f) => {
-        const match = (opt.comparisonScores || []).find((s) => s.factorId === f.id);
-        if (match) {
-          criteriaValues[toKey(f.name)] =
-            match.remarks && match.remarks.trim() !== "" ? match.remarks : match.score;
-        }
-      });
-      return {
-        id: opt.id,
-        title: opt.title || "",
-        description: opt.description || "",
-        criteriaValues
-      };
-    })
+    (decision.options || []).map((opt) => ({
+      id: opt.id,
+      title: opt.title || "",
+      description: opt.description || ""
+    }))
   );
 
   const addCriterion = () => {
@@ -71,81 +56,96 @@ export default function EditBoardPanel({ decision, onSaved, onCancel }) {
     setOptions(options.map((opt) => (opt.id === id ? { ...opt, [field]: val } : opt)));
   };
 
-  const handleCriteriaValueChange = (optionId, criterionLabel, val) => {
-    setOptions(
-      options.map((opt) =>
-        opt.id === optionId
-          ? { ...opt, criteriaValues: { ...opt.criteriaValues, [toKey(criterionLabel)]: val } }
-          : opt
-      )
-    );
+  const handlePublish = async () => {
+    setPublishing(true);
+    setError(null);
+    try {
+      // Save any edits made while still in Draft before publishing, so
+      // nothing typed gets lost if the creator forgot to hit "Save Changes" first.
+      const payload = {
+        title,
+        description,
+        tags: decision.categoryName ? [decision.categoryName] : [],
+        votingType: decision.votingType,
+        isPublic: decision.isPublic ?? true,
+        anonymityType: decision.anonymityType || "PUBLIC",
+        deadline: decision.deadline,
+        votingEndTime: new Date(votingEndTime).toISOString(),
+        options: options.map((opt) => ({
+          title: opt.title,
+          description: opt.description
+        })),
+        factors:
+          decision.votingType !== "RATING_BASED"
+            ? []
+            : criteria.map((c) => ({ name: c, description: "" }))
+      };
+      await axios.put(`${API}/decisions/${decision.id}`, payload, headers());
+
+      // Draft -> Active, auto-creates the Poll.
+      const res = await axios.put(`${API}/decisions/${decision.id}/publish`, {}, headers());
+      onSaved(res.data);
+    } catch (err) {
+      console.error("Failed to publish decision:", err.response?.data || err.message);
+      setError(
+        err.response?.data?.error || "Could not publish this decision. Check console for details."
+      );
+    } finally {
+      setPublishing(false);
+    }
   };
 
   const handleSave = async () => {
     setSaving(true);
     setError(null);
     try {
-      // Step 1: save board-level details (title/description/tags/etc).
-      // NOTE: the "criteria" field on this payload is NOT persisted by the backend —
-      // confirmed via Swagger. Score values must go through submitScore instead (step 2).
-      const payload = {
-        title,
-        description,
-        tags: [category],
-        votingType: decision.votingType,
-        isPublic: decision.isPublic ?? true,
-        anonymityType: decision.anonymityType || "PUBLIC",
-        // Both deadline and votingEndTime sent back completely unchanged (raw strings
-        // from GET) — the backend rejects them as "modified" if reformatted at all,
-        // even when the actual value is identical.
-        deadline: decision.deadline,
-        votingEndTime: decision.votingEndTime,
-        options: options.map((opt) => ({
-          title: opt.title,
-          description: opt.description
-        })),
-        factors: criteria.map((c) => ({ name: c, description: "" }))
-      };
+      let updatedDecision;
 
-      const res = await axios.put(`${API}/decisions/${decision.id}`, payload, headers());
-      let updatedDecision = res.data;
-
-      // Step 2: push each option's Criteria Specification value through the
-      // confirmed-working score endpoint, matching each criterion name back to
-      // its factor id from the freshly-saved decision (factor ids may have
-      // changed if criteria were added/removed above).
-      const factorByName = {};
-      (updatedDecision.factors || []).forEach((f) => {
-        factorByName[f.name.trim().toLowerCase()] = f.id;
-      });
-
-      for (const opt of options) {
-        for (const c of criteria) {
-          const factorId = factorByName[c.trim().toLowerCase()];
-          if (!factorId) continue; // criterion wasn't saved as a factor, skip
-          const raw = opt.criteriaValues[toKey(c)];
-          if (raw === undefined || raw === "") continue; // nothing entered, don't overwrite
-          const numeric = parseFloat(raw);
-          const score = Number.isFinite(numeric) ? numeric : 0;
-          try {
-            await submitScore(decision.id, opt.id, factorId, score);
-          } catch (scoreErr) {
-            console.error(
-              `Failed to save score for option ${opt.id}, factor ${factorId}:`,
-              scoreErr
-            );
-          }
-        }
+      if (isDraft) {
+        // Draft: everything is editable, save the full board via the normal
+        // update endpoint. Criteria here only NAMES what will be rated later —
+        // no scores are collected from the creator, matching Create Decision.
+        const payload = {
+          title,
+          description,
+          tags: decision.categoryName ? [decision.categoryName] : [],
+          votingType: decision.votingType,
+          isPublic: decision.isPublic ?? true,
+          anonymityType: decision.anonymityType || "PUBLIC",
+          deadline: decision.deadline,
+          votingEndTime: new Date(votingEndTime).toISOString(),
+          options: options.map((opt) => ({
+            title: opt.title,
+            description: opt.description
+          })),
+          factors:
+            decision.votingType !== "RATING_BASED"
+              ? []
+              : criteria.map((c) => ({ name: c, description: "" }))
+        };
+        const res = await axios.put(`${API}/decisions/${decision.id}`, payload, headers());
+        updatedDecision = res.data;
+      } else {
+        // Published/Closed: ONLY Poll End Time can change. Use the dedicated
+        // extend-end-time endpoint rather than the general update endpoint.
+        // NOTE: request field name is a best guess ("votingEndTime") — not yet
+        // confirmed against the UpdatePollEndTimeRequest schema in Swagger.
+        // If the backend rejects this, check Schemas -> UpdatePollEndTimeRequest
+        // for the real field name.
+        const res = await axios.patch(
+          `${API}/decisions/${decision.id}/poll/end-time`,
+          { votingEndTime: new Date(votingEndTime).toISOString() },
+          headers()
+        );
+        updatedDecision = res.data;
       }
 
-      // Step 3: refetch so the Comparison Matrix reflects the scores just submitted.
-      const freshRes = await axios.get(`${API}/decisions/${decision.id}`, headers());
-      onSaved(freshRes.data);
+      onSaved(updatedDecision);
     } catch (err) {
       console.error("Failed to save decision:", err.response?.data || err.message);
       setError(
         err.response?.data?.error ||
-          "Could not save changes. This endpoint may not be confirmed yet — check console."
+          "Could not save changes. Check console for details."
       );
     } finally {
       setSaving(false);
@@ -155,27 +155,27 @@ export default function EditBoardPanel({ decision, onSaved, onCancel }) {
   return (
     <div className="edit-board-panel">
       <h3>Edit Decision Board &amp; Options</h3>
-      <p className="section-subtitle">
-        Modify the board parameters, comparison criteria, and option choices directly on this page.
-      </p>
+      {isDraft ? (
+        <p className="section-subtitle">
+          This decision is still a Draft — everything below can be edited before you publish.
+        </p>
+      ) : (
+        <p className="section-subtitle">
+          This decision has been published. Only the Poll End Time can still be changed.
+        </p>
+      )}
 
       {error && <div className="edit-board-error">{error}</div>}
 
       <h4>Board Parameters</h4>
       <div className="form-group">
         <label>Decision Title</label>
-        <input type="text" value={title} onChange={(e) => setTitle(e.target.value)} />
-      </div>
-
-      <div className="form-group">
-        <label>Category</label>
-        <select value={category} onChange={(e) => setCategory(e.target.value)}>
-          {CATEGORY_OPTIONS.map((c) => (
-            <option key={c} value={c}>
-              {c}
-            </option>
-          ))}
-        </select>
+        <input
+          type="text"
+          value={title}
+          disabled={!isDraft}
+          onChange={(e) => setTitle(e.target.value)}
+        />
       </div>
 
       <div className="form-group">
@@ -183,41 +183,64 @@ export default function EditBoardPanel({ decision, onSaved, onCancel }) {
         <textarea
           rows="3"
           value={description}
+          disabled={!isDraft}
           onChange={(e) => setDescription(e.target.value)}
         />
       </div>
 
-      <h4>Comparison Criteria</h4>
-      <p className="section-subtitle">
-        Add, edit, or remove comparison criteria for this decision board.
-      </p>
-      <div className="email-input-bar">
+      <div className="form-group">
+        <label>Poll End Time</label>
         <input
-          type="text"
-          placeholder="New Criterion (e.g. Battery, Price)"
-          value={criterionInput}
-          onChange={(e) => setCriterionInput(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") {
-              e.preventDefault();
-              addCriterion();
-            }
-          }}
+          type="datetime-local"
+          value={votingEndTime}
+          min={new Date().toISOString().slice(0, 16)}
+          max={decision.deadline ? decision.deadline.slice(0, 16) : undefined}
+          onChange={(e) => setVotingEndTime(e.target.value)}
         />
-        <button type="button" className="btn-secondary" onClick={addCriterion}>
-          + Add Criterion
-        </button>
+        <p className="section-subtitle">
+          When voting closes. This is always editable, even after publishing.
+        </p>
       </div>
-      <div className="email-chips-container">
-        {criteria.map((c) => (
-          <div key={c} className="email-chip">
-            <span>{c.toUpperCase()}</span>
-            <button type="button" onClick={() => removeCriterion(c)}>
-              ×
+
+      {decision.votingType === "RATING_BASED" && (
+        <>
+          <h4>Comparison Criteria</h4>
+          <p className="section-subtitle">
+            Names of what voters will rate each option on. Scores are entered by voters
+            during voting, not here.
+          </p>
+          <div className="email-input-bar">
+            <input
+              type="text"
+              placeholder="New Criterion (e.g. Battery, Price)"
+              value={criterionInput}
+              disabled={!isDraft}
+              onChange={(e) => setCriterionInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  addCriterion();
+                }
+              }}
+            />
+            <button type="button" className="btn-secondary" disabled={!isDraft} onClick={addCriterion}>
+              + Add Criterion
             </button>
           </div>
-        ))}
-      </div>
+          <div className="email-chips-container">
+            {criteria.map((c) => (
+              <div key={c} className="email-chip">
+                <span>{c.toUpperCase()}</span>
+                {isDraft && (
+                  <button type="button" onClick={() => removeCriterion(c)}>
+                    ×
+                  </button>
+                )}
+              </div>
+            ))}
+          </div>
+        </>
+      )}
 
       <h4>Option Choices</h4>
       {options.map((opt) => (
@@ -227,6 +250,7 @@ export default function EditBoardPanel({ decision, onSaved, onCancel }) {
             <input
               type="text"
               value={opt.title}
+              disabled={!isDraft}
               onChange={(e) => handleOptionChange(opt.id, "title", e.target.value)}
             />
           </div>
@@ -235,37 +259,28 @@ export default function EditBoardPanel({ decision, onSaved, onCancel }) {
             <textarea
               rows="2"
               value={opt.description}
+              disabled={!isDraft}
               onChange={(e) => handleOptionChange(opt.id, "description", e.target.value)}
             />
           </div>
-
-          {criteria.length > 0 && (
-            <>
-              <h5>Criteria Specifications</h5>
-              <div className="form-group-grid">
-                {criteria.map((c) => (
-                  <div className="form-group" key={c}>
-                    <label>{c.toLowerCase()}</label>
-                    <input
-                      type="text"
-                      value={opt.criteriaValues[toKey(c)] ?? ""}
-                      onChange={(e) =>
-                        handleCriteriaValueChange(opt.id, c, e.target.value)
-                      }
-                    />
-                  </div>
-                ))}
-              </div>
-            </>
-          )}
         </div>
       ))}
 
       <div className="edit-board-actions">
-        <button className="btn-primary" disabled={saving} onClick={handleSave}>
-          {saving ? "Saving..." : "Save All Details"}
+        <button className="btn-primary" disabled={saving || publishing} onClick={handleSave}>
+          {saving ? "Saving..." : "Save Changes"}
         </button>
-        <button className="btn-secondary" disabled={saving} onClick={onCancel}>
+        {isDraft && (
+          <button
+            className="btn-primary"
+            disabled={saving || publishing}
+            onClick={handlePublish}
+            style={{ background: "#16a34a" }}
+          >
+            {publishing ? "Publishing..." : "Publish Decision"}
+          </button>
+        )}
+        <button className="btn-secondary" disabled={saving || publishing} onClick={onCancel}>
           Cancel
         </button>
       </div>

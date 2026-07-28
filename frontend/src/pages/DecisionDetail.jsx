@@ -7,6 +7,7 @@ import RatingPanel from "../components/RatingPanel";
 import PollResultsPanel from "../components/PollResultsPanel";
 import EditBoardPanel from "../components/EditBoardPanel";
 import DecisionModerationControls from "../components/moderator/DecisionModerationControls";
+import { getModeratingCommunities } from "../services/moderationService";
 import { getCommunities, getMembers } from "../services/communityService";
 import "../styles/DecisionDetail.css";
 
@@ -23,10 +24,13 @@ const headers = () => ({
 
 // Options store values in comparisonScores keyed by factorId (confirmed from the real
 // API response) — match the factor's id, not a criterionName field that doesn't exist.
+// NOTE: score can legitimately be 0, and remarks can legitimately be "" — using ||
+// treated both as falsy and always fell through to "—". Check explicitly instead.
 const findCriterionValue = (option, factor) => {
   const match = (option.comparisonScores || []).find((s) => s.factorId === factor.id);
   if (!match) return "—";
-  return match.remarks || match.score || "—";
+  if (match.remarks && match.remarks.trim() !== "") return match.remarks;
+  return match.score;
 };
 
 export default function DecisionDetail() {
@@ -41,15 +45,21 @@ export default function DecisionDetail() {
   const [myVoteOptionIds, setMyVoteOptionIds] = useState([]);
   const [voting, setVoting] = useState(false);
 
-  // Membership gate for private (community-scoped) decisions.
-  // WORKAROUND: the decision API only returns communityName, not communityId,
-  // so we match by name against the user's community list to find the real id.
+  // Communities the logged-in user moderates — used to check whether they can
+  // pin/lock THIS decision. The DecisionResponse only returns communityName
+  // (no communityId), so we match by name against this list.
+  const [moderatingCommunities, setModeratingCommunities] = useState([]);
+
+  // Community membership gate: decisions with a communityName require the
+  // viewer to be an APPROVED member of that community to vote/rate.
+  // Decisions with no community (communityName null) are open to everyone.
   const [canParticipate, setCanParticipate] = useState(true);
   const [membershipChecked, setMembershipChecked] = useState(false);
 
   useEffect(() => {
     fetchDecision();
     fetchMyVote();
+    fetchModeratingCommunities();
     try {
       const t = token();
       const payload = JSON.parse(atob(t.split(".")[1]));
@@ -59,16 +69,91 @@ export default function DecisionDetail() {
     }
   }, [decisionId]);
 
-  const fetchDecision = async () => {
+  const fetchModeratingCommunities = async () => {
     try {
-      setLoading(true);
+      const data = await getModeratingCommunities();
+      setModeratingCommunities(data || []);
+    } catch (err) {
+      // Not being a moderator of anything is a normal state, not an error.
+      setModeratingCommunities([]);
+    }
+  };
+
+  // Live vote counts: poll the decision every 5s while the poll is still open,
+  // so other users' votes/ratings show up without a manual reload.
+  useEffect(() => {
+    if (!decision) return;
+    const pollOpen = decision.poll?.status === "OPEN" || decision.status === "ACTIVE";
+    if (!pollOpen) return;
+
+    const intervalId = setInterval(() => {
+      fetchDecision(true);
+    }, 5000);
+
+    return () => clearInterval(intervalId);
+  }, [decisionId, decision?.status, decision?.poll?.status]);
+
+  // Check community membership once we have both the decision and the
+  // current user's ID. Decisions with no community are open to everyone;
+  // decisions with a community require an APPROVED membership record.
+  useEffect(() => {
+    if (!decision || !currentUserId) return;
+
+    if (!decision.communityName) {
+      setCanParticipate(true);
+      setMembershipChecked(true);
+      return;
+    }
+
+    checkMembership();
+  }, [decision?.communityName, currentUserId]);
+
+  const checkMembership = async () => {
+    try {
+      setMembershipChecked(false);
+      // DecisionResponse only gives us communityName (no communityId), so
+      // find the matching community by name first to get its real ID.
+      const allCommunities = await getCommunities();
+      const match = (allCommunities || []).find((c) => c.name === decision.communityName);
+      if (!match) {
+        // Community not found (edge case) — fail closed, block participation.
+        setCanParticipate(false);
+        return;
+      }
+      const membersRes = await getMembers(match.id);
+      const members = membersRes.data || [];
+      const myMembership = members.find((m) => String(m.userId) === String(currentUserId));
+      setCanParticipate(!!myMembership && myMembership.status === "APPROVED");
+    } catch (err) {
+      console.error("Failed to check community membership:", err);
+      // Fail closed on error — don't accidentally allow voting when we
+      // couldn't actually confirm membership.
+      setCanParticipate(false);
+    } finally {
+      setMembershipChecked(true);
+    }
+  };
+
+  // silent=true is used for background polling refreshes so they update the
+  // data without toggling `loading` and re-flashing the whole page.
+  const fetchDecision = async (silent = false) => {
+    try {
+      if (!silent) setLoading(true);
       const res = await axios.get(`${API}/decisions/${decisionId}`, headers());
       setDecision(res.data);
     } catch (err) {
       console.error("Failed to fetch decision:", err);
-      setError("Could not load this decision.");
+      if (!silent) {
+        if (err.response?.status === 403) {
+          setError(
+            "This is a private decision — you must be an approved member of its community to view it."
+          );
+        } else {
+          setError("Could not load this decision.");
+        }
+      }
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   };
 
@@ -84,7 +169,11 @@ export default function DecisionDetail() {
   };
 
   const handleVote = async (optionId) => {
-    if (voting || !canParticipate) return;
+    if (voting) return;
+    if (!canParticipate) {
+      console.warn("Blocked vote attempt: user is not an approved member of this community.");
+      return;
+    }
     setVoting(true);
     try {
       const isMultiple = decision.votingType === "MULTIPLE_CHOICE";
@@ -96,7 +185,7 @@ export default function DecisionDetail() {
       } else {
         nextIds = [optionId];
       }
-      await axios.put(
+      await axios.post(
         `${API}/decisions/${decisionId}/votes`,
         { optionIds: nextIds },
         headers()
@@ -110,44 +199,23 @@ export default function DecisionDetail() {
     }
   };
 
+  // Pin/lock controls belong to the COMMUNITY MODERATOR, not the decision's
+  // creator. A decision only has a communityName (string) from the backend,
+  // so we match it against the names of communities this user moderates.
+  // Decisions with no community (Personal/Public) have no community moderator,
+  // so no one gets pin/lock controls for them via this check.
   const isModerator =
-    decision?.creator && String(decision.creator.id) === String(currentUserId);
+    !!decision?.communityName &&
+    moderatingCommunities.some((c) => c.name === decision.communityName);
 
   const hasCriteria = decision?.factors && decision.factors.length > 0;
 
-  useEffect(() => {
-    if (!decision || !currentUserId) return;
-    checkMembership();
-  }, [decision, currentUserId]);
-
-  const checkMembership = async () => {
-    // Public decisions (no community) — everyone can participate.
-    if (!decision.communityName) {
-      setCanParticipate(true);
-      setMembershipChecked(true);
-      return;
-    }
-    try {
-      const communities = await getCommunities();
-      const match = communities.find((c) => c.name === decision.communityName);
-      if (!match) {
-        // Can't verify — block by default to be safe.
-        setCanParticipate(false);
-        setMembershipChecked(true);
-        return;
-      }
-      const membersRes = await getMembers(match.id);
-      const isApprovedMember = (membersRes.data || []).some(
-        (m) => String(m.userId) === String(currentUserId)
-      );
-      setCanParticipate(isApprovedMember || isModerator);
-    } catch (err) {
-      console.error("Failed to check community membership:", err);
-      setCanParticipate(false);
-    } finally {
-      setMembershipChecked(true);
-    }
-  };
+  // Edit Board access: the decision's CREATOR, or the COMMUNITY MODERATOR of
+  // the community this decision belongs to (if any). Regular members/voters
+  // never get edit access, even if they're viewing their own community's decision.
+  const isCreator =
+    decision?.creator && String(decision.creator.id) === String(currentUserId);
+  const canEdit = isCreator || isModerator;
 
   return (
     <div className="dashboard">
@@ -172,9 +240,12 @@ export default function DecisionDetail() {
                 />
               )}
 
-              {/* Tabs */}
+              {/* Tabs — "Edit Board" shown to the decision's creator OR the
+                  community moderator of the community it belongs to. */}
               <div className="detail-tabs">
-                {["overview", "discussion", "poll results", "edit board"].map((tab) => {
+                {["overview", "discussion", "poll results"]
+                  .concat(canEdit ? ["edit board"] : [])
+                  .map((tab) => {
                   const key = tab.replace(" ", "-");
                   return (
                     <button
@@ -225,11 +296,10 @@ export default function DecisionDetail() {
                   )}
 
                   {membershipChecked && !canParticipate && (
-                    <div className="membership-blocked-notice">
+                    <div className="membership-required-notice">
                       <p>
-                        🔒 This is a private community decision. You must be an approved
-                        member of <strong>{decision.communityName}</strong> to vote, rate,
-                        or comment.
+                        You must be an approved member of this community to vote, rate, or
+                        comment on this decision.
                       </p>
                     </div>
                   )}
@@ -238,9 +308,10 @@ export default function DecisionDetail() {
                     <RatingPanel
                       decision={decision}
                       pollOpen={
-                        canParticipate &&
-                        (decision.poll?.status === "OPEN" || decision.status === "ACTIVE")
+                        (decision.poll?.status === "OPEN" || decision.status === "ACTIVE") &&
+                        canParticipate
                       }
+                      onScoreSubmitted={fetchDecision}
                     />
                   ) : (
                     <div className="available-options">
@@ -264,11 +335,6 @@ export default function DecisionDetail() {
                                 className={hasVoted ? "btn-voted" : "btn-vote"}
                                 disabled={voting || !canParticipate}
                                 onClick={() => handleVote(opt.id)}
-                                title={
-                                  !canParticipate
-                                    ? "You must be an approved community member to vote"
-                                    : undefined
-                                }
                               >
                                 {hasVoted ? "Voted" : "Vote for this option"}
                               </button>
@@ -293,7 +359,7 @@ export default function DecisionDetail() {
                 </div>
               )}
 
-              {activeTab === "edit-board" && (
+              {activeTab === "edit-board" && canEdit && (
                 <div className="detail-tab-content">
                   <EditBoardPanel
                     decision={decision}
