@@ -13,17 +13,24 @@ public class OpenApiConfig {
 
     @Bean
     public OpenAPI customOpenAPI() {
-        final String securitySchemeName = "BearerAuth";
+        final String securitySchemeName1 = "BearerAuth";
+        final String securitySchemeName2 = "bearerAuth";
         
         return new OpenAPI()
             .info(new Info()
                 .title("DecisionHub API")
                 .version("1.0.0")
                 .description("Collaborative Decision-Making & Community Polling Platform Backend"))
-            .addSecurityItem(new SecurityRequirement().addList(securitySchemeName))
+            .addSecurityItem(new SecurityRequirement().addList(securitySchemeName1))
+            .addSecurityItem(new SecurityRequirement().addList(securitySchemeName2))
             .components(new Components()
-                .addSecuritySchemes(securitySchemeName, new SecurityScheme()
-                    .name(securitySchemeName)
+                .addSecuritySchemes(securitySchemeName1, new SecurityScheme()
+                    .name(securitySchemeName1)
+                    .type(SecurityScheme.Type.HTTP)
+                    .scheme("bearer")
+                    .bearerFormat("JWT"))
+                .addSecuritySchemes(securitySchemeName2, new SecurityScheme()
+                    .name(securitySchemeName2)
                     .type(SecurityScheme.Type.HTTP)
                     .scheme("bearer")
                     .bearerFormat("JWT")));

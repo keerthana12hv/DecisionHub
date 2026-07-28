@@ -21,25 +21,25 @@ public class CommunityModerationController {
     private final CommunityModerationService communityModerationService;
 
     @PutMapping("/{decisionId}/pin")
-    @Operation(summary = "Pin decision", description = "Pins a decision in the community (requires moderator)", security = @SecurityRequirement(name = "bearerAuth"))
+    @Operation(summary = "Pin decision", description = "Pins a decision in the community (requires moderator)")
     public ResponseEntity<DecisionResponse> pinDecision(@PathVariable Long decisionId) {
         return ResponseEntity.ok(communityModerationService.pinDecision(decisionId));
     }
 
     @PutMapping("/{decisionId}/unpin")
-    @Operation(summary = "Unpin decision", description = "Unpins a decision in the community (requires moderator)", security = @SecurityRequirement(name = "bearerAuth"))
+    @Operation(summary = "Unpin decision", description = "Unpins a decision in the community (requires moderator)")
     public ResponseEntity<DecisionResponse> unpinDecision(@PathVariable Long decisionId) {
         return ResponseEntity.ok(communityModerationService.unpinDecision(decisionId));
     }
 
     @PutMapping("/{decisionId}/lock")
-    @Operation(summary = "Lock discussion", description = "Locks discussion on a decision (requires moderator)", security = @SecurityRequirement(name = "bearerAuth"))
+    @Operation(summary = "Lock discussion", description = "Locks discussion on a decision (requires moderator)")
     public ResponseEntity<DecisionResponse> lockDiscussion(@PathVariable Long decisionId) {
         return ResponseEntity.ok(communityModerationService.lockDiscussion(decisionId));
     }
 
     @PutMapping("/{decisionId}/unlock")
-    @Operation(summary = "Unlock discussion", description = "Unlocks discussion on a decision (requires moderator)", security = @SecurityRequirement(name = "bearerAuth"))
+    @Operation(summary = "Unlock discussion", description = "Unlocks discussion on a decision (requires moderator)")
     public ResponseEntity<DecisionResponse> unlockDiscussion(@PathVariable Long decisionId) {
         return ResponseEntity.ok(communityModerationService.unlockDiscussion(decisionId));
     }
