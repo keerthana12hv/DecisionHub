@@ -1,0 +1,11 @@
+$kind: http-request
+url: http://localhost:8080/api/decisions/2/scores/3/1
+method: DELETE
+body:
+  type: json
+  content: ""
+auth:
+  type: bearer
+  credentials:
+    token: "{{authToken}}"
+order: 4503507028163538

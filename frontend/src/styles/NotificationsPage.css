@@ -1,0 +1,224 @@
+.notifications-page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.notifications-page-header h1 {
+  font-family: var(--font-title);
+  font-size: 1.85rem;
+  font-weight: 700;
+  margin: 0 0 0.5rem;
+}
+
+.notifications-page-header p {
+  color: var(--text-secondary);
+  font-size: 0.95rem;
+  margin: 0;
+}
+
+.notifications-page-actions {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.clear-btn-all:hover {
+  color: var(--danger) !important;
+  border-color: var(--danger) !important;
+}
+
+.notifications-card {
+  padding: 0;
+}
+
+.notifications-tabs {
+  display: flex;
+  border-bottom: 1px solid var(--border-glass);
+  padding: 0 1.5rem;
+  background: rgba(0, 0, 0, 0.1);
+}
+
+.tab-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  font-family: var(--font-title);
+  font-weight: 600;
+  font-size: 0.9rem;
+  padding: 1.25rem 1.5rem;
+  cursor: pointer;
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition: var(--transition-smooth);
+}
+
+.tab-btn:hover {
+  color: var(--text-primary);
+}
+
+.tab-btn.active-tab {
+  color: var(--accent-purple);
+}
+
+.tab-btn.active-tab::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: var(--accent-purple);
+  box-shadow: 0 0 10px var(--accent-purple);
+}
+
+.tab-count {
+  font-size: 0.75rem;
+  background: rgba(255, 255, 255, 0.08);
+  padding: 2px 8px;
+  border-radius: 999px;
+  color: var(--text-secondary);
+}
+
+.tab-btn.active-tab .tab-count {
+  background: var(--accent-purple-glow);
+  color: #fff;
+}
+
+.notifications-page-list {
+  display: flex;
+  flex-direction: column;
+  min-height: 350px;
+}
+
+.notif-page-item {
+  display: flex;
+  align-items: center;
+  padding: 1.25rem 1.75rem;
+  border-bottom: 1px solid var(--border-glass);
+  transition: var(--transition-smooth);
+  position: relative;
+}
+
+.notif-page-item:hover {
+  background: rgba(255, 255, 255, 0.01);
+}
+
+.notif-page-item.unread {
+  background: rgba(139, 92, 246, 0.03);
+}
+
+.notif-indicator-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: transparent;
+  position: absolute;
+  left: 14px;
+}
+
+.notif-page-item.unread .notif-indicator-dot {
+  background: var(--accent-purple);
+  box-shadow: 0 0 8px var(--accent-purple);
+}
+
+.notif-page-icon {
+  font-size: 1.2rem;
+  color: var(--accent-purple);
+  margin-right: 1.25rem;
+  display: flex;
+  align-items: center;
+}
+
+.notif-page-content {
+  flex: 1;
+  cursor: pointer;
+}
+
+.notif-page-content p {
+  margin: 0 0 4px;
+  font-size: 0.95rem;
+  color: var(--text-primary);
+  line-height: 1.4;
+}
+
+.notif-page-time {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.notif-page-buttons {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.action-btn-p {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border-glass);
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+  font-weight: 500;
+  padding: 6px 12px;
+  border-radius: var(--border-radius-sm);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  transition: var(--transition-smooth);
+}
+
+.action-btn-p:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text-primary);
+}
+
+.read-btn-p:hover {
+  border-color: var(--success);
+  color: var(--success);
+}
+
+.delete-btn-p {
+  padding: 8px;
+}
+
+.delete-btn-p:hover {
+  border-color: var(--danger);
+  color: var(--danger);
+}
+
+/* Empty State */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 4rem 2rem;
+  text-align: center;
+  color: var(--text-muted);
+}
+
+.empty-icon {
+  font-size: 3rem;
+  color: var(--text-muted);
+  margin-bottom: 1rem;
+  opacity: 0.4;
+}
+
+.empty-state h3 {
+  font-family: var(--font-title);
+  color: var(--text-secondary);
+  margin: 0 0 0.5rem;
+  font-size: 1.25rem;
+}
+
+.empty-state p {
+  max-width: 320px;
+  font-size: 0.85rem;
+  margin: 0;
+  line-height: 1.4;
+}

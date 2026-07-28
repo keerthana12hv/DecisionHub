@@ -5,7 +5,6 @@ import com.decisionhub.entity.decision.Decision;
 import com.decisionhub.enums.community.MembershipStatus;
 import com.decisionhub.repository.community.CommunityMemberRepository;
 import com.decisionhub.repository.decision.DecisionRepository;
-import com.decisionhub.security.decision.DecisionAuthorizationService;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -49,23 +48,28 @@ public class DecisionAuthorizationServiceImpl implements DecisionAuthorizationSe
         }
 
         Decision decision = decisionOpt.get();
+
+        // 1. PUBLIC visibility -> All authenticated users can view
         if (decision.getVisibility() == com.decisionhub.enums.decision.DecisionVisibility.PUBLIC) {
             return true;
         }
 
-        // Private decision checks
+        // For non-public decisions, user must be authenticated
         if (userId == null) {
             return false;
         }
 
-        // Creator can always view
+        // Creator/Owner can always view
         if (decision.getCreator().getId().equals(userId)) {
             return true;
         }
 
-        // If it's a private community decision, active community members can view
-        if (decision.getCommunity() != null) {
-            return isUserActiveCommunityMember(decision.getCommunity().getId(), userId);
+        // 2. COMMUNITY visibility -> Only active community members can view
+        if (decision.getVisibility() == com.decisionhub.enums.decision.DecisionVisibility.COMMUNITY) {
+            if (decision.getCommunity() != null) {
+                return isUserActiveCommunityMember(decision.getCommunity().getId(), userId);
+            }
+            return false;
         }
 
         return false;
@@ -109,6 +113,12 @@ public class DecisionAuthorizationServiceImpl implements DecisionAuthorizationSe
 
     @Override
     @Transactional(readOnly = true)
+    public boolean canManagePoll(Long decisionId, Long userId) {
+        return isOwner(decisionId, userId);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public boolean canSubmitScore(Long decisionId, Long userId) {
         if (userId == null || decisionId == null) {
             return false;
@@ -129,5 +139,44 @@ public class DecisionAuthorizationServiceImpl implements DecisionAuthorizationSe
         return communityMemberRepository.findByCommunityIdAndUserId(communityId, userId)
                 .map(member -> member.getStatus() == MembershipStatus.APPROVED)
                 .orElse(false);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public boolean canParticipateInVoting(Long decisionId, Long userId) {
+
+        // Voting always requires an authenticated user.
+        if (decisionId == null || userId == null) {
+            return false;
+        }
+
+        Optional<Decision> decisionOpt = decisionRepository.findById(decisionId);
+
+        if (decisionOpt.isEmpty()) {
+            return false;
+        }
+
+        Decision decision = decisionOpt.get();
+
+        switch (decision.getVisibility()) {
+
+            case PUBLIC:
+                // Any authenticated user can participate.
+                return true;
+
+            case COMMUNITY:
+                // Community decisions require APPROVED membership.
+                if (decision.getCommunity() == null) {
+                    return false;
+                }
+
+                return isUserActiveCommunityMember(
+                        decision.getCommunity().getId(),
+                        userId
+                );
+
+            default:
+                return false;
+        }
     }
 }

@@ -18,6 +18,7 @@ import com.decisionhub.security.decision.AuthenticationFacade;
 import com.decisionhub.service.impl.decision.DecisionOptionServiceImpl;
 import com.decisionhub.service.interfaces.audit.AuditService;
 import com.decisionhub.validator.decision.DecisionOptionValidator;
+import com.decisionhub.validator.decision.DecisionModificationValidator;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -58,6 +59,8 @@ class DecisionOptionServiceTest {
     private AuditService auditService;
     @Mock
     private AuthenticationFacade authenticationFacade;
+    @Mock
+    private DecisionModificationValidator decisionModificationValidator;
 
     @InjectMocks
     private DecisionOptionServiceImpl decisionOptionService;

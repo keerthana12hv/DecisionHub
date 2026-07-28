@@ -88,47 +88,45 @@ class ComparisonFactorIntegrationTest {
         auditLogRepository.deleteAll();
         userRepository.deleteAll();
 
-        // 1. Register and login Creator
-        RegisterRequest creatorReg = new RegisterRequest();
-        creatorReg.setUsername("creatoruser");
-        creatorReg.setEmail("creator@test.com");
-        creatorReg.setPassword("Password123!");
+        // 1. Register and login Creator (Updated for Records)
+        RegisterRequest creatorReg = new RegisterRequest("creatoruser", "creator@test.com", "Password123!");
+        
         mockMvc.perform(post("/api/auth/register")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(creatorReg)))
                 .andExpect(status().isOk());
 
-        LoginRequest creatorLogin = new LoginRequest();
-        creatorLogin.setEmail("creator@test.com");
-        creatorLogin.setPassword("Password123!");
+        LoginRequest creatorLogin = new LoginRequest("creator@test.com", "Password123!");
+        
         String creatorLoginResponse = mockMvc.perform(post("/api/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(creatorLogin)))
                 .andExpect(status().isOk())
                 .andReturn().getResponse().getContentAsString();
-        creatorToken = objectMapper.readValue(creatorLoginResponse, LoginResponse.class).getToken();
+                
+        // Updated to use .token() record accessor
+        creatorToken = objectMapper.readValue(creatorLoginResponse, LoginResponse.class).token(); 
         User creatorUser = userRepository.findByUsername("creatoruser").orElseThrow();
         creatorId = creatorUser.getId();
 
-        // 2. Register and login Other User
-        RegisterRequest otherReg = new RegisterRequest();
-        otherReg.setUsername("otheruser");
-        otherReg.setEmail("other@test.com");
-        otherReg.setPassword("Password123!");
+        // 2. Register and login Other User (Updated for Records)
+        RegisterRequest otherReg = new RegisterRequest("otheruser", "other@test.com", "Password123!");
+        
         mockMvc.perform(post("/api/auth/register")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(otherReg)))
                 .andExpect(status().isOk());
 
-        LoginRequest otherLogin = new LoginRequest();
-        otherLogin.setEmail("other@test.com");
-        otherLogin.setPassword("Password123!");
+        LoginRequest otherLogin = new LoginRequest("other@test.com", "Password123!");
+        
         String otherLoginResponse = mockMvc.perform(post("/api/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(otherLogin)))
                 .andExpect(status().isOk())
                 .andReturn().getResponse().getContentAsString();
-        otherUserToken = objectMapper.readValue(otherLoginResponse, LoginResponse.class).getToken();
+                
+        // Updated to use .token() record accessor
+        otherUserToken = objectMapper.readValue(otherLoginResponse, LoginResponse.class).token();
         otherUserId = userRepository.findByUsername("otheruser").orElseThrow().getId();
 
         // 3. Create a default Decision Board in DRAFT state directly in DB
@@ -157,7 +155,7 @@ class ComparisonFactorIntegrationTest {
 
         // 4. Create a default Comparison Factor
         ComparisonFactorRequest factorRequest = new ComparisonFactorRequest("Performance", "Execution speed");
-        String factorResponseJson = mockMvc.perform(post("/decisions/{decisionId}/factors", decisionId)
+        String factorResponseJson = mockMvc.perform(post("/api/decisions/{decisionId}/factors", decisionId)
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + creatorToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(factorRequest)))
@@ -171,7 +169,7 @@ class ComparisonFactorIntegrationTest {
     void testAddFactor_Success() throws Exception {
         ComparisonFactorRequest request = new ComparisonFactorRequest("Cost", "License and hosting cost");
 
-        mockMvc.perform(post("/decisions/{decisionId}/factors", decisionId)
+        mockMvc.perform(post("/api/decisions/{decisionId}/factors", decisionId)
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + creatorToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
@@ -188,7 +186,7 @@ class ComparisonFactorIntegrationTest {
     void testAddFactor_DuplicateName_ReturnsBadRequest() throws Exception {
         ComparisonFactorRequest request = new ComparisonFactorRequest("Performance", "Duplicate name check");
 
-        mockMvc.perform(post("/decisions/{decisionId}/factors", decisionId)
+        mockMvc.perform(post("/api/decisions/{decisionId}/factors", decisionId)
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + creatorToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
@@ -199,7 +197,7 @@ class ComparisonFactorIntegrationTest {
     void testAddFactor_Forbidden_NonOwner() throws Exception {
         ComparisonFactorRequest request = new ComparisonFactorRequest("Scalability", "Forbidden check");
 
-        mockMvc.perform(post("/decisions/{decisionId}/factors", decisionId)
+        mockMvc.perform(post("/api/decisions/{decisionId}/factors", decisionId)
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + otherUserToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
@@ -210,7 +208,7 @@ class ComparisonFactorIntegrationTest {
     void testUpdateFactor_Success() throws Exception {
         ComparisonFactorRequest request = new ComparisonFactorRequest("Throughput", "Updated performance description");
 
-        mockMvc.perform(put("/decisions/{decisionId}/factors/{factorId}", decisionId, factorId)
+        mockMvc.perform(put("/api/decisions/{decisionId}/factors/{factorId}", decisionId, factorId)
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + creatorToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
@@ -225,7 +223,7 @@ class ComparisonFactorIntegrationTest {
 
     @Test
     void testDeleteFactor_Success() throws Exception {
-        mockMvc.perform(delete("/decisions/{decisionId}/factors/{factorId}", decisionId, factorId)
+        mockMvc.perform(delete("/api/decisions/{decisionId}/factors/{factorId}", decisionId, factorId)
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + creatorToken))
                 .andExpect(status().isNoContent());
 
@@ -236,7 +234,7 @@ class ComparisonFactorIntegrationTest {
 
     @Test
     void testGetFactors_Success() throws Exception {
-        mockMvc.perform(get("/decisions/{decisionId}/factors", decisionId)
+        mockMvc.perform(get("/api/decisions/{decisionId}/factors", decisionId)
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + creatorToken))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].name").value("Performance"));
@@ -251,10 +249,51 @@ class ComparisonFactorIntegrationTest {
 
         // Try to add factor on active board
         ComparisonFactorRequest request = new ComparisonFactorRequest("Cost", "Active check");
-        mockMvc.perform(post("/decisions/{decisionId}/factors", decisionId)
+        mockMvc.perform(post("/api/decisions/{decisionId}/factors", decisionId)
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + creatorToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void testGetFactor_Success() throws Exception {
+        mockMvc.perform(get("/api/decisions/{decisionId}/factors/{factorId}", decisionId, factorId)
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + creatorToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(factorId))
+                .andExpect(jsonPath("$.name").value("Performance"))
+                .andExpect(jsonPath("$.description").value("Execution speed"));
+    }
+
+    @Test
+    void testGetFactor_NotFound() throws Exception {
+        mockMvc.perform(get("/api/decisions/{decisionId}/factors/{factorId}", decisionId, 999L)
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + creatorToken))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void testGetFactor_Forbidden_NonAuthorizedView() throws Exception {
+        // Create a PRIVATE decision directly in DB under creator
+        Decision privateDecision = new Decision();
+        privateDecision.setTitle("Private Board");
+        privateDecision.setDescription("Only creator can see");
+        privateDecision.setCreator(userRepository.findById(creatorId).orElseThrow());
+        privateDecision.setVisibility(DecisionVisibility.PRIVATE);
+        privateDecision.setStatus(DecisionStatus.DRAFT);
+        privateDecision.setCreatedAt(java.time.LocalDateTime.now());
+        privateDecision = decisionRepository.save(privateDecision);
+
+        ComparisonFactor factor = new ComparisonFactor();
+        factor.setName("Secret Factor");
+        factor.setWeight(1);
+        factor.setDecision(privateDecision);
+        comparisonFactorRepository.save(factor);
+
+        // Fetching factors of private decision with other user's token should be forbidden (403)
+        mockMvc.perform(get("/api/decisions/{decisionId}/factors/{factorId}", privateDecision.getId(), factor.getId())
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + otherUserToken))
+                .andExpect(status().isForbidden());
     }
 }

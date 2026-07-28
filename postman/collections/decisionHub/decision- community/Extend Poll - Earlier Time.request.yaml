@@ -1,0 +1,16 @@
+$kind: http-request
+name: Extend Poll - Earlier Time
+url: http://localhost:8080/api/decisions/1/poll/end-time
+method: PATCH
+body:
+  type: json
+  content: "{\r
+
+    \  \"endTime\": \"2026-07-29T18:00:00\"\r
+
+    }"
+auth:
+  type: bearer
+  credentials:
+    token: "{{authToken}}"
+order: 4491065329880354

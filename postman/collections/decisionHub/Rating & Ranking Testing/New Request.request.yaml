@@ -1,0 +1,12 @@
+$kind: http-request
+name: New Request
+url: ""
+method: POST
+body:
+  type: json
+  content: ""
+auth:
+  type: bearer
+  credentials:
+    token: "{{authToken}}"
+order: 4503591053749883

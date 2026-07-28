@@ -35,4 +35,7 @@ public class ComparisonFactor {
 
     @OneToMany(mappedBy = "comparisonFactor", fetch = FetchType.LAZY)
     private List<OptionFactorScore> optionScores;
+
+    @OneToMany(mappedBy = "factor", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<ComparisonScore> comparisonScores;
 }

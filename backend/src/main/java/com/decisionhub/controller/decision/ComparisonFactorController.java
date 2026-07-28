@@ -29,7 +29,7 @@ import java.util.List;
  * REST controller exposing endpoints for managing comparison factors.
  */
 @RestController
-@RequestMapping("/decisions/{decisionId}/factors")
+@RequestMapping("/api/decisions/{decisionId}/factors")
 @RequiredArgsConstructor
 @Tag(name = "Comparison Factor", description = "Decision Comparison Factors Management Endpoints")
 @Slf4j
@@ -81,6 +81,17 @@ public class ComparisonFactorController {
 
         comparisonFactorService.deleteFactor(decisionId, factorId, ipAddress, userAgent);
         return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/{factorId}")
+    @Operation(summary = "Get comparison factor details", description = "Retrieves a single comparison factor by ID (requires view authorization)", security = @SecurityRequirement(name = "bearerAuth"))
+    public ResponseEntity<ComparisonFactorResponse> getFactor(
+            @PathVariable Long decisionId,
+            @PathVariable Long factorId
+    ) {
+        log.info("REST request to fetch factor: {} for decision: {}", factorId, decisionId);
+        ComparisonFactorResponse response = comparisonFactorService.getFactor(decisionId, factorId);
+        return ResponseEntity.ok(response);
     }
 
     @GetMapping

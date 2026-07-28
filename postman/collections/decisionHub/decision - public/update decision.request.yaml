@@ -1,0 +1,40 @@
+$kind: http-request
+name: update decision
+url: http://localhost:8080/api/decisions/1
+method: PUT
+body:
+  type: json
+  content: "{\r
+
+    \  \"title\": \"Best Java Backend Framework\",\r
+
+    \  \"description\": \"Updated description for testing.\",\r
+
+    \  \"communityId\": null,\r
+
+    \  \"isPublic\": true,\r
+
+    \  \"votingType\": \"SINGLE_CHOICE\",\r
+
+    \  \"anonymityType\": \"PUBLIC\",\r
+
+    \  \"votingEndTime\": \"2026-07-31T18:00:00\",\r
+
+    \  \"deadline\": \"2026-08-02T18:00:00\",\r
+
+    \  \"tags\": [\r
+
+    \    \"java\",\r
+
+    \    \"backend\",\r
+
+    \    \"spring\"\r
+
+    \  ]\r
+
+    }"
+auth:
+  type: bearer
+  credentials:
+    token: "{{authToken}}"
+order: 5000

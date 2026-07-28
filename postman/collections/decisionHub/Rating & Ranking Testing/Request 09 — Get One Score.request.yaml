@@ -1,0 +1,12 @@
+$kind: http-request
+name: Request 09 — Get One Score
+url: http://localhost:8080/api/decisions/2/scores/3/1
+method: GET
+body:
+  type: json
+  content: ""
+auth:
+  type: bearer
+  credentials:
+    token: "{{authToken}}"
+order: 4502566715186247

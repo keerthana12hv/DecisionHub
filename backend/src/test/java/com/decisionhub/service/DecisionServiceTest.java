@@ -22,12 +22,14 @@ import com.decisionhub.security.decision.AuthenticationFacade;
 import com.decisionhub.security.decision.DecisionAuthorizationService;
 import com.decisionhub.service.impl.decision.DecisionServiceImpl;
 import com.decisionhub.service.interfaces.audit.AuditService;
+import com.decisionhub.validator.decision.DecisionModificationValidator;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.LocalDateTime;
@@ -63,6 +65,10 @@ class DecisionServiceTest {
     private AuthenticationFacade authenticationFacade;
     @Mock
     private AuditService auditService;
+    @Spy
+    private com.decisionhub.validator.decision.DecisionValidator decisionValidator = new com.decisionhub.validator.decision.DecisionValidator();
+    @Mock
+    private org.springframework.context.ApplicationEventPublisher eventPublisher;
 
     @InjectMocks
     private DecisionServiceImpl decisionService;
@@ -111,7 +117,9 @@ class DecisionServiceTest {
             request.deadline(),
             Collections.emptyList(),
             Collections.emptyList(),
-            LocalDateTime.now()
+            LocalDateTime.now(),
+            false,
+            false
         );
     }
 

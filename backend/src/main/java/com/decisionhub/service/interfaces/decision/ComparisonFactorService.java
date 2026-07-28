@@ -50,4 +50,13 @@ public interface ComparisonFactorService {
      * @return List of ComparisonFactorResponse.
      */
     List<ComparisonFactorResponse> getFactorsByDecisionId(Long decisionId);
+
+    /**
+     * Retrieves a single comparison factor by ID.
+     *
+     * @param decisionId ID of the parent decision board.
+     * @param factorId   ID of the comparison factor.
+     * @return ComparisonFactorResponse representing the factor.
+     */
+    ComparisonFactorResponse getFactor(Long decisionId, Long factorId);
 }

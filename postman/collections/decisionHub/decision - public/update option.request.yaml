@@ -1,0 +1,17 @@
+$kind: http-request
+url: http://localhost:8080/api/decisions/1/options/1
+method: PUT
+body:
+  type: json
+  content: "{\r
+
+    \  \"title\": \"Spring Boot 3\",\r
+
+    \  \"description\": \"Latest Spring Boot Framework\"\r
+
+    }"
+auth:
+  type: bearer
+  credentials:
+    token: "{{authToken}}"
+order: 6000

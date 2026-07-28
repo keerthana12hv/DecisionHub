@@ -1,0 +1,9 @@
+$kind: http-request
+name: publish decision
+url: http://localhost:8080/api/decisions/1/publish
+method: POST
+auth:
+  type: bearer
+  credentials:
+    token: "{{authToken}}"
+order: 2472607801784030

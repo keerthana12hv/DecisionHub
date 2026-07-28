@@ -1,0 +1,22 @@
+$kind: http-request
+name: New Request
+url: http://localhost:8080/api/decisions/2/scores
+method: POST
+body:
+  type: json
+  content: "{\r
+
+    \    \"optionId\": 3,\r
+
+    \    \"factorId\": 1,\r
+
+    \    \"score\": 95,\r
+
+    \    \"remarks\": \"Recreated for ranking\"\r
+
+    }"
+auth:
+  type: bearer
+  credentials:
+    token: "{{authToken}}"
+order: 4503549540015628

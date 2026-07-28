@@ -71,6 +71,9 @@ public class ComparisonFactorValidator {
         if (board.getStatus() != DecisionStatus.DRAFT) {
             throw new BadRequestException("Comparison factors can only be managed when the decision is in DRAFT status");
         }
+        if (board.getVotingType() != com.decisionhub.enums.decision.VotingType.RATING_BASED) {
+            throw new BadRequestException("Comparison factors can only be managed when the voting type is RATING_BASED");
+        }
     }
 
     private String validateAndTrimName(String name) {

@@ -2,6 +2,7 @@ package com.decisionhub.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
@@ -67,17 +68,31 @@ public class SecurityConfig {
                         authException) -> response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Unauthorized")))
 
                 .authorizeHttpRequests(auth -> auth
-                        // Whitelisted Swagger Endpoints
+
                         .requestMatchers(
-                                "/api/auth/register", 
-                                "/api/auth/login", 
+                                "/api/auth/register",
+                                "/api/auth/login",
                                 "/api/auth/forgot-password",
-                                "/api/auth/reset-password", 
+                                "/api/auth/reset-password",
                                 "/api/auth/oauth2/**",
                                 "/swagger-ui/**",
                                 "/v3/api-docs/**"
                         ).permitAll()
-                        .anyRequest().authenticated())
+
+                        // 🔒 RESTRICTED: Only ADMINs can Create, Update, or Delete Categories
+                        .requestMatchers(HttpMethod.POST, "/api/categories/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.PUT, "/api/categories/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.DELETE, "/api/categories/**").hasRole("ADMIN")
+
+                        // 📖 OPEN: Any authenticated user can View Categories
+                        .requestMatchers(HttpMethod.GET, "/api/categories/**").authenticated()
+
+                        // USER or ADMIN
+                        .requestMatchers("/api/user/**").hasAnyRole("USER", "ADMIN")
+
+                        // All other APIs require authentication
+                        .anyRequest().authenticated()
+                )
 
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 
