@@ -67,7 +67,7 @@ export default function RatingPanel({ decision, pollOpen, onScoreSubmitted }) {
                 <td key={factor.id}>
                   <input
                     type="range"
-                    min="0"
+                    min="1"
                     max="100"
                     disabled={!pollOpen}
                     value={scores[`${opt.id}-${factor.id}`] ?? 50}

@@ -13,6 +13,14 @@ export const getCommunities = async () => {
   return res.data;
 };
 
+// Communities the CURRENT USER is an approved member of — this is what
+// should populate the "Choose Community" dropdown when creating a Private
+// decision, since a decision needs a community the creator actually belongs to.
+export const getMyCommunities = async () => {
+  const res = await axios.get(`${API}/communities/my`, headers());
+  return res.data;
+};
+
 export const createCommunity = async (data) => {
   const res = await axios.post(`${API}/communities`, data, headers());
   return res.data;

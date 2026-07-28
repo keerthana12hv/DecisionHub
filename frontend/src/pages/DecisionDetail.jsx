@@ -7,6 +7,7 @@ import RatingPanel from "../components/RatingPanel";
 import PollResultsPanel from "../components/PollResultsPanel";
 import EditBoardPanel from "../components/EditBoardPanel";
 import DecisionModerationControls from "../components/moderator/DecisionModerationControls";
+import { getCommunities, getMembers } from "../services/communityService";
 import "../styles/DecisionDetail.css";
 
 const API = "http://localhost:8080/api";
@@ -22,13 +23,10 @@ const headers = () => ({
 
 // Options store values in comparisonScores keyed by factorId (confirmed from the real
 // API response) — match the factor's id, not a criterionName field that doesn't exist.
-// NOTE: score can legitimately be 0, and remarks can legitimately be "" — using ||
-// treated both as falsy and always fell through to "—". Check explicitly instead.
 const findCriterionValue = (option, factor) => {
   const match = (option.comparisonScores || []).find((s) => s.factorId === factor.id);
   if (!match) return "—";
-  if (match.remarks && match.remarks.trim() !== "") return match.remarks;
-  return match.score;
+  return match.remarks || match.score || "—";
 };
 
 export default function DecisionDetail() {
@@ -43,6 +41,12 @@ export default function DecisionDetail() {
   const [myVoteOptionIds, setMyVoteOptionIds] = useState([]);
   const [voting, setVoting] = useState(false);
 
+  // Membership gate for private (community-scoped) decisions.
+  // WORKAROUND: the decision API only returns communityName, not communityId,
+  // so we match by name against the user's community list to find the real id.
+  const [canParticipate, setCanParticipate] = useState(true);
+  const [membershipChecked, setMembershipChecked] = useState(false);
+
   useEffect(() => {
     fetchDecision();
     fetchMyVote();
@@ -55,32 +59,16 @@ export default function DecisionDetail() {
     }
   }, [decisionId]);
 
-  // Live vote counts: poll the decision every 5s while the poll is still open,
-  // so other users' votes/ratings show up without a manual reload.
-  useEffect(() => {
-    if (!decision) return;
-    const pollOpen = decision.poll?.status === "OPEN" || decision.status === "ACTIVE";
-    if (!pollOpen) return;
-
-    const intervalId = setInterval(() => {
-      fetchDecision(true);
-    }, 5000);
-
-    return () => clearInterval(intervalId);
-  }, [decisionId, decision?.status, decision?.poll?.status]);
-
-  // silent=true is used for background polling refreshes so they update the
-  // data without toggling `loading` and re-flashing the whole page.
-  const fetchDecision = async (silent = false) => {
+  const fetchDecision = async () => {
     try {
-      if (!silent) setLoading(true);
+      setLoading(true);
       const res = await axios.get(`${API}/decisions/${decisionId}`, headers());
       setDecision(res.data);
     } catch (err) {
       console.error("Failed to fetch decision:", err);
-      if (!silent) setError("Could not load this decision.");
+      setError("Could not load this decision.");
     } finally {
-      if (!silent) setLoading(false);
+      setLoading(false);
     }
   };
 
@@ -96,7 +84,7 @@ export default function DecisionDetail() {
   };
 
   const handleVote = async (optionId) => {
-    if (voting) return;
+    if (voting || !canParticipate) return;
     setVoting(true);
     try {
       const isMultiple = decision.votingType === "MULTIPLE_CHOICE";
@@ -108,7 +96,7 @@ export default function DecisionDetail() {
       } else {
         nextIds = [optionId];
       }
-      await axios.post(
+      await axios.put(
         `${API}/decisions/${decisionId}/votes`,
         { optionIds: nextIds },
         headers()
@@ -126,6 +114,40 @@ export default function DecisionDetail() {
     decision?.creator && String(decision.creator.id) === String(currentUserId);
 
   const hasCriteria = decision?.factors && decision.factors.length > 0;
+
+  useEffect(() => {
+    if (!decision || !currentUserId) return;
+    checkMembership();
+  }, [decision, currentUserId]);
+
+  const checkMembership = async () => {
+    // Public decisions (no community) — everyone can participate.
+    if (!decision.communityName) {
+      setCanParticipate(true);
+      setMembershipChecked(true);
+      return;
+    }
+    try {
+      const communities = await getCommunities();
+      const match = communities.find((c) => c.name === decision.communityName);
+      if (!match) {
+        // Can't verify — block by default to be safe.
+        setCanParticipate(false);
+        setMembershipChecked(true);
+        return;
+      }
+      const membersRes = await getMembers(match.id);
+      const isApprovedMember = (membersRes.data || []).some(
+        (m) => String(m.userId) === String(currentUserId)
+      );
+      setCanParticipate(isApprovedMember || isModerator);
+    } catch (err) {
+      console.error("Failed to check community membership:", err);
+      setCanParticipate(false);
+    } finally {
+      setMembershipChecked(true);
+    }
+  };
 
   return (
     <div className="dashboard">
@@ -202,11 +224,23 @@ export default function DecisionDetail() {
                     </div>
                   )}
 
+                  {membershipChecked && !canParticipate && (
+                    <div className="membership-blocked-notice">
+                      <p>
+                        🔒 This is a private community decision. You must be an approved
+                        member of <strong>{decision.communityName}</strong> to vote, rate,
+                        or comment.
+                      </p>
+                    </div>
+                  )}
+
                   {decision.votingType === "RATING_BASED" ? (
                     <RatingPanel
                       decision={decision}
-                      pollOpen={decision.poll?.status === "OPEN" || decision.status === "ACTIVE"}
-                      onScoreSubmitted={fetchDecision}
+                      pollOpen={
+                        canParticipate &&
+                        (decision.poll?.status === "OPEN" || decision.status === "ACTIVE")
+                      }
                     />
                   ) : (
                     <div className="available-options">
@@ -228,8 +262,13 @@ export default function DecisionDetail() {
                               <p>{opt.description}</p>
                               <button
                                 className={hasVoted ? "btn-voted" : "btn-vote"}
-                                disabled={voting}
+                                disabled={voting || !canParticipate}
                                 onClick={() => handleVote(opt.id)}
+                                title={
+                                  !canParticipate
+                                    ? "You must be an approved community member to vote"
+                                    : undefined
+                                }
                               >
                                 {hasVoted ? "Voted" : "Vote for this option"}
                               </button>

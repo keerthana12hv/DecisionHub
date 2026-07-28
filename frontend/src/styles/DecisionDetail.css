@@ -138,6 +138,20 @@
   color: #9ca3af;
 }
 
+.membership-blocked-notice {
+  background: rgba(239, 68, 68, 0.08);
+  border: 1px solid rgba(239, 68, 68, 0.25);
+  border-radius: 10px;
+  padding: 16px 20px;
+  margin-bottom: 20px;
+  color: #fca5a5;
+  font-size: 0.9rem;
+}
+
+.membership-blocked-notice strong {
+  color: #fff;
+}
+
 /* ─── Comparison Matrix ────────────────────────────── */
 
 .comparison-matrix {
@@ -564,6 +578,12 @@
   font-size: 0.9rem;
   font-weight: 700;
   cursor: pointer;
+  transition: background 0.15s ease, transform 0.1s ease;
+}
+
+.edit-board-actions .btn-primary:hover:not(:disabled) {
+  background: #8b85ff;
+  transform: translateY(-1px);
 }
 
 .edit-board-actions .btn-secondary {
@@ -575,6 +595,13 @@
   font-size: 0.9rem;
   font-weight: 600;
   cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.edit-board-actions .btn-secondary:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.06);
+  color: #e5e7eb;
+  border-color: rgba(255, 255, 255, 0.3);
 }
 
 .edit-board-actions button:disabled {

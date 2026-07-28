@@ -1,10 +1,11 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import Sidebar from "../components/Sidebar";
 import Navbar from "../components/Navbar";
 import { useAuth } from "../context/AuthContext";
 import { useToast } from "../components/Toast";
+import { getMyCommunities } from "../services/communityService";
 import { FaArrowLeft, FaPlusCircle, FaTrash, FaTimes } from "react-icons/fa";
 import "../styles/CreateDecision.css";
 
@@ -19,20 +20,6 @@ const headers = () => ({
   headers: { Authorization: `Bearer ${token()}`, "Content-Type": "application/json" }
 });
 
-// TODO: confirm against backend — placeholder list until a /categories endpoint is confirmed
-const CATEGORY_OPTIONS = [
-  "Technology",
-  "Career",
-  "Finance",
-  "Lifestyle",
-  "Travel",
-  "Programming",
-  "Team Building"
-];
-
-// Turns "Food Variety" into a safe object key: "food_variety"
-const toKey = (label) => label.trim().toLowerCase().replace(/\s+/g, "_");
-
 function CreateDecision() {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -44,7 +31,60 @@ function CreateDecision() {
   // Target Audience / Community — 2 options only, per current app design
   const [visibility, setVisibility] = useState("PUBLIC"); // PUBLIC | PRIVATE
 
-  const [category, setCategory] = useState(CATEGORY_OPTIONS[0]);
+  // Communities the user belongs to — only needed/fetched when Private is
+  // selected, since a Private decision must be scoped to one of them.
+  const [myCommunities, setMyCommunities] = useState([]);
+  const [communitiesLoading, setCommunitiesLoading] = useState(false);
+  const [selectedCommunityId, setSelectedCommunityId] = useState("");
+
+  useEffect(() => {
+    if (visibility === "PRIVATE" && myCommunities.length === 0) {
+      fetchMyCommunities();
+    }
+  }, [visibility]);
+
+  const fetchMyCommunities = async () => {
+    try {
+      setCommunitiesLoading(true);
+      const data = await getMyCommunities();
+      setMyCommunities(data || []);
+      if (data && data.length > 0) {
+        setSelectedCommunityId(String(data[0].id));
+      }
+    } catch (err) {
+      console.error("Failed to load your communities:", err);
+      addToast("Could not load your communities.", "error");
+    } finally {
+      setCommunitiesLoading(false);
+    }
+  };
+
+  // Categories now come from the backend (GET /api/categories) instead of a
+  // hardcoded list, so this always matches whatever categories actually exist.
+  const [categoryOptions, setCategoryOptions] = useState([]);
+  const [category, setCategory] = useState("");
+  const [categoriesLoading, setCategoriesLoading] = useState(true);
+
+  useEffect(() => {
+    fetchCategories();
+  }, []);
+
+  const fetchCategories = async () => {
+    try {
+      setCategoriesLoading(true);
+      const res = await axios.get(`${API}/categories`, headers());
+      const list = res.data || [];
+      setCategoryOptions(list);
+      if (list.length > 0) {
+        setCategory(list[0].name ?? list[0].id ?? "");
+      }
+    } catch (err) {
+      console.error("Failed to load categories:", err);
+      addToast("Could not load categories from the server.", "error");
+    } finally {
+      setCategoriesLoading(false);
+    }
+  };
 
   const [votingType, setVotingType] = useState("SINGLE_CHOICE");
   const [deadline, setDeadline] = useState("");         // Decision deadline (discussion closes)
@@ -52,9 +92,11 @@ function CreateDecision() {
 
   const [submitting, setSubmitting] = useState(false);
 
-  // Comparison Criteria — tag-based, matches the reference app
+  // Comparison Criteria — tag-based, matches the reference app.
+  // The creator ONLY names criteria here (e.g. "Speed", "Cost") — they never
+  // assign scores/values. Scoring belongs exclusively to voters, during voting.
   const [criterionInput, setCriterionInput] = useState("");
-  const [criteria, setCriteria] = useState([]); // array of strings, e.g. ["Food Variety", "Budget"]
+  const [criteria, setCriteria] = useState([]); // array of strings, e.g. ["Speed", "Cost"]
 
   const addCriterion = () => {
     const val = criterionInput.trim();
@@ -71,17 +113,16 @@ function CreateDecision() {
     setCriteria(criteria.filter((c) => c !== val));
   };
 
-  // Options — Title, Description, + one Criteria Specification field per criterion tag
+  // Options — just Title + Description now. No per-option criteria values;
+  // the creator defines WHAT is being compared (the criteria names above),
+  // not the actual scores — those are entered by voters on the voting screen.
   const [options, setOptions] = useState([
-    { id: 1, title: "", description: "", criteriaValues: {} },
-    { id: 2, title: "", description: "", criteriaValues: {} }
+    { id: 1, title: "", description: "" },
+    { id: 2, title: "", description: "" }
   ]);
 
   const addOptionField = () => {
-    setOptions([
-      ...options,
-      { id: Date.now(), title: "", description: "", criteriaValues: {} }
-    ]);
+    setOptions([...options, { id: Date.now(), title: "", description: "" }]);
   };
 
   const removeOptionField = (id) => {
@@ -94,19 +135,6 @@ function CreateDecision() {
 
   const handleOptionChange = (id, field, val) => {
     setOptions(options.map((opt) => (opt.id === id ? { ...opt, [field]: val } : opt)));
-  };
-
-  const handleCriteriaValueChange = (optionId, criterionLabel, val) => {
-    setOptions(
-      options.map((opt) =>
-        opt.id === optionId
-          ? {
-              ...opt,
-              criteriaValues: { ...opt.criteriaValues, [toKey(criterionLabel)]: val }
-            }
-          : opt
-      )
-    );
   };
 
   const handleSubmit = async (e) => {
@@ -122,6 +150,30 @@ function CreateDecision() {
       return;
     }
 
+    if (visibility === "PRIVATE" && !selectedCommunityId) {
+      addToast("Please choose a community for this private decision.", "error");
+      return;
+    }
+
+    // Date validations, per spec: neither date can be before today, and Poll
+    // End Time cannot be after the Decision Deadline.
+    const now = new Date();
+    const deadlineDate = new Date(deadline);
+    const votingEndDate = new Date(votingEndTime);
+
+    if (deadlineDate < now) {
+      addToast("Decision Deadline cannot be before today.", "error");
+      return;
+    }
+    if (votingEndDate < now) {
+      addToast("Poll End Time cannot be before today.", "error");
+      return;
+    }
+    if (votingEndDate > deadlineDate) {
+      addToast("Poll End Time cannot be after the Decision Deadline.", "error");
+      return;
+    }
+
     setSubmitting(true);
     try {
       const createRes = await axios.post(
@@ -133,23 +185,24 @@ function CreateDecision() {
           tags: [category],
           votingType,
           isPublic: visibility === "PUBLIC",
+          // NOTE: "communityId" field name is a best guess — the DecisionRequest
+          // schema in Swagger wasn't checked for the exact field name. If the
+          // backend rejects this or ignores it, confirm the real field name
+          // there (Schemas → DecisionRequest) and rename this key to match.
+          ...(visibility === "PRIVATE" && selectedCommunityId
+            ? { communityId: Number(selectedCommunityId) }
+            : {}),
           anonymityType: "PUBLIC", // not present in the UI yet — defaulting until confirmed
-          deadline: new Date(deadline).toISOString(),
-          votingEndTime: new Date(votingEndTime).toISOString(),
+          deadline: deadlineDate.toISOString(),
+          votingEndTime: votingEndDate.toISOString(),
           options: options.map((opt) => ({
             title: opt.title,
-            description: opt.description,
-            criteria: criteria.map((c) => {
-              const raw = opt.criteriaValues[toKey(c)] || "";
-              const numeric = parseFloat(raw);
-              return {
-                criterionName: c,
-                score: Number.isFinite(numeric) ? numeric : 0,
-                remarks: raw
-              };
-            })
+            description: opt.description
           })),
-          factors: criteria.map((c) => ({ name: c, description: "" }))
+          // Backend rejects comparison factors for SINGLE_CHOICE / MULTIPLE_CHOICE
+          // ("Comparison factors are not allowed for SINGLE_CHOICE decisions") —
+          // only send them when this is actually a Rating Based decision.
+          factors: votingType !== "RATING_BASED" ? [] : criteria.map((c) => ({ name: c, description: "" }))
         },
         headers()
       );
@@ -208,15 +261,59 @@ function CreateDecision() {
                 </select>
               </div>
 
-              {/* Category */}
+              {/* Choose Community — required when Private is selected.
+                  Otherwise private decisions have no meaning (per spec doc). */}
+              {visibility === "PRIVATE" && (
+                <div className="form-group">
+                  <label>Choose Community</label>
+                  <select
+                    value={selectedCommunityId}
+                    onChange={(e) => setSelectedCommunityId(e.target.value)}
+                    disabled={communitiesLoading}
+                    required
+                  >
+                    {communitiesLoading ? (
+                      <option value="">Loading your communities...</option>
+                    ) : myCommunities.length === 0 ? (
+                      <option value="">You are not a member of any community yet</option>
+                    ) : (
+                      <>
+                        <option value="">Select a community...</option>
+                        {myCommunities.map((c) => (
+                          <option key={c.id} value={c.id}>
+                            {c.name}
+                          </option>
+                        ))}
+                      </>
+                    )}
+                  </select>
+                  {!communitiesLoading && myCommunities.length === 0 && (
+                    <p className="section-subtitle">
+                      Join or create a community first to make a private decision inside it.
+                    </p>
+                  )}
+                </div>
+              )}
+
+              {/* Category — now loaded from the backend */}
               <div className="form-group">
                 <label>Category</label>
-                <select value={category} onChange={(e) => setCategory(e.target.value)}>
-                  {CATEGORY_OPTIONS.map((c) => (
-                    <option key={c} value={c}>
-                      {c}
-                    </option>
-                  ))}
+                <select
+                  value={category}
+                  onChange={(e) => setCategory(e.target.value)}
+                  disabled={categoriesLoading || categoryOptions.length === 0}
+                >
+                  {categoriesLoading ? (
+                    <option>Loading categories...</option>
+                  ) : categoryOptions.length === 0 ? (
+                    <option>No categories available</option>
+                  ) : (
+                    categoryOptions.map((c) => (
+                      <option key={c.id ?? c.name} value={c.name ?? c.id}>
+                        {c.name ?? c.id}
+                      </option>
+                    ))
+                  )}
                 </select>
               </div>
 
@@ -250,6 +347,7 @@ function CreateDecision() {
                   <input
                     type="datetime-local"
                     value={deadline}
+                    min={new Date().toISOString().slice(0, 16)}
                     onChange={(e) => setDeadline(e.target.value)}
                     required
                   />
@@ -261,6 +359,8 @@ function CreateDecision() {
                   <input
                     type="datetime-local"
                     value={votingEndTime}
+                    min={new Date().toISOString().slice(0, 16)}
+                    max={deadline || undefined}
                     onChange={(e) => setVotingEndTime(e.target.value)}
                     required
                   />
@@ -268,49 +368,56 @@ function CreateDecision() {
                 </div>
               </div>
 
-              {/* Comparison Criteria — tag based */}
-              <div className="form-section-options">
-                <h3>Comparison Criteria</h3>
-                <p className="section-subtitle">
-                  Define comparison aspects (e.g. Price, Performance, Battery life). This generates
-                  matching input fields inside each option card for side-by-side comparison tables.
-                </p>
+              {/* Comparison Criteria — tag based. Only relevant for RATING_BASED:
+                  the backend rejects factors for SINGLE_CHOICE and MULTIPLE_CHOICE
+                  decisions, so this section is hidden for those voting types.
+                  The creator only names criteria here — actual scoring happens
+                  on the voting screen, submitted by each voter. */}
+              {votingType === "RATING_BASED" && (
+                <div className="form-section-options">
+                  <h3>Comparison Criteria</h3>
+                  <p className="section-subtitle">
+                    Define what voters will rate each option on (e.g. Speed, Cost, Scalability).
+                    Voters will assign a 1–100 score for each criterion during voting.
+                  </p>
 
-                <div className="email-input-bar">
-                  <input
-                    type="text"
-                    placeholder="e.g. Warranty"
-                    value={criterionInput}
-                    onChange={(e) => setCriterionInput(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") {
-                        e.preventDefault();
-                        addCriterion();
-                      }
-                    }}
-                  />
-                  <button type="button" className="btn-secondary" onClick={addCriterion}>
-                    <FaPlusCircle /> Add Criterion
-                  </button>
+                  <div className="email-input-bar">
+                    <input
+                      type="text"
+                      placeholder="e.g. Scalability"
+                      value={criterionInput}
+                      onChange={(e) => setCriterionInput(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                          addCriterion();
+                        }
+                      }}
+                    />
+                    <button type="button" className="btn-secondary" onClick={addCriterion}>
+                      <FaPlusCircle /> Add Criterion
+                    </button>
+                  </div>
+
+                  <div className="email-chips-container">
+                    {criteria.length === 0 ? (
+                      <span className="no-invites-msg">No criteria added yet.</span>
+                    ) : (
+                      criteria.map((c) => (
+                        <div key={c} className="email-chip animate-pop-in">
+                          <span>{c.toUpperCase()}</span>
+                          <button type="button" onClick={() => removeCriterion(c)}>
+                            <FaTimes />
+                          </button>
+                        </div>
+                      ))
+                    )}
+                  </div>
                 </div>
+              )}
 
-                <div className="email-chips-container">
-                  {criteria.length === 0 ? (
-                    <span className="no-invites-msg">No criteria added yet.</span>
-                  ) : (
-                    criteria.map((c) => (
-                      <div key={c} className="email-chip animate-pop-in">
-                        <span>{c.toUpperCase()}</span>
-                        <button type="button" onClick={() => removeCriterion(c)}>
-                          <FaTimes />
-                        </button>
-                      </div>
-                    ))
-                  )}
-                </div>
-              </div>
-
-              {/* Options */}
+              {/* Options — just title & description. Scoring/criteria values
+                  are no longer collected here; they belong to voters. */}
               <div className="form-section-options">
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                   <h3>Options</h3>
@@ -349,27 +456,6 @@ function CreateDecision() {
                         value={option.description}
                         onChange={(e) => handleOptionChange(option.id, "description", e.target.value)}
                       />
-
-                      {criteria.length > 0 && (
-                        <div className="form-section-options" style={{ marginTop: "0.5rem" }}>
-                          <h4 style={{ color: "#22d3ee" }}>Criteria Specifications</h4>
-                          <div className="form-group-grid">
-                            {criteria.map((c) => (
-                              <div className="form-group" key={c}>
-                                <label>{c.toLowerCase()}</label>
-                                <input
-                                  type="text"
-                                  placeholder={`Value for ${c.toLowerCase()}`}
-                                  value={option.criteriaValues[toKey(c)] || ""}
-                                  onChange={(e) =>
-                                    handleCriteriaValueChange(option.id, c, e.target.value)
-                                  }
-                                />
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      )}
                     </div>
                   ))}
                 </div>
