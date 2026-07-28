@@ -27,7 +27,7 @@ function CreateDecision() {
   const [category, setCategory] = useState("");
   const [visibility, setVisibility] = useState("Public");
   const [deadline, setDeadline] = useState("");
-
+  const [votingEndTime, setVotingEndTime] = useState("");
   // Dynamic Options (starts with 2 options)
   const [options, setOptions] = useState([
     { id: 1, text: "" },
@@ -82,6 +82,24 @@ function CreateDecision() {
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    const now = new Date();
+    const decisionEnd = new Date(deadline);
+    const pollEnd = new Date(votingEndTime);
+
+    if (decisionEnd < now) {
+      addToast("Decision End Time cannot be before the current date and time.", "error");
+      return;
+    }
+
+    if (pollEnd < now) {
+      addToast("Poll End Time cannot be before the current date and time.", "error");
+      return;
+    }
+
+    if (pollEnd > decisionEnd) {
+      addToast("Poll End Time cannot be after Decision End Time.", "error");
+      return;
+    }
 
     if (options.some(opt => !opt.text.trim())) {
       addToast("Please fill in all options.", "error");
@@ -103,6 +121,7 @@ function CreateDecision() {
       visibility,
       status: "Active",
       deadline,
+      votingEndTime,
       userVoteOptionId: null,
       options: options.map((opt, idx) => ({
         id: idx + 1,
@@ -212,11 +231,21 @@ function CreateDecision() {
                 </div>
 
                 <div className="form-group">
-                  <label>Voting Deadline</label>
+                  <label>Decision End Time</label>
                   <input
-                    type="date"
+                    type="datetime-local"
                     value={deadline}
                     onChange={(e) => setDeadline(e.target.value)}
+                    required
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label>Poll End Time</label>
+                  <input
+                    type="datetime-local"
+                    value={votingEndTime}
+                    onChange={(e) => setVotingEndTime(e.target.value)}
                     required
                   />
                 </div>
