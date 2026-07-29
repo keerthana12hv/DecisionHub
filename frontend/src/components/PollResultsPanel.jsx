@@ -8,7 +8,7 @@ const getOptionLabel = (r) => r.optionTitle;
 const getOptionKey = (r) => r.optionId;
 const getScore = (r) => r.score ?? 0;
 
-function RatingResults({ decisionId }) {
+function RatingResults({ decisionId, pollOpen, refreshTick }) {
   const [ranking, setRanking] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -16,8 +16,24 @@ function RatingResults({ decisionId }) {
     fetchRanking();
   }, [decisionId]);
 
-  const fetchRanking = async () => {
-    setLoading(true);
+  // Immediately pick up newly submitted ratings — fires whenever a rating is
+  // saved anywhere in the page (including by this user, just now).
+  useEffect(() => {
+    if (refreshTick) fetchRanking(true);
+  }, [refreshTick]);
+
+  // While the poll is still open, keep results current for anyone parked on
+  // this tab as other users vote — mirrors the 5s live-refresh used elsewhere
+  // on the decision page, rather than only updating when the tab re-opens.
+  useEffect(() => {
+    if (!pollOpen) return;
+    const intervalId = setInterval(() => fetchRanking(true), 5000);
+    return () => clearInterval(intervalId);
+  }, [decisionId, pollOpen]);
+
+  // silent=true avoids re-showing the loading state for background refreshes.
+  const fetchRanking = async (silent = false) => {
+    if (!silent) setLoading(true);
     try {
       const res = await getRanking(decisionId);
       const data = res.data;
@@ -25,9 +41,9 @@ function RatingResults({ decisionId }) {
       setRanking(list);
     } catch (err) {
       console.error("Failed to fetch ranking:", err);
-      setRanking([]);
+      if (!silent) setRanking([]);
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   };
 
@@ -204,9 +220,11 @@ function VoteCountResults({ decision }) {
   );
 }
 
-export default function PollResultsPanel({ decision }) {
+export default function PollResultsPanel({ decision, pollOpen, refreshTick }) {
   if (decision.votingType === "RATING_BASED") {
-    return <RatingResults decisionId={decision.id} />;
+    return (
+      <RatingResults decisionId={decision.id} pollOpen={pollOpen} refreshTick={refreshTick} />
+    );
   }
   return <VoteCountResults decision={decision} />;
 }
