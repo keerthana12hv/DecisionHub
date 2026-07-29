@@ -1,26 +1,39 @@
 import { useState, useEffect } from "react";
-import { submitScore, getRanking } from "../services/voteService";
+import { submitScore, getMyScores, getRanking } from "../services/voteService";
 
 export default function RatingPanel({ decision, pollOpen, onScoreSubmitted }) {
-  // Prefill from any scores already submitted (comparisonScores, keyed by factorId)
-  const initialScores = {};
-  (decision.options || []).forEach((opt) => {
-    (opt.comparisonScores || []).forEach((cs) => {
-      initialScores[`${opt.id}-${cs.factorId}`] = cs.score;
-    });
-  });
-
-  const [scores, setScores] = useState(initialScores);
+  // Ratings are private per user: sliders always start at 0 until we load
+  // (or the user sets) THIS user's own score. We deliberately do NOT read
+  // decision.options[].comparisonScores here — that field can include every
+  // participant's scores, and showing another user's rating to this user
+  // would leak private votes.
+  const [scores, setScores] = useState({});
+  const [savedScores, setSavedScores] = useState({});
   const [ranking, setRanking] = useState(null);
+  const [savingKey, setSavingKey] = useState(null);
 
   useEffect(() => {
+    fetchMyScores();
     if (!pollOpen) fetchRanking();
-  }, [pollOpen]);
+  }, [decision.id, pollOpen]);
+
+  const fetchMyScores = async () => {
+    try {
+      const res = await getMyScores(decision.id);
+      const mine = {};
+      (res.data || []).forEach((s) => {
+        mine[`${s.optionId}-${s.factorId}`] = s.score;
+      });
+      setScores(mine);
+      setSavedScores(mine);
+    } catch (err) {
+      console.error("Failed to fetch your scores:", err);
+    }
+  };
 
   const fetchRanking = async () => {
     try {
       const res = await getRanking(decision.id);
-      console.log("Ranking API response shape:", res.data); // TEMP — check this in console to confirm real field names
       const data = res.data;
       const list = Array.isArray(data) ? data : data?.results || data?.rankings || [];
       setRanking(list);
@@ -33,16 +46,22 @@ export default function RatingPanel({ decision, pollOpen, onScoreSubmitted }) {
     setScores((prev) => ({ ...prev, [`${optionId}-${factorId}`]: value }));
   };
 
+  // Explicit Save per rating — the slider no longer auto-submits on release,
+  // so the user's in-progress drag never gets sent until they confirm.
   const handleSubmit = async (optionId, factorId) => {
-    const value = scores[`${optionId}-${factorId}`];
-    if (value == null) return;
+    const key = `${optionId}-${factorId}`;
+    const value = scores[key] ?? 0;
+    setSavingKey(key);
     try {
       await submitScore(decision.id, optionId, factorId, value);
+      setSavedScores((prev) => ({ ...prev, [key]: value }));
       // Let the parent page know a score was saved so it can refetch the
       // decision and refresh the Comparison Matrix without a manual reload.
       if (onScoreSubmitted) onScoreSubmitted();
     } catch (err) {
       console.error("Failed to submit score:", err);
+    } finally {
+      setSavingKey(null);
     }
   };
 
@@ -63,22 +82,35 @@ export default function RatingPanel({ decision, pollOpen, onScoreSubmitted }) {
           {decision.options.map((opt) => (
             <tr key={opt.id}>
               <td>{opt.title}</td>
-              {decision.factors.map((factor) => (
-                <td key={factor.id}>
-                  <input
-                    type="range"
-                    min="1"
-                    max="100"
-                    disabled={!pollOpen}
-                    value={scores[`${opt.id}-${factor.id}`] ?? 50}
-                    onChange={(e) =>
-                      handleScoreChange(opt.id, factor.id, Number(e.target.value))
-                    }
-                    onMouseUp={() => handleSubmit(opt.id, factor.id)}
-                  />
-                  <span>{scores[`${opt.id}-${factor.id}`] ?? 50}</span>
-                </td>
-              ))}
+              {decision.factors.map((factor) => {
+                const key = `${opt.id}-${factor.id}`;
+                const value = scores[key] ?? 0;
+                const isUnsaved = value !== (savedScores[key] ?? 0);
+                return (
+                  <td key={factor.id}>
+                    <input
+                      type="range"
+                      min="0"
+                      max="100"
+                      disabled={!pollOpen}
+                      value={value}
+                      onChange={(e) =>
+                        handleScoreChange(opt.id, factor.id, Number(e.target.value))
+                      }
+                    />
+                    <span>{value}</span>
+                    {pollOpen && (
+                      <button
+                        className="btn-save-score"
+                        disabled={!isUnsaved || savingKey === key}
+                        onClick={() => handleSubmit(opt.id, factor.id)}
+                      >
+                        {savingKey === key ? "Saving..." : "Save"}
+                      </button>
+                    )}
+                  </td>
+                );
+              })}
             </tr>
           ))}
         </tbody>
