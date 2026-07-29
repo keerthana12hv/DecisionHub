@@ -286,6 +286,119 @@
   cursor: not-allowed;
 }
 
+/* ─── Options list (radio / checkbox voting) ─────────── */
+
+.options-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.option-choice-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  padding: 14px 16px;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.option-choice-row:hover {
+  border-color: rgba(165, 160, 255, 0.4);
+}
+
+.option-choice-row.selected {
+  border-color: #a5a0ff;
+  background: rgba(108, 99, 255, 0.08);
+  box-shadow: 0 0 0 1px rgba(165, 160, 255, 0.3);
+}
+
+.option-choice-row.disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.option-choice-row input[type="radio"],
+.option-choice-row input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  accent-color: #6c63ff;
+  flex-shrink: 0;
+  cursor: inherit;
+}
+
+.option-choice-text {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+.option-choice-title {
+  color: #ffffff;
+  font-size: 0.95rem;
+  font-weight: 500;
+}
+
+.option-choice-desc {
+  color: #9ca3af;
+  font-size: 0.8rem;
+  margin-top: 2px;
+}
+
+.btn-save-vote {
+  border-radius: 8px;
+  padding: 10px 22px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  background: rgba(108, 99, 255, 0.15);
+  color: #a5a0ff;
+  border: 1px solid rgba(108, 99, 255, 0.3);
+  transition: opacity 0.15s ease;
+}
+
+.btn-save-vote:hover:not(:disabled) {
+  opacity: 0.8;
+}
+
+.btn-save-vote:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.poll-closed-notice {
+  color: #9ca3af;
+  font-size: 0.8rem;
+  font-style: italic;
+  margin-top: 10px;
+}
+
+.btn-save-score {
+  margin-left: 8px;
+  border-radius: 6px;
+  padding: 4px 12px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  background: rgba(108, 99, 255, 0.15);
+  color: #a5a0ff;
+  border: 1px solid rgba(108, 99, 255, 0.3);
+  transition: opacity 0.15s ease;
+}
+
+.btn-save-score:hover:not(:disabled) {
+  opacity: 0.8;
+}
+
+.btn-save-score:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
 @keyframes fadeIn {
   from { opacity: 0; transform: translateY(4px); }
   to { opacity: 1; transform: translateY(0); }

@@ -168,29 +168,19 @@ export default function DecisionDetail() {
     }
   };
 
-  const handleVote = async (optionId) => {
-    if (voting) return;
-    if (!canParticipate) {
-      console.warn("Blocked vote attempt: user is not an approved member of this community.");
-      return;
-    }
+  // Actually posts a vote to the backend. Used directly for SINGLE_CHOICE
+  // (selecting a radio submits immediately) and via the Save button for
+  // MULTIPLE_CHOICE (checkboxes only update local selection until saved).
+  const submitVote = async (optionIds) => {
+    if (voting || !canParticipate) return;
     setVoting(true);
     try {
-      const isMultiple = decision.votingType === "MULTIPLE_CHOICE";
-      let nextIds;
-      if (isMultiple) {
-        nextIds = myVoteOptionIds.includes(optionId)
-          ? myVoteOptionIds.filter((id) => id !== optionId)
-          : [...myVoteOptionIds, optionId];
-      } else {
-        nextIds = [optionId];
-      }
-      await axios.post(
+      await axios.put(
         `${API}/decisions/${decisionId}/votes`,
-        { optionIds: nextIds },
+        { optionIds },
         headers()
       );
-      setMyVoteOptionIds(nextIds);
+      setMyVoteOptionIds(optionIds);
       await fetchDecision(); // refresh vote counts
     } catch (err) {
       console.error("Failed to submit vote:", err);
@@ -198,6 +188,27 @@ export default function DecisionDetail() {
       setVoting(false);
     }
   };
+
+  // Handles selecting/deselecting an option.
+  // SINGLE_CHOICE (radio): selecting an option submits the vote right away —
+  // no separate "vote for this option" button, no Save button.
+  // MULTIPLE_CHOICE (checkbox): just updates local selection; the vote is
+  // only sent to the backend when the user clicks Save.
+  const handleOptionToggle = (optionId) => {
+    if (!canParticipate) return;
+    const isMultiple = decision.votingType === "MULTIPLE_CHOICE";
+    if (isMultiple) {
+      setMyVoteOptionIds((prev) =>
+        prev.includes(optionId)
+          ? prev.filter((id) => id !== optionId)
+          : [...prev, optionId]
+      );
+    } else {
+      submitVote([optionId]);
+    }
+  };
+
+  const handleSaveVote = () => submitVote(myVoteOptionIds);
 
   // Pin/lock controls belong to the COMMUNITY MODERATOR, not the decision's
   // creator. A decision only has a communityName (string) from the backend,
@@ -216,6 +227,20 @@ export default function DecisionDetail() {
   const isCreator =
     decision?.creator && String(decision.creator.id) === String(currentUserId);
   const canEdit = isCreator || isModerator;
+
+  // Shared "is voting/rating still allowed" flag used by both the choice
+  // options list and the RatingPanel, so they agree on when the poll is closed.
+  const pollOpen =
+    !!decision && (decision.poll?.status === "OPEN" || decision.status === "ACTIVE");
+
+  // Bumped every time a rating is submitted so the Results tab (if it re-mounts
+  // or is already open) picks up the change immediately instead of waiting for
+  // its own next open/refresh.
+  const [resultsRefreshTick, setResultsRefreshTick] = useState(0);
+  const handleScoreSubmitted = async () => {
+    await fetchDecision();
+    setResultsRefreshTick((t) => t + 1);
+  };
 
   return (
     <div className="dashboard">
@@ -307,41 +332,66 @@ export default function DecisionDetail() {
                   {decision.votingType === "RATING_BASED" ? (
                     <RatingPanel
                       decision={decision}
-                      pollOpen={
-                        (decision.poll?.status === "OPEN" || decision.status === "ACTIVE") &&
-                        canParticipate
-                      }
-                      onScoreSubmitted={fetchDecision}
+                      pollOpen={pollOpen && canParticipate}
+                      onScoreSubmitted={handleScoreSubmitted}
                     />
                   ) : (
                     <div className="available-options">
-                      <h3>Available Options</h3>
-                      <div className="options-grid">
-                        {decision.options.map((opt) => {
-                          const hasVoted = myVoteOptionIds.includes(opt.id);
-                          return (
-                            <div
-                              key={opt.id}
-                              className={`option-card ${hasVoted ? "voted" : ""}`}
-                            >
-                              <div className="option-card-header">
-                                <h4>{opt.title}</h4>
-                                <span className="vote-count-badge">
-                                  Votes: {opt.voteCount ?? 0}
-                                </span>
-                              </div>
-                              <p>{opt.description}</p>
-                              <button
-                                className={hasVoted ? "btn-voted" : "btn-vote"}
-                                disabled={voting || !canParticipate}
-                                onClick={() => handleVote(opt.id)}
-                              >
-                                {hasVoted ? "Voted" : "Vote for this option"}
-                              </button>
+                      {(() => {
+                        const isMultiple = decision.votingType === "MULTIPLE_CHOICE";
+                        const canVoteNow = pollOpen && canParticipate;
+                        return (
+                          <>
+                            <h3>{decision.title}</h3>
+                            <div className="options-list">
+                              {decision.options.map((opt) => {
+                                const isChecked = myVoteOptionIds.includes(opt.id);
+                                return (
+                                  <label
+                                    key={opt.id}
+                                    className={`option-choice-row ${isChecked ? "selected" : ""} ${
+                                      !canVoteNow ? "disabled" : ""
+                                    }`}
+                                  >
+                                    <input
+                                      type={isMultiple ? "checkbox" : "radio"}
+                                      name={`decision-${decision.id}-option`}
+                                      checked={isChecked}
+                                      disabled={voting || !canVoteNow}
+                                      onChange={() => handleOptionToggle(opt.id)}
+                                    />
+                                    <span className="option-choice-text">
+                                      <span className="option-choice-title">{opt.title}</span>
+                                      {opt.description && (
+                                        <span className="option-choice-desc">{opt.description}</span>
+                                      )}
+                                    </span>
+                                    <span className="vote-count-badge">
+                                      Votes: {opt.voteCount ?? 0}
+                                    </span>
+                                  </label>
+                                );
+                              })}
                             </div>
-                          );
-                        })}
-                      </div>
+
+                            {/* Only Multiple Choice needs an explicit Save — Single
+                                Choice submits as soon as a radio is selected. */}
+                            {isMultiple && (
+                              <button
+                                className="btn-save-vote"
+                                disabled={voting || !canVoteNow || myVoteOptionIds.length === 0}
+                                onClick={handleSaveVote}
+                              >
+                                {voting ? "Saving..." : "Save"}
+                              </button>
+                            )}
+
+                            {!pollOpen && (
+                              <p className="poll-closed-notice">Voting has closed for this decision.</p>
+                            )}
+                          </>
+                        );
+                      })()}
                     </div>
                   )}
                 </div>
@@ -355,7 +405,11 @@ export default function DecisionDetail() {
 
               {activeTab === "poll-results" && (
                 <div className="detail-tab-content">
-                  <PollResultsPanel decision={decision} />
+                  <PollResultsPanel
+                    decision={decision}
+                    pollOpen={pollOpen}
+                    refreshTick={resultsRefreshTick}
+                  />
                 </div>
               )}
 
