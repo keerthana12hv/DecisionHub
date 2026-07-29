@@ -10,6 +10,8 @@ import com.decisionhub.enums.decision.DecisionStatus;
 import com.decisionhub.enums.decision.DecisionVisibility;
 import com.decisionhub.entity.decision.ComparisonFactor;
 import com.decisionhub.entity.decision.ComparisonScore;
+import com.decisionhub.entity.voting.Poll;
+import com.decisionhub.entity.voting.Vote;
 import com.decisionhub.exception.BadRequestException;
 import com.decisionhub.exception.ResourceNotFoundException;
 import com.decisionhub.exception.UnauthorizedActionException;
@@ -23,6 +25,8 @@ import com.decisionhub.repository.decision.DecisionRepository;
 import com.decisionhub.repository.decision.DecisionOptionRepository;
 import com.decisionhub.repository.decision.ComparisonFactorRepository;
 import com.decisionhub.repository.decision.ComparisonScoreRepository;
+import com.decisionhub.repository.voting.PollRepository;
+import com.decisionhub.repository.voting.VoteRepository;
 import com.decisionhub.security.decision.AuthenticationFacade;
 import com.decisionhub.security.decision.DecisionAuthorizationService;
 import com.decisionhub.service.interfaces.audit.AuditService;
@@ -51,7 +55,9 @@ public class DecisionServiceImpl implements DecisionService {
     private final DecisionOptionRepository decisionOptionRepository;
     private final ComparisonFactorRepository comparisonFactorRepository;
     private final ComparisonScoreRepository comparisonScoreRepository;
-    
+    private final PollRepository pollRepository;
+    private final VoteRepository voteRepository;
+
     private final DecisionMapper decisionMapper;
     private final ComparisonMapper comparisonMapper;
     private final DecisionAuthorizationService decisionAuthorizationService;
@@ -75,7 +81,7 @@ public class DecisionServiceImpl implements DecisionService {
         if (request.communityId() != null) {
             community = communityRepository.findById(request.communityId())
                     .orElseThrow(() -> new ResourceNotFoundException("Community not found with ID: " + request.communityId()));
-            
+
             if (!decisionAuthorizationService.canCreateDecision(request.communityId(), currentUserId)) {
                 throw new UnauthorizedActionException("Not authorized to create a decision in this community");
             }
@@ -138,7 +144,7 @@ public class DecisionServiceImpl implements DecisionService {
     @Transactional(readOnly = true)
     public DecisionResponse getDecisionById(Long id) {
         log.info("Retrieving decision: {}", id);
-        
+
         Decision decision = decisionRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Decision not found with ID: " + id));
 
@@ -211,7 +217,7 @@ public class DecisionServiceImpl implements DecisionService {
         if (request.communityId() != null && (community == null || !community.getId().equals(request.communityId()))) {
             community = communityRepository.findById(request.communityId())
                     .orElseThrow(() -> new ResourceNotFoundException("Community not found with ID: " + request.communityId()));
-            
+
             if (!decisionAuthorizationService.canCreateDecision(request.communityId(), currentUserId)) {
                 throw new UnauthorizedActionException("Not authorized to associate decision with this community");
             }
@@ -270,7 +276,17 @@ public class DecisionServiceImpl implements DecisionService {
             throw new UnauthorizedActionException("Not authorized to delete this decision");
         }
 
-        // 2. Cascade delete dependent entities manually as cascade is not configured in DB/entity
+        // 2. Cascade delete dependent entities manually as cascade is not configured in DB/entity.
+        // Order matters for FK constraints: votes -> poll -> comparison scores ->
+        // comparison factors -> options -> decision. Votes and the poll must go
+        // first since votes.option_id/poll_id and polls.decision_id are FKs that
+        // otherwise block deleting the options/decision underneath them.
+        pollRepository.findByDecisionId(id).ifPresent(poll -> {
+            List<Vote> votes = voteRepository.findByPollId(poll.getId());
+            voteRepository.deleteAll(votes);
+            pollRepository.delete(poll);
+        });
+
         List<ComparisonScore> scores = comparisonScoreRepository.findByOptionDecisionId(id);
         comparisonScoreRepository.deleteAll(scores);
 
