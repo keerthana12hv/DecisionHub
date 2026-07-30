@@ -415,103 +415,162 @@
   text-align: center;
 }
 
-.leading-option-banner {
-  display: flex;
-  align-items: flex-start;
-  gap: 14px;
-  background: rgba(250, 204, 21, 0.08);
-  border: 1px solid rgba(250, 204, 21, 0.25);
-  border-radius: 10px;
-  padding: 18px 20px;
-  margin-bottom: 24px;
+.results-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-glass);
+  border-radius: var(--border-radius-lg);
+  padding: 28px;
 }
 
-.trophy-icon {
-  font-size: 1.4rem;
-}
+@media (max-width: 560px) {
+  .results-headline {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
 
-.leading-option-banner strong {
-  color: #facc15;
-  font-size: 1.05rem;
-}
-
-.leading-option-banner p {
-  color: #d1d5db;
-  font-size: 0.88rem;
-  margin: 4px 0 0;
-}
-
-.poll-results-grid {
-  display: grid;
-  grid-template-columns: 1.2fr 1fr;
-  gap: 20px;
-}
-
-@media (max-width: 720px) {
-  .poll-results-grid {
-    grid-template-columns: 1fr;
+  .results-headline-figure {
+    font-size: 2.4rem;
   }
 }
 
-.vote-breakdown-card,
-.consensus-share-card {
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 10px;
-  padding: 20px;
+.results-headline {
+  display: flex;
+  align-items: center;
+  gap: 22px;
+  padding-bottom: 24px;
+  margin-bottom: 24px;
+  border-bottom: 1px solid var(--border-glass);
 }
 
-.vote-breakdown-card h3,
-.consensus-share-card h3 {
-  color: #ffffff;
-  font-size: 1.05rem;
-  margin: 0 0 16px;
+.results-headline-figure {
+  font-family: var(--font-title);
+  font-size: 3.2rem;
+  font-weight: 800;
+  line-height: 1;
+  background: var(--gradient-primary);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  flex-shrink: 0;
+  font-variant-numeric: tabular-nums;
 }
 
-.vote-breakdown-row {
-  margin-bottom: 16px;
+.results-headline-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
 }
 
-.vote-breakdown-row:last-child {
-  margin-bottom: 0;
+.results-headline-lead {
+  color: var(--text-primary);
+  font-size: 1.02rem;
+  margin: 0;
 }
 
-.vote-breakdown-label {
+.results-headline-lead strong {
+  color: #fff;
+}
+
+.results-majority-tag {
+  display: inline-flex;
+  align-self: flex-start;
+  align-items: center;
+  font-family: var(--font-title);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 4px 10px;
+  border-radius: 999px;
+}
+
+.results-majority-tag.is-majority {
+  color: var(--success);
+  background: var(--success-glow);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+.results-majority-tag.is-plurality {
+  color: var(--warning);
+  background: var(--warning-glow);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+}
+
+.results-lanes {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.results-lane {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.results-rank {
+  font-family: var(--font-title);
+  font-weight: 700;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+  width: 24px;
+  flex-shrink: 0;
+}
+
+.results-lane.is-leader .results-rank {
+  color: var(--success);
+}
+
+.results-lane-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.results-lane-label {
   display: flex;
   justify-content: space-between;
   font-size: 0.88rem;
-  color: #e5e7eb;
+  color: var(--text-secondary);
   margin-bottom: 6px;
 }
 
-.vote-breakdown-bar-track {
-  width: 100%;
-  height: 8px;
-  background: rgba(255, 255, 255, 0.08);
-  border-radius: 4px;
-  overflow: hidden;
+.results-lane.is-leader .results-lane-label span:first-child {
+  color: var(--text-primary);
+  font-weight: 600;
 }
 
-.vote-breakdown-bar-fill {
-  height: 100%;
-  background: linear-gradient(90deg, #a5a0ff, #f472b6);
+.results-lane-track {
+  position: relative;
+  width: 100%;
+  height: 8px;
+  background: rgba(255, 255, 255, 0.06);
   border-radius: 4px;
+  overflow: visible;
+}
+
+/* Marks the 50% line so a lane visually crossing it reads as a true
+   majority rather than just the largest share of a split field. */
+.results-majority-tick {
+  position: absolute;
+  left: 50%;
+  top: -3px;
+  width: 1px;
+  height: 14px;
+  background: var(--text-muted);
+  opacity: 0.4;
+}
+
+.results-lane-fill {
+  height: 100%;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.18);
   transition: width 0.3s ease;
 }
 
-.consensus-share-card {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-
-.donut-chart {
-  width: 160px;
-  height: 160px;
-  border-radius: 50%;
-  mask: radial-gradient(farthest-side, transparent calc(100% - 24px), #000 calc(100% - 24px));
-  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 24px), #000 calc(100% - 24px));
-  margin: 8px 0 20px;
+.results-lane.is-leader .results-lane-fill {
+  background: linear-gradient(90deg, var(--success) 0%, #6ee7b7 100%);
+  box-shadow: 0 0 12px rgba(16, 185, 129, 0.35);
 }
 
 .donut-legend {
