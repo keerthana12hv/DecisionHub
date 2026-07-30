@@ -17,6 +17,11 @@ public enum AuditActionType {
     CREATE_POLL,
     CAST_VOTE,
 
+    DECISION_FEEDBACK_SUBMITTED, 
+
+    SUPPORT_TICKET_CREATED,         // ✅ Added for Support Module
+    SUPPORT_TICKET_STATUS_UPDATED,  // ✅ Added for Support Module
+
     EXPORT_REPORT,
 
     ADMIN_ACTION

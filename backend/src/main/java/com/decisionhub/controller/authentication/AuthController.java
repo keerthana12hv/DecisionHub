@@ -1,4 +1,4 @@
-package com.decisionhub.controller;
+package com.decisionhub.controller.authentication;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;

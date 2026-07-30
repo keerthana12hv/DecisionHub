@@ -44,6 +44,9 @@ public class AuditServiceImpl implements AuditService {
                 case "SCORE_DELETED":
                     actionType = AuditActionType.DELETE_DECISION;
                     break;
+                case "DECISION_FEEDBACK_SUBMITTED": // ✅ Mapped the new action
+                    actionType = AuditActionType.DECISION_FEEDBACK_SUBMITTED;
+                    break;
             }
         }
 

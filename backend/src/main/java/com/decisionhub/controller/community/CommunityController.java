@@ -1,4 +1,4 @@
-package com.decisionhub.controller;
+package com.decisionhub.controller.community;
 
 import java.util.List;
 

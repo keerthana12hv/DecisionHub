@@ -87,6 +87,13 @@ public class SecurityConfig {
                         // 📖 OPEN: Any authenticated user can View Categories
                         .requestMatchers(HttpMethod.GET, "/api/categories/**").authenticated()
 
+                        // 🎟️ SUPPORT MODULE
+                        // USER or ADMIN can submit and view their own tickets
+                        .requestMatchers(HttpMethod.POST, "/api/support").hasAnyRole("USER", "ADMIN")
+                        .requestMatchers(HttpMethod.GET, "/api/support/my").hasAnyRole("USER", "ADMIN")
+                        // ONLY ADMIN can access all tickets and update statuses
+                        .requestMatchers("/api/admin/support/**").hasRole("ADMIN")
+
                         // USER or ADMIN
                         .requestMatchers("/api/user/**").hasAnyRole("USER", "ADMIN")
 

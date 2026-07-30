@@ -1,10 +1,10 @@
-package com.decisionhub.controller;
+package com.decisionhub.controller.user;
 
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/api/analytics")
-public class AnalyticsController {
+@RequestMapping("/api/user")
+public class UserController {
 
 }

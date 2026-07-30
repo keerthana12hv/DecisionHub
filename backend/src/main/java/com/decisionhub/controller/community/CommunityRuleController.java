@@ -1,4 +1,4 @@
-package com.decisionhub.controller;
+package com.decisionhub.controller.community;
 
 import com.decisionhub.dto.request.community.CommunityRuleRequest;
 import com.decisionhub.dto.response.community.CommunityRuleResponse;

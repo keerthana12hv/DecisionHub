@@ -1,4 +1,4 @@
-package com.decisionhub.controller;
+package com.decisionhub.controller.community;
 
 import com.decisionhub.dto.response.decision.DecisionResponse;
 import com.decisionhub.service.interfaces.community.CommunityModerationService;
