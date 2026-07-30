@@ -13,5 +13,6 @@ public record CommunityResponse(
         String ownerUsername,
         CommunityVisibility visibility,
         Integer memberCount, // 👈 Added comma here
-        Boolean isMember
+        Boolean isMember,
+        Boolean requestPending
 ) {}

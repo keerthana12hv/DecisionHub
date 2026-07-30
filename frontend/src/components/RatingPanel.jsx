@@ -1,35 +1,38 @@
 import { useState, useEffect } from "react";
-import { submitScore, getMyScores, getRanking } from "../services/voteService";
+import { submitScore, getRanking } from "../services/voteService";
+import { useToast } from "./Toast";
 
-export default function RatingPanel({ decision, pollOpen, onScoreSubmitted }) {
-  // Ratings are private per user: sliders always start at 0 until we load
-  // (or the user sets) THIS user's own score. We deliberately do NOT read
-  // decision.options[].comparisonScores here — that field can include every
-  // participant's scores, and showing another user's rating to this user
-  // would leak private votes.
-  const [scores, setScores] = useState({});
-  const [savedScores, setSavedScores] = useState({});
+export default function RatingPanel({ decision, currentUserId, pollOpen, onScoreSubmitted }) {
+  const { addToast } = useToast();
+
+  // Prefill ONLY from the CURRENT USER's own previously-submitted scores.
+  // comparisonScores contains one entry per voter (each carries a userId) —
+  // filtering here is what keeps other people's individual ratings private;
+  // without this filter, whichever entry happened to be first would leak.
+  const buildSubmittedScores = () => {
+    const result = {};
+    (decision.options || []).forEach((opt) => {
+      (opt.comparisonScores || [])
+        .filter((cs) => String(cs.userId) === String(currentUserId))
+        .forEach((cs) => {
+          result[`${opt.id}-${cs.factorId}`] = cs.score;
+        });
+    });
+    return result;
+  };
+
+  // submittedScores = what's actually been saved for this user (source of
+  // truth for "your rating"). scores = the in-progress slider draft, which
+  // starts at 0 (not a pre-filled midpoint) until the user moves it or it
+  // gets initialized from their own submitted value.
+  const [submittedScores, setSubmittedScores] = useState(buildSubmittedScores);
+  const [scores, setScores] = useState(buildSubmittedScores);
   const [ranking, setRanking] = useState(null);
-  const [savingKey, setSavingKey] = useState(null);
+  const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
-    fetchMyScores();
     if (!pollOpen) fetchRanking();
-  }, [decision.id, pollOpen]);
-
-  const fetchMyScores = async () => {
-    try {
-      const res = await getMyScores(decision.id);
-      const mine = {};
-      (res.data || []).forEach((s) => {
-        mine[`${s.optionId}-${s.factorId}`] = s.score;
-      });
-      setScores(mine);
-      setSavedScores(mine);
-    } catch (err) {
-      console.error("Failed to fetch your scores:", err);
-    }
-  };
+  }, [pollOpen]);
 
   const fetchRanking = async () => {
     try {
@@ -46,28 +49,47 @@ export default function RatingPanel({ decision, pollOpen, onScoreSubmitted }) {
     setScores((prev) => ({ ...prev, [`${optionId}-${factorId}`]: value }));
   };
 
-  // Explicit Save per rating — the slider no longer auto-submits on release,
-  // so the user's in-progress drag never gets sent until they confirm.
-  const handleSubmit = async (optionId, factorId) => {
-    const key = `${optionId}-${factorId}`;
-    const value = scores[key] ?? 0;
-    setSavingKey(key);
+  const isDirty = decision.options.some((opt) =>
+    decision.factors.some((factor) => {
+      const key = `${opt.id}-${factor.id}`;
+      return (scores[key] ?? 0) !== (submittedScores[key] ?? 0);
+    })
+  );
+
+  // Single button submits EVERY changed rating across all options/criteria
+  // in one pass — instead of a separate API call + button per criterion.
+  const handleSubmitAll = async () => {
+    setSubmitting(true);
     try {
-      await submitScore(decision.id, optionId, factorId, value);
-      setSavedScores((prev) => ({ ...prev, [key]: value }));
-      // Let the parent page know a score was saved so it can refetch the
-      // decision and refresh the Comparison Matrix without a manual reload.
+      for (const opt of decision.options) {
+        for (const factor of decision.factors) {
+          const key = `${opt.id}-${factor.id}`;
+          const draftValue = scores[key] ?? 0;
+          const savedValue = submittedScores[key] ?? 0;
+          if (draftValue !== savedValue) {
+            await submitScore(decision.id, opt.id, factor.id, draftValue);
+          }
+        }
+      }
+      setSubmittedScores({ ...scores });
+      addToast("Ratings submitted successfully.", "success");
       if (onScoreSubmitted) onScoreSubmitted();
     } catch (err) {
-      console.error("Failed to submit score:", err);
+      console.error("Failed to submit ratings:", err);
+      addToast("Failed to submit ratings.", "error");
     } finally {
-      setSavingKey(null);
+      setSubmitting(false);
     }
   };
 
   return (
     <div className="rating-panel">
       <h3>Rate each option</h3>
+      <p className="section-subtitle">
+        Your ratings are private — only you can see the scores you submit. Move the sliders
+        for each option and criterion, then click "Submit Ratings" once at the bottom to
+        save everything together.
+      </p>
 
       <table>
         <thead>
@@ -84,8 +106,6 @@ export default function RatingPanel({ decision, pollOpen, onScoreSubmitted }) {
               <td>{opt.title}</td>
               {decision.factors.map((factor) => {
                 const key = `${opt.id}-${factor.id}`;
-                const value = scores[key] ?? 0;
-                const isUnsaved = value !== (savedScores[key] ?? 0);
                 return (
                   <td key={factor.id}>
                     <input
@@ -93,20 +113,14 @@ export default function RatingPanel({ decision, pollOpen, onScoreSubmitted }) {
                       min="0"
                       max="100"
                       disabled={!pollOpen}
-                      value={value}
+                      value={scores[key] ?? 0}
                       onChange={(e) =>
                         handleScoreChange(opt.id, factor.id, Number(e.target.value))
                       }
                     />
-                    <span>{value}</span>
-                    {pollOpen && (
-                      <button
-                        className="btn-save-score"
-                        disabled={!isUnsaved || savingKey === key}
-                        onClick={() => handleSubmit(opt.id, factor.id)}
-                      >
-                        {savingKey === key ? "Saving..." : "Save"}
-                      </button>
+                    <span>{scores[key] ?? 0}</span>
+                    {submittedScores[key] !== undefined && (
+                      <div className="your-rating-note">Your rating: {submittedScores[key]}</div>
                     )}
                   </td>
                 );
@@ -115,6 +129,16 @@ export default function RatingPanel({ decision, pollOpen, onScoreSubmitted }) {
           ))}
         </tbody>
       </table>
+
+      <div className="rating-submit-row" style={{ marginTop: "1rem" }}>
+        <button
+          className="btn-primary"
+          disabled={!pollOpen || submitting || !isDirty}
+          onClick={handleSubmitAll}
+        >
+          {submitting ? "Submitting..." : "Submit Ratings"}
+        </button>
+      </div>
 
       {!pollOpen && ranking && (
         <div className="ranking-results">

@@ -8,7 +8,7 @@ public final class CommunityMapper {
     private CommunityMapper() {
     }
 
-    public static CommunityResponse toResponse(Community community, Boolean isMember) {
+    public static CommunityResponse toResponse(Community community, Boolean isMember, Boolean requestPending) {
 
         return new CommunityResponse(
                 community.getId(),
@@ -21,7 +21,8 @@ public final class CommunityMapper {
                 community.getOwner().getUsername(),
                 community.getVisibility(),
                 community.getMemberCount(), // 👈 Added comma here
-                isMember
+                isMember,
+                requestPending
         );
     }
 }
