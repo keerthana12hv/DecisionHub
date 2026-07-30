@@ -103,7 +103,7 @@ public class CommunityServiceImpl implements CommunityService {
 
         communityMemberRepository.save(member);
 
-        return CommunityMapper.toResponse(community, true);
+        return CommunityMapper.toResponse(community, true, false);
     }
 
     @Override
@@ -111,9 +111,18 @@ public class CommunityServiceImpl implements CommunityService {
     public List<CommunityResponse> getAllCommunities() {
         User currentUser = getCurrentUser();
 
-        Set<Long> joinedCommunityIds = communityMemberRepository.findByUser(currentUser)
-                .stream()
+        List<CommunityMember> myMemberships = communityMemberRepository.findByUser(currentUser);
+
+        Set<Long> joinedCommunityIds = myMemberships.stream()
                 .filter(member -> member.getStatus() == MembershipStatus.APPROVED)
+                .map(member -> member.getCommunity().getId())
+                .collect(Collectors.toSet());
+
+        // Exposes a join request that's awaiting moderator approval, so the
+        // frontend can show "Request Pending" from real backend state instead
+        // of only a local, optimistic flag that disappears on refresh.
+        Set<Long> pendingCommunityIds = myMemberships.stream()
+                .filter(member -> member.getStatus() == MembershipStatus.PENDING)
                 .map(member -> member.getCommunity().getId())
                 .collect(Collectors.toSet());
 
@@ -121,7 +130,8 @@ public class CommunityServiceImpl implements CommunityService {
                 .stream()
                 .map(community -> {
                     boolean isMember = joinedCommunityIds.contains(community.getId());
-                    return CommunityMapper.toResponse(community, isMember);
+                    boolean requestPending = pendingCommunityIds.contains(community.getId());
+                    return CommunityMapper.toResponse(community, isMember, requestPending);
                 })
                 .toList();
     }
@@ -129,21 +139,24 @@ public class CommunityServiceImpl implements CommunityService {
     @Override
     @Transactional(readOnly = true)
     public CommunityResponse getCommunityById(Long communityId) {
-        
+
         Community community = communityRepository.findById(communityId)
                 .orElseThrow(() -> new ResourceNotFoundException("Community not found"));
-                
+
         if (community.getDeletedAt() != null) {
             throw new ResourceNotFoundException("Community not found");
         }
 
         User currentUser = getCurrentUser();
-        boolean isMember = communityMemberRepository
-                .findByCommunityAndUser(community, currentUser)
+        var myMembership = communityMemberRepository.findByCommunityAndUser(community, currentUser);
+        boolean isMember = myMembership
                 .map(member -> member.getStatus() == MembershipStatus.APPROVED)
                 .orElse(false);
+        boolean requestPending = myMembership
+                .map(member -> member.getStatus() == MembershipStatus.PENDING)
+                .orElse(false);
 
-        return CommunityMapper.toResponse(community, isMember);
+        return CommunityMapper.toResponse(community, isMember, requestPending);
     }
 
     @Override
@@ -186,7 +199,7 @@ public class CommunityServiceImpl implements CommunityService {
 
         community = communityRepository.save(community);
 
-        return CommunityMapper.toResponse(community, true);
+        return CommunityMapper.toResponse(community, true, false);
     }
 
     @Override
@@ -229,10 +242,10 @@ public class CommunityServiceImpl implements CommunityService {
 
         if (existingMemberOpt.isPresent()) {
             CommunityMember existingMember = existingMemberOpt.get();
-            
+
             if (existingMember.getStatus() == MembershipStatus.APPROVED) {
                 throw new BadRequestException("User is already a member");
-            } 
+            }
             if (existingMember.getStatus() == MembershipStatus.PENDING) {
                 throw new BadRequestException("Join request is already pending");
             }
@@ -246,9 +259,9 @@ public class CommunityServiceImpl implements CommunityService {
                 existingMember.setJoinedAt(LocalDateTime.now());
                 if (community.getVisibility() == CommunityVisibility.PUBLIC) {
                     existingMember.setStatus(MembershipStatus.APPROVED);
-                    
+
                     communityMemberRepository.save(existingMember);
-                    
+
                     community.setMemberCount(community.getMemberCount() + 1);
                     communityRepository.save(community);
                     return new JoinCommunityResponse("Joined community successfully", "APPROVED");
@@ -264,7 +277,7 @@ public class CommunityServiceImpl implements CommunityService {
             newMember.setUser(user);
             newMember.setRole(CommunityMemberRole.MEMBER);
             newMember.setJoinedAt(LocalDateTime.now());
-            
+
             if (community.getVisibility() == CommunityVisibility.PUBLIC) {
                 newMember.setStatus(MembershipStatus.APPROVED);
                 communityMemberRepository.save(newMember);
@@ -277,7 +290,7 @@ public class CommunityServiceImpl implements CommunityService {
                 return new JoinCommunityResponse("Join request sent successfully", "PENDING");
             }
         }
-        
+
         throw new IllegalStateException("Unexpected membership state.");
     }
 
@@ -331,7 +344,7 @@ public class CommunityServiceImpl implements CommunityService {
                 .filter(member -> member.getStatus() == MembershipStatus.APPROVED)
                 .map(CommunityMember::getCommunity)
                 .filter(community -> community.getDeletedAt() == null)
-                .map(community -> CommunityMapper.toResponse(community, true))
+                .map(community -> CommunityMapper.toResponse(community, true, false))
                 .toList();
     }
 
@@ -343,7 +356,7 @@ public class CommunityServiceImpl implements CommunityService {
         return communityRepository.findByOwner(currentUser)
                 .stream()
                 .filter(community -> community.getDeletedAt() == null)
-                .map(community -> CommunityMapper.toResponse(community, true))
+                .map(community -> CommunityMapper.toResponse(community, true, false))
                 .toList();
     }
 

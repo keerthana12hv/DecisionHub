@@ -109,6 +109,20 @@
   cursor: not-allowed;
 }
 
+.owner-badge-pill {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.8rem;
+  font-weight: 600;
+  padding: 8px 12px;
+  border-radius: 8px;
+  color: var(--success, #10b981);
+  background: rgba(16, 185, 129, 0.1);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
 /* Modal creation */
 .create-comm-modal {
   width: 460px;

@@ -29,18 +29,26 @@ function Communities() {
 
   useEffect(() => {
     loadCommunities();
+
+    // Membership approvals happen from a moderator's browser, not this one —
+    // there's no push channel, so poll periodically while this page is open
+    // so "Request Pending" flips to "Joined" without a manual refresh.
+    const intervalId = setInterval(() => loadCommunities(true), 8000);
+    return () => clearInterval(intervalId);
   }, []);
 
-  const loadCommunities = async () => {
-    setLoading(true);
+  // silent=true skips the loading spinner for background refreshes so the
+  // grid doesn't flash/reset every poll.
+  const loadCommunities = async (silent = false) => {
+    if (!silent) setLoading(true);
     try {
       const data = await getCommunities();
       setCommunities(data);
     } catch (error) {
       console.error(error);
-      addToast("Failed to load communities", "error");
+      if (!silent) addToast("Failed to load communities", "error");
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   };
 
@@ -177,19 +185,23 @@ function Communities() {
                           <FaArrowRight /> View Workspace
                         </button>
 
-                        <button
-                          className={`btn-${community.isMember ? "secondary" : "primary"} join-btn`}
-                          disabled={community.requestPending}
-                          onClick={() => handleJoinToggle(community)}
-                        >
-                          {community.isMember
-                            ? "Leave"
-                            : community.requestPending
-                            ? "Request Pending"
-                            : community.visibility === "PRIVATE"
-                            ? "Request to Join"
-                            : "Join"}
-                        </button>
+                        {String(community.ownerId) === String(user?.id) ? (
+                          <span className="owner-badge-pill">Owner</span>
+                        ) : (
+                          <button
+                            className={`btn-${community.isMember ? "secondary" : "primary"} join-btn`}
+                            disabled={community.requestPending}
+                            onClick={() => handleJoinToggle(community)}
+                          >
+                            {community.isMember
+                              ? "Leave"
+                              : community.requestPending
+                              ? "Request Pending"
+                              : community.visibility === "PRIVATE"
+                              ? "Request to Join"
+                              : "Join"}
+                          </button>
+                        )}
                       </div>
                     </div>
                   </div>
