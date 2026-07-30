@@ -266,22 +266,28 @@ export default function DecisionDetail() {
               )}
 
               {/* Tabs — "Edit Board" shown to the decision's creator OR the
-                  community moderator of the community it belongs to. */}
+                  community moderator of the community it belongs to.
+                  Labels are distinct from the internal keys on purpose: the
+                  keys ("overview"/"discussion"/"poll-results"/"edit-board")
+                  still drive routing/state below unchanged, but the visible
+                  text uses DecisionHub's own decision/verdict vocabulary
+                  instead of generic tab names. */}
               <div className="detail-tabs">
-                {["overview", "discussion", "poll results"]
-                  .concat(canEdit ? ["edit board"] : [])
-                  .map((tab) => {
-                  const key = tab.replace(" ", "-");
-                  return (
+                {[
+                  { key: "overview", label: "Brief" },
+                  { key: "discussion", label: "Debate" },
+                  { key: "poll-results", label: "Verdict" }
+                ]
+                  .concat(canEdit ? [{ key: "edit-board", label: "Edit Brief" }] : [])
+                  .map(({ key, label }) => (
                     <button
                       key={key}
                       className={`detail-tab-btn ${activeTab === key ? "active" : ""}`}
                       onClick={() => setActiveTab(key)}
                     >
-                      {tab.charAt(0).toUpperCase() + tab.slice(1)}
+                      {label}
                     </button>
-                  );
-                })}
+                  ))}
               </div>
 
               {/* Overview Tab */}
