@@ -1,7 +1,6 @@
 import {
   FaHome,
   FaPlusCircle,
-  FaVoteYea,
   FaUsers,
   FaChartBar,
   FaBell,
@@ -61,12 +60,6 @@ function Sidebar() {
         </Link>
       </li>
     )}
-
-          <li className={isActive("/vote")}>
-            <Link to="/vote">
-              <FaVoteYea /> <span>Voting Room</span>
-            </Link>
-          </li>
 
           <li className={isActive("/communities")}>
             <Link to="/communities">

@@ -29,12 +29,12 @@ function QuickAction() {
           </Link>
         )}
 
-        <Link to="/vote" className="quick-card glass-card">
+        <Link to="/decisions" className="quick-card glass-card">
           <div className="quick-icon-wrapper blue">
             <FaVoteYea className="quick-icon" />
           </div>
           <h3>Vote Now</h3>
-          <p>Cast your vote on active polling questions.</p>
+          <p>Browse active decisions and cast your vote.</p>
         </Link>
 
         <Link to="/communities" className="quick-card glass-card">

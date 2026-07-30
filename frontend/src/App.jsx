@@ -7,7 +7,7 @@ import Register from "./pages/Register";
 import Dashboard from "./pages/Dashboard";
 import DecisionDetail from "./pages/DecisionDetail";
 import CreateDecision from "./pages/CreateDecision";
-import VotingPage from "./pages/VotingPage";
+// import VotingPage from "./pages/VotingPage"; // Voting Room removed per mentor review — voting now happens directly on each decision's own page
 import Communities from "./pages/Communities";
 import CommunityDetail from "./pages/CommunityDetails";
 import DecisionList from "./pages/DecisionList";
@@ -50,12 +50,12 @@ function AppRoutes() {
       <Route path="/decisions"        element={<PrivateRoute><DecisionList /></PrivateRoute>} />
 <Route path="/create-decision" element={<PrivateRoute><CreateDecision /></PrivateRoute>} />
       <Route path="/decisions/:id"    element={<PrivateRoute><DecisionDetail /></PrivateRoute>} />
-      {/* VotingPage shows a feed of ALL active SINGLE_CHOICE/MULTIPLE_CHOICE
-          decisions — it doesn't read an :id param, so it's registered here
-          at plain /vote to match the Sidebar's "Voting Room" link.
-          RATING_BASED decisions are intentionally excluded here — those are
-          voted on via RatingPanel directly on the decision's own page. */}
-      <Route path="/vote"             element={<PrivateRoute><VotingPage /></PrivateRoute>} />
+      {/* Voting Room removed per mentor review (2026-07-30) — a separate feed
+          page duplicated voting that already happens inline on each decision's
+          own page. Left commented (not deleted) so it can be restored in one
+          line if needed later; VotingPage.jsx itself is untouched.
+      <Route path="/vote" element={<PrivateRoute><VotingPage /></PrivateRoute>} />
+      */}
       <Route path="/decisions/:id/discuss"  element={<PrivateRoute><Discussion /></PrivateRoute>} />
       <Route path="/communities"      element={<PrivateRoute><Communities /></PrivateRoute>} />
       <Route path="/communities/:id"  element={<PrivateRoute><CommunityDetail /></PrivateRoute>} />
