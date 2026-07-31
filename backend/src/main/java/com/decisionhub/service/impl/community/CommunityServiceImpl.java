@@ -201,8 +201,10 @@ public class CommunityServiceImpl implements CommunityService {
         }
 
         User currentUser = getCurrentUser();
-        if (!community.getOwner().getId().equals(currentUser.getId())) {
-            throw new UnauthorizedActionException("Only the community moderator can delete this community");
+        boolean isOwner = community.getOwner().getId().equals(currentUser.getId());
+        boolean isAdmin = currentUser.getRole() == com.decisionhub.enums.authentication.PlatformRole.ADMIN;
+        if (!isOwner && !isAdmin) {
+            throw new UnauthorizedActionException("Only the community owner or a platform admin can delete this community");
         }
 
         community.setDeletedAt(LocalDateTime.now());
