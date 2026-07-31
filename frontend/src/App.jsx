@@ -18,6 +18,8 @@ import Profile from "./pages/Profile";
 import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
 import ModeratorDashboard from "./pages/ModeratorDashboard";
+import FeedbackPage from "./pages/FeedbackPage";
+import FeedbackDashboard from "./pages/FeedbackDashboard";
 
 // ─── Protected Route (any logged-in user) ────────────────────────────────────
 function PrivateRoute({ children }) {
@@ -32,6 +34,17 @@ function ModeratorRoute({ children }) {
   if (loading) return null;
   if (!user) return <Navigate to="/login" replace />;
   if (user.role !== "MODERATOR" && user.role !== "ADMIN") {
+    return <Navigate to="/dashboard" replace />;
+  }
+  return children;
+}
+
+// ─── Admin Route (ADMIN only) ────────────────────────────────────────────────
+function AdminRoute({ children }) {
+  const { user, loading } = useAuth();
+  if (loading) return null;
+  if (!user) return <Navigate to="/login" replace />;
+  if (user.role !== "ADMIN") {
     return <Navigate to="/dashboard" replace />;
   }
   return children;
@@ -63,6 +76,15 @@ function AppRoutes() {
       <Route path="/notifications"    element={<PrivateRoute><NotificationsPage /></PrivateRoute>} />
       <Route path="/profile"          element={<PrivateRoute><Profile /></PrivateRoute>} />
       <Route path="/settings"         element={<PrivateRoute><Settings /></PrivateRoute>} />
+      <Route path="/feedback"         element={<PrivateRoute><FeedbackPage /></PrivateRoute>} />
+      <Route
+        path="/feedback-dashboard"
+        element={
+          <AdminRoute>
+            <FeedbackDashboard />
+          </AdminRoute>
+        }
+      />
 
       {/* Moderator only */}
       <Route
