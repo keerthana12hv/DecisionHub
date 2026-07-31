@@ -68,6 +68,8 @@ class DecisionServiceTest {
     @Spy
     private com.decisionhub.validator.decision.DecisionValidator decisionValidator = new com.decisionhub.validator.decision.DecisionValidator();
     @Mock
+    private DecisionModificationValidator decisionModificationValidator;
+    @Mock
     private org.springframework.context.ApplicationEventPublisher eventPublisher;
 
     @InjectMocks
@@ -215,6 +217,8 @@ class DecisionServiceTest {
         when(userRepository.findById(1L)).thenReturn(Optional.of(user));
         when(decisionRepository.findById(1L)).thenReturn(Optional.of(decision));
         when(decisionAuthorizationService.canEditDecision(1L, 1L)).thenReturn(true);
+        doNothing().when(decisionModificationValidator)
+                .validateDecisionEditable(decision);
         when(decisionRepository.save(decision)).thenReturn(decision);
         when(decisionMapper.toResponse(decision)).thenReturn(response);
 
@@ -243,6 +247,8 @@ class DecisionServiceTest {
         when(comparisonScoreRepository.findByOptionDecisionId(1L)).thenReturn(Collections.emptyList());
         when(comparisonFactorRepository.findByDecisionId(1L)).thenReturn(Collections.emptyList());
         when(decisionOptionRepository.findByDecisionId(1L)).thenReturn(Collections.emptyList());
+        doNothing().when(decisionModificationValidator)
+                .validateDecisionEditable(decision);
 
         decisionService.deleteDecision(1L, "127.0.0.1", "Mozilla");
 
