@@ -89,8 +89,9 @@ public class SecurityConfig {
 
                         // 🎟️ SUPPORT MODULE
                         // USER or ADMIN can submit and view their own tickets
-                        .requestMatchers(HttpMethod.POST, "/api/support").hasAnyRole("USER", "ADMIN")
-                        .requestMatchers(HttpMethod.GET, "/api/support/my").hasAnyRole("USER", "ADMIN")
+                        .requestMatchers(HttpMethod.POST, "/api/support").hasAnyRole("USER", "MODERATOR", "ADMIN")
+
+                        .requestMatchers(HttpMethod.GET, "/api/support/my").hasAnyRole("USER", "MODERATOR", "ADMIN")
                         // ONLY ADMIN can access all tickets and update statuses
                         .requestMatchers("/api/admin/support/**").hasRole("ADMIN")
 

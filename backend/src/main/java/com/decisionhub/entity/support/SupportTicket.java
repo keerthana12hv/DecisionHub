@@ -2,6 +2,9 @@ package com.decisionhub.entity.support;
 
 import java.time.LocalDateTime;
 
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
+
 import com.decisionhub.entity.authentication.User;
 import com.decisionhub.enums.support.SupportTicketStatus;
 import com.decisionhub.enums.support.SupportTicketType;
@@ -55,9 +58,11 @@ public class SupportTicket {
     @Column
     private SupportTicketStatus status;
 
-    @Column(name = "created_at", nullable = false)
+    @CreationTimestamp
+    @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
+    @UpdateTimestamp
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 }

@@ -1,7 +1,6 @@
 package com.decisionhub.enums.administration;
 
 public enum AuditActionType {
-
     LOGIN,
     LOGOUT,
     REGISTER,
@@ -18,11 +17,9 @@ public enum AuditActionType {
     CAST_VOTE,
 
     DECISION_FEEDBACK_SUBMITTED, 
-
-    SUPPORT_TICKET_CREATED,         // ✅ Added for Support Module
-    SUPPORT_TICKET_STATUS_UPDATED,  // ✅ Added for Support Module
+    SUPPORT_TICKET_CREATED,         
+    SUPPORT_TICKET_STATUS_UPDATED,  
 
     EXPORT_REPORT,
-
     ADMIN_ACTION
 }

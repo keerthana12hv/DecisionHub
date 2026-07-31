@@ -21,39 +21,57 @@ public class AuditServiceImpl implements AuditService {
     }
 
     @Override
-    @Transactional
-    public void log(User user, String action, String tableName, Long entityId, String oldValue, String newValue, String ipAddress, String userAgent) {
-        AuditActionType actionType = AuditActionType.ADMIN_ACTION;
-        if (action != null) {
-            switch (action) {
-                case "DECISION_CREATED":
-                case "OPTION_CREATED":
-                case "FACTOR_CREATED":
-                case "SCORE_CREATED":
-                    actionType = AuditActionType.CREATE_DECISION;
-                    break;
-                case "DECISION_UPDATED":
-                case "OPTION_UPDATED":
-                case "FACTOR_UPDATED":
-                case "SCORE_UPDATED":
-                    actionType = AuditActionType.UPDATE_DECISION;
-                    break;
-                case "DECISION_DELETED":
-                case "OPTION_DELETED":
-                case "FACTOR_DELETED":
-                case "SCORE_DELETED":
-                    actionType = AuditActionType.DELETE_DECISION;
-                    break;
-                case "DECISION_FEEDBACK_SUBMITTED": // ✅ Mapped the new action
-                    actionType = AuditActionType.DECISION_FEEDBACK_SUBMITTED;
-                    break;
-            }
-        }
+@Transactional
+public void log(User user, String action, String tableName, Long entityId,
+                String oldValue, String newValue,
+                String ipAddress, String userAgent) {
 
-        AuditLog log = new AuditLog();
-        log.setAction(actionType);
-        log.setPerformedBy(user);
-        log.setPerformedAt(LocalDateTime.now());
-        auditLogRepository.save(log);
+    AuditActionType actionType = AuditActionType.ADMIN_ACTION;
+
+    if (action != null) {
+        switch (action) {
+
+            case "DECISION_CREATED":
+            case "OPTION_CREATED":
+            case "FACTOR_CREATED":
+            case "SCORE_CREATED":
+                actionType = AuditActionType.CREATE_DECISION;
+                break;
+
+            case "DECISION_UPDATED":
+            case "OPTION_UPDATED":
+            case "FACTOR_UPDATED":
+            case "SCORE_UPDATED":
+                actionType = AuditActionType.UPDATE_DECISION;
+                break;
+
+            case "DECISION_DELETED":
+            case "OPTION_DELETED":
+            case "FACTOR_DELETED":
+            case "SCORE_DELETED":
+                actionType = AuditActionType.DELETE_DECISION;
+                break;
+
+            case "DECISION_FEEDBACK_SUBMITTED":
+                actionType = AuditActionType.DECISION_FEEDBACK_SUBMITTED;
+                break;
+
+            case "SUPPORT_TICKET_CREATED":
+                actionType = AuditActionType.SUPPORT_TICKET_CREATED;
+                break;
+
+            case "SUPPORT_TICKET_STATUS_UPDATED":
+                actionType = AuditActionType.SUPPORT_TICKET_STATUS_UPDATED;
+                break;
+        }
     }
+
+    AuditLog log = new AuditLog();
+    log.setAction(actionType);
+    log.setPerformedBy(user);
+    log.setPerformedAt(LocalDateTime.now());
+
+    auditLogRepository.save(log);
+}
+    
 }

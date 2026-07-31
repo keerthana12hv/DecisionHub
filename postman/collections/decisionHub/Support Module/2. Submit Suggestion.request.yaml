@@ -1,0 +1,20 @@
+$kind: http-request
+name: 2. Submit Suggestion
+url: http://localhost:8080/api/support
+method: POST
+body:
+  type: json
+  content: "{\r
+
+    \    \"type\": \"SUGGESTION\",\r
+
+    \    \"subject\": \"Add Dark Mode\",\r
+
+    \    \"description\": \"It would be great to have a dark theme for late-night usage.\"\r
+
+    }"
+auth:
+  type: bearer
+  credentials:
+    token: "{{authToken}}"
+order: 2070339093829403
