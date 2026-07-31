@@ -274,22 +274,28 @@ export default function DecisionDetail() {
               )}
 
               {/* Tabs — "Edit Board" shown to the decision's creator OR the
-                  community moderator of the community it belongs to. */}
+                  community moderator of the community it belongs to.
+                  Labels are distinct from the internal keys on purpose: the
+                  keys ("overview"/"discussion"/"poll-results"/"edit-board")
+                  still drive routing/state below unchanged, but the visible
+                  text uses DecisionHub's own decision/verdict vocabulary
+                  instead of generic tab names. */}
               <div className="detail-tabs">
-                {["overview", "discussion", "poll results"]
-                  .concat(canEdit ? ["edit board"] : [])
-                  .map((tab) => {
-                  const key = tab.replace(" ", "-");
-                  return (
+                {[
+                  { key: "overview", label: "Brief" },
+                  { key: "discussion", label: "Debate" },
+                  { key: "poll-results", label: "Verdict" }
+                ]
+                  .concat(canEdit ? [{ key: "edit-board", label: "Edit Brief" }] : [])
+                  .map(({ key, label }) => (
                     <button
                       key={key}
                       className={`detail-tab-btn ${activeTab === key ? "active" : ""}`}
                       onClick={() => setActiveTab(key)}
                     >
-                      {tab.charAt(0).toUpperCase() + tab.slice(1)}
+                      {label}
                     </button>
-                  );
-                })}
+                  ))}
               </div>
 
               {/* Overview Tab */}
@@ -355,9 +361,8 @@ export default function DecisionDetail() {
                           ? decision.options.map((opt) => {
                               const isSelected = myVoteOptionIds.includes(opt.id);
                               return (
-                                <div
+                                <label
                                   key={opt.id}
-                                  onClick={() => !voting && canParticipate && handleSingleChoiceVote(opt.id)}
                                   style={{
                                     display: "flex",
                                     flexDirection: "row",
@@ -376,22 +381,21 @@ export default function DecisionDetail() {
                                     checked={isSelected}
                                     disabled={voting || !canParticipate}
                                     onChange={() => handleSingleChoiceVote(opt.id)}
-                                    style={{ flexShrink: 0, margin: 0, position: "static", float: "none", width: "18px", height: "18px" }}
+                                    className="vote-choice-input"
                                   />
                                   <span style={{ flex: "initial", textAlign: "left" }}>
                                     <strong>{opt.title}</strong>
                                     {opt.description && <span> — {opt.description}</span>}
                                   </span>
-                                </div>
+                                </label>
                               );
                             })
                           : decision.options.map((opt) => {
                               const current = pendingSelection ?? myVoteOptionIds;
                               const isSelected = current.includes(opt.id);
                               return (
-                                <div
+                                <label
                                   key={opt.id}
-                                  onClick={() => canParticipate && toggleMultipleChoiceOption(opt.id)}
                                   style={{
                                     display: "flex",
                                     flexDirection: "row",
@@ -409,13 +413,13 @@ export default function DecisionDetail() {
                                     checked={isSelected}
                                     disabled={voting || !canParticipate}
                                     onChange={() => toggleMultipleChoiceOption(opt.id)}
-                                    style={{ flexShrink: 0, margin: 0, position: "static", float: "none", width: "18px", height: "18px" }}
+                                    className="vote-choice-input"
                                   />
                                   <span style={{ flex: "initial", textAlign: "left" }}>
                                     <strong>{opt.title}</strong>
                                     {opt.description && <span> — {opt.description}</span>}
                                   </span>
-                                </div>
+                                </label>
                               );
                             })}
                       </div>
