@@ -1,6 +1,6 @@
 $kind: http-request
-name: admin role test
-url: http://localhost:8080/api/admin/test
+name: 4. Get My Tickets
+url: http://localhost:8080/api/support/my
 method: GET
 body:
   type: json
@@ -9,4 +9,4 @@ auth:
   type: bearer
   credentials:
     token: "{{authToken}}"
-order: 5000
+order: 3969190080131013
