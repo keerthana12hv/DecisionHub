@@ -1,0 +1,12 @@
+$kind: http-request
+name: 10. Get All Decision Feedback
+url: http://localhost:8080/api/admin/decision-feedback
+method: GET
+body:
+  type: json
+  content: ""
+auth:
+  type: bearer
+  credentials:
+    token: "{{authToken}}"
+order: 1785436244831
