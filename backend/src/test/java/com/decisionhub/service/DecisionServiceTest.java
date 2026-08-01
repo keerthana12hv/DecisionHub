@@ -256,6 +256,8 @@ class DecisionServiceTest {
         when(comparisonScoreRepository.findByOptionDecisionId(1L)).thenReturn(Collections.emptyList());
         when(comparisonFactorRepository.findByDecisionId(1L)).thenReturn(Collections.emptyList());
         when(decisionOptionRepository.findByDecisionId(1L)).thenReturn(Collections.emptyList());
+        doNothing().when(decisionModificationValidator)
+                .validateDecisionEditable(decision);
 
         decisionService.deleteDecision(1L, "127.0.0.1", "Mozilla");
 

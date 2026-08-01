@@ -1,10 +1,10 @@
 package com.decisionhub.security.decision;
 
-import com.decisionhub.entity.community.CommunityMember;
 import com.decisionhub.entity.decision.Decision;
 import com.decisionhub.enums.community.MembershipStatus;
 import com.decisionhub.repository.community.CommunityMemberRepository;
 import com.decisionhub.repository.decision.DecisionRepository;
+import com.decisionhub.repository.discussion.CommentRepository;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -21,6 +21,7 @@ public class DecisionAuthorizationServiceImpl implements DecisionAuthorizationSe
 
     private final DecisionRepository decisionRepository;
     private final CommunityMemberRepository communityMemberRepository;
+    private final CommentRepository commentRepository;
 
     @Override
     @Transactional(readOnly = true)
@@ -178,5 +179,62 @@ public class DecisionAuthorizationServiceImpl implements DecisionAuthorizationSe
             default:
                 return false;
         }
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public boolean canComment(Long decisionId, Long userId) {
+
+        if (decisionId == null || userId == null) {
+            return false;
+        }
+
+        return canViewDecision(decisionId, userId);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public boolean canEditComment(Long commentId, Long userId) {
+
+        if (commentId == null || userId == null) {
+            return false;
+        }
+
+        return commentRepository.findById(commentId)
+                .map(comment -> comment.getUser().getId().equals(userId))
+                .orElse(false);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public boolean canDeleteComment(Long commentId, Long userId) {
+
+        if (commentId == null || userId == null) {
+            return false;
+        }
+
+        return commentRepository.findById(commentId)
+                .map(comment -> {
+
+                    // Comment owner can always delete.
+                    if (comment.getUser().getId().equals(userId)) {
+                        return true;
+                    }
+
+                    // Community owner can moderate comments
+                    // within their community.
+                    if (comment.getDecision().getCommunity() != null) {
+
+                        return comment.getDecision()
+                                .getCommunity()
+                                .getOwner()
+                                .getId()
+                                .equals(userId);
+                    }
+
+                    return false;
+
+                })
+                .orElse(false);
     }
 }
