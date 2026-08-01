@@ -17,11 +17,6 @@ public class DecisionModificationValidator {
         this.decisionRepository = decisionRepository;
     }
 
-    // Default constructor for mockito test support
-    protected DecisionModificationValidator() {
-        this.decisionRepository = null;
-    }
-
     /**
      * Validates that a decision is editable (neither closed nor locked).
      * Enforces the validation precedence:
