@@ -17,11 +17,6 @@ public class DecisionModificationValidator {
         this.decisionRepository = decisionRepository;
     }
 
-    // Default constructor for mockito test support
-    protected DecisionModificationValidator() {
-        this.decisionRepository = null;
-    }
-
     /**
      * Validates that a decision is editable (neither closed nor locked).
      * Enforces the validation precedence:
@@ -55,10 +50,41 @@ public class DecisionModificationValidator {
     }
 
     /**
-     * Reusable lifecycle validation hook for future modules (e.g., Poll, Vote, Comments).
-     * Verifies that the decision is open and not locked.
+     * Reusable lifecycle validation hook for future modules
+     * (e.g., Poll, Vote).
+     *
+     * Verifies that the Decision is not CLOSED and not LOCKED.
      */
     public void validateDecisionLifecycleForWrite(Long decisionId) {
         validateDecisionEditable(decisionId);
+    }
+
+    /**
+     * Validates whether the Decision currently accepts comments.
+     *
+     * Comments are allowed only while the Decision is ACTIVE
+     * and the discussion is not locked.
+     */
+    public void validateCommentAllowed(Long decisionId) {
+
+        if (decisionRepository == null) {
+            throw new IllegalStateException(
+                    "DecisionRepository is not initialized"
+            );
+        }
+
+        Decision decision = decisionRepository.findById(decisionId)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Decision not found with ID: " + decisionId
+                ));
+
+        if (decision.getStatus() != DecisionStatus.ACTIVE) {
+            throw new DecisionClosedException(
+                    "Comments are only allowed on ACTIVE decisions."
+            );
+        }
+
+        // Reuse existing validation for locked decisions.
+        validateDecisionEditable(decision);
     }
 }

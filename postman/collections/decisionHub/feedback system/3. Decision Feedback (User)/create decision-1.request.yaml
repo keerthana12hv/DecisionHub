@@ -1,0 +1,91 @@
+$kind: http-request
+name: create decision
+url: http://localhost:8080/api/decisions
+method: POST
+body:
+  type: json
+  content: "{\r
+
+    \  \"title\": \"Annual Meetup Venue Selection\",\r
+
+    \  \"description\": \"Choose the venue for the BIT Final Year annual
+    meetup.\",\r
+
+    \  \"communityId\": {{communityId}},\r
+
+    \  \"isPublic\": false,\r
+
+    \  \"votingType\": \"SINGLE_CHOICE\",\r
+
+    \  \"anonymityType\": \"PUBLIC\",\r
+
+    \  \"votingEndTime\": \"2026-08-05T18:00:00\",\r
+
+    \  \"deadline\": \"2026-08-06T18:00:00\",\r
+
+    \  \"tags\": [\r
+
+    \    \"Meetup\",\r
+
+    \    \"College\"\r
+
+    \  ],\r
+
+    \  \"options\": [\r
+
+    \    {\r
+
+    \      \"title\": \"Goa\",\r
+
+    \      \"description\": \"Goa Beach Meetup\",\r
+
+    \      \"criteria\": []\r
+
+    \    },\r
+
+    \    {\r
+
+    \      \"title\": \"Coorg\",\r
+
+    \      \"description\": \"Coorg Nature Trip\",\r
+
+    \      \"criteria\": []\r
+
+    \    },\r
+
+    \    {\r
+
+    \      \"title\": \"Mysore\",\r
+
+    \      \"description\": \"Mysore Heritage Tour\",\r
+
+    \      \"criteria\": []\r
+
+    \    }\r
+
+    \  ],\r
+
+    \  \"factors\": []\r
+
+    }"
+auth:
+  type: bearer
+  credentials:
+    token: "{{authToken}}"
+scripts:
+  - type: afterResponse
+    code: "const response = pm.response.json();\r
+
+      \r
+
+      pm.collectionVariables.set(\"decisionId\", response.id);\r
+
+      \r
+
+      pm.collectionVariables.set(\"goaOptionId\", response.options[0].id);\r
+
+      pm.collectionVariables.set(\"coorgOptionId\", response.options[1].id);\r
+
+      pm.collectionVariables.set(\"mysoreOptionId\", response.options[2].id);"
+    language: text/javascript
+order: 3000
