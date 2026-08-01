@@ -1,0 +1,11 @@
+$kind: http-request
+url: http://localhost:8080/api/comments/{{commentId}}/replies
+method: GET
+body:
+  type: json
+  content: ""
+auth:
+  type: bearer
+  credentials:
+    token: "{{authToken}}"
+order: 9000
