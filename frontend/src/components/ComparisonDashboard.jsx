@@ -3,58 +3,84 @@ import { FaBalanceScale, FaChartLine, FaUsers, FaCheckCircle } from "react-icons
 import api from "../services/api";
 
 const scoreMeta = [
-  { title: "Decision Alignment", icon: <FaBalanceScale />, tone: "purple" },
-  { title: "Consensus Score", icon: <FaCheckCircle />, tone: "blue" },
-  { title: "Community Engagement", icon: <FaUsers />, tone: "green" },
-  { title: "Confidence Index", icon: <FaChartLine />, tone: "yellow" },
+  { title: "Decision Alignment",   icon: <FaBalanceScale />, tone: "purple" },
+  { title: "Consensus Score",      icon: <FaCheckCircle />,  tone: "blue"   },
+  { title: "Community Engagement", icon: <FaUsers />,        tone: "green"  },
+  { title: "Confidence Index",     icon: <FaChartLine />,    tone: "yellow" },
 ];
+
+// Count unique participants (distinct userIds) for one option's comparisonScores
+const uniqueParticipants = (comparisonScores = []) =>
+  new Set(comparisonScores.map((s) => s.userId)).size;
 
 function ComparisonDashboard() {
   const [decisions, setDecisions] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading]     = useState(true);
 
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const response = await api.get("/api/decisions");
-        setDecisions(response.data || []);
-      } catch (error) {
-        console.error("Failed to load comparison data", error);
-        setDecisions([]);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchData();
+    api.get("/api/decisions")
+      .then((r) => setDecisions(r.data ?? []))
+      .catch(() => setDecisions([]))
+      .finally(() => setLoading(false));
   }, []);
 
   const analytics = useMemo(() => {
-    const total = decisions.length;
-    const active = decisions.filter((decision) => decision.status === "ACTIVE").length;
+    const total  = decisions.length;
+    const active = decisions.filter((d) => d.status === "ACTIVE").length;
     const closed = total - active;
 
+    // Comparison rows — first 4 decisions, first 2 options each
     const rows = decisions.slice(0, 4).map((decision) => {
-      const options = decision.options || [];
-      const first = options[0];
-      const second = options[1];
-      const firstVotes = first?.comparisonScores?.length || 0;
-      const secondVotes = second?.comparisonScores?.length || 0;
+      const options = decision.options ?? [];
+      const first   = options[0];
+      const second  = options[1];
+      // Backend maps DecisionOption.optionName → OptionResponseDto.title
+      const firstParticipants  = first  ? uniqueParticipants(first.comparisonScores)  : 0;
+      const secondParticipants = second ? uniqueParticipants(second.comparisonScores) : 0;
 
       return {
         category: decision.title,
-        optionA: first?.title || "No option",
-        optionB: second?.title || "No option",
-        scoreA: `${Math.max(firstVotes, 0)} score${firstVotes === 1 ? "" : "s"}`,
-        scoreB: `${Math.max(secondVotes, 0)} score${secondVotes === 1 ? "" : "s"}`,
+        optionA:  first?.title  ?? "—",
+        optionB:  second?.title ?? "—",
+        scoreA:   `${firstParticipants} voter${firstParticipants  !== 1 ? "s" : ""}`,
+        scoreB:   `${secondParticipants} voter${secondParticipants !== 1 ? "s" : ""}`,
       };
     });
 
+    // Total score entries across all options
+    const totalScores = decisions.reduce(
+      (sum, d) =>
+        sum + (d.options ?? []).reduce(
+          (s, o) => s + (o.comparisonScores?.length ?? 0), 0
+        ),
+      0
+    );
+
     const scoreCards = [
-      { title: "Decision Alignment", value: `${Math.round((active / Math.max(total, 1)) * 100)}%`, change: `${active} active decisions`, icon: scoreMeta[0].icon, tone: scoreMeta[0].tone },
-      { title: "Consensus Score", value: `${Math.round((closed / Math.max(total, 1)) * 100)}%`, change: `${closed} closed decisions`, icon: scoreMeta[1].icon, tone: scoreMeta[1].tone },
-      { title: "Community Engagement", value: `${decisions.reduce((sum, decision) => sum + (decision.options?.length || 0), 0)}`, change: "options tracked", icon: scoreMeta[2].icon, tone: scoreMeta[2].tone },
-      { title: "Confidence Index", value: `${Math.min(100, Math.round(total * 20))}`, change: `${total} decisions loaded`, icon: scoreMeta[3].icon, tone: scoreMeta[3].tone },
+      {
+        title:  "Decision Alignment",
+        value:  `${Math.round((active / Math.max(total, 1)) * 100)}%`,
+        change: `${active} active decision${active !== 1 ? "s" : ""}`,
+        icon: scoreMeta[0].icon, tone: scoreMeta[0].tone,
+      },
+      {
+        title:  "Consensus Score",
+        value:  `${Math.round((closed / Math.max(total, 1)) * 100)}%`,
+        change: `${closed} closed decision${closed !== 1 ? "s" : ""}`,
+        icon: scoreMeta[1].icon, tone: scoreMeta[1].tone,
+      },
+      {
+        title:  "Community Engagement",
+        value:  `${decisions.reduce((s, d) => s + (d.options?.length ?? 0), 0)}`,
+        change: "options tracked",
+        icon: scoreMeta[2].icon, tone: scoreMeta[2].tone,
+      },
+      {
+        title:  "Confidence Index",
+        value:  `${totalScores}`,
+        change: "total score entries",
+        icon: scoreMeta[3].icon, tone: scoreMeta[3].tone,
+      },
     ];
 
     return { scoreCards, rows };
@@ -91,31 +117,33 @@ function ComparisonDashboard() {
         <table className="comparison-table">
           <thead>
             <tr>
-              <th>Category</th>
+              <th>Decision</th>
               <th>Option A</th>
               <th>Option B</th>
-              <th>Score A</th>
-              <th>Score B</th>
+              <th>Voters A</th>
+              <th>Voters B</th>
             </tr>
           </thead>
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan="5" className="comparison-empty">Loading decision comparison rows…</td>
+                <td colSpan="5" className="comparison-empty">Loading…</td>
               </tr>
             ) : analytics.rows.length === 0 ? (
               <tr>
                 <td colSpan="5" className="comparison-empty">No decisions available yet.</td>
               </tr>
-            ) : analytics.rows.map((row) => (
-              <tr key={row.category}>
-                <td>{row.category}</td>
-                <td>{row.optionA}</td>
-                <td>{row.optionB}</td>
-                <td>{row.scoreA}</td>
-                <td>{row.scoreB}</td>
-              </tr>
-            ))}
+            ) : (
+              analytics.rows.map((row) => (
+                <tr key={row.category}>
+                  <td>{row.category}</td>
+                  <td>{row.optionA}</td>
+                  <td>{row.optionB}</td>
+                  <td>{row.scoreA}</td>
+                  <td>{row.scoreB}</td>
+                </tr>
+              ))
+            )}
           </tbody>
         </table>
       </div>

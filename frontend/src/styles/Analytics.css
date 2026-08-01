@@ -507,3 +507,138 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* ── Analytics page additions ── */
+
+.analytics-header-right {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.an-refresh-ts {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+
+/* Smaller h2 for long decision titles */
+.metric-h2-sm {
+  font-family: var(--font-title);
+  font-size: 1.1rem;
+  font-weight: 700;
+  margin: 0 0 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 200px;
+}
+
+/* Loading / empty states inside charts */
+.an-chart-loading,
+.an-empty-chart {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  padding: 2rem 0;
+  justify-content: center;
+}
+
+/* ── Dynamic bar chart ── */
+.an-bar-chart {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.75rem;
+  height: 170px;
+  padding: 0 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.an-bar-col {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.an-bar {
+  width: 100%;
+  max-width: 48px;
+  border-radius: 4px 4px 0 0;
+  transition: height 0.6s ease;
+  opacity: 0.9;
+}
+.an-bar:hover { opacity: 1; }
+
+.an-bar-value {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+.an-bar-label {
+  font-size: 0.68rem;
+  color: var(--text-muted);
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 60px;
+}
+
+/* ── Voting type distribution ── */
+.an-type-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  margin-top: 0.5rem;
+}
+
+.an-type-row {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.an-type-row__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.an-type-count {
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.an-type-pct { color: var(--text-muted); }
+
+.an-type-bar-track {
+  height: 8px;
+  background: rgba(255,255,255,0.05);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.an-type-bar-fill {
+  height: 100%;
+  border-radius: 999px;
+  transition: width 0.7s ease-out;
+  min-width: 4px;
+}
+
+.an-type-votes {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+}
+
+/* Fix growth-percentage positioning */
+.growth-bar-wrapper {
+  position: relative;
+}

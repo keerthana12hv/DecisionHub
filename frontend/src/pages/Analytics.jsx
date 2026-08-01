@@ -1,71 +1,190 @@
-import { useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import Sidebar from "../components/Sidebar";
 import Navbar from "../components/Navbar";
 import { useToast } from "../components/Toast";
-import { FaFileDownload, FaChartBar, FaPercent, FaVoteYea, FaTrophy, FaCalendarCheck } from "react-icons/fa";
+import {
+  FaFileDownload, FaPercent, FaVoteYea,
+  FaTrophy, FaCalendarCheck, FaSync, FaUsers,
+} from "react-icons/fa";
 import ComparisonDashboard from "../components/ComparisonDashboard";
 import VotingInsights from "../components/VotingInsights";
+import api from "../services/api";
 import "../styles/Analytics.css";
 
-function Analytics() {
-  const { addToast } = useToast();
-  const [downloading, setDownloading] = useState(null);
+// ─── helpers ──────────────────────────────────────────────────────────────────
 
-  const handleExport = (format) => {
-    setDownloading(format);
-    addToast(`Preparing ${format} report download...`, "info");
-    
-    setTimeout(() => {
-      setDownloading(null);
-      addToast(`DecisionHub_Analytics_Report.${format.toLowerCase()} downloaded successfully!`, "success");
-    }, 2000);
+/** Total votes across all options of a decision (choice-based: voteCount; rating-based: scores) */
+const decisionVoteTotal = (decision) =>
+  (decision.options ?? []).reduce((sum, o) => {
+    const choiceVotes  = o.voteCount ?? 0;
+    const ratingVoters = new Set((o.comparisonScores ?? []).map((s) => s.userId)).size;
+    return sum + (choiceVotes > 0 ? choiceVotes : ratingVoters);
+  }, 0);
+
+/** Bar chart bar height (px) relative to max value, range 10–140 */
+const barHeight = (val, max) => (max === 0 ? 10 : Math.round(10 + (val / max) * 130));
+
+const COLORS = ["#8b5cf6", "#3b82f6", "#10b981", "#f59e0b", "#ec4899", "#06b6d4"];
+
+// ─── Analytics page ───────────────────────────────────────────────────────────
+
+export default function Analytics() {
+  const { addToast } = useToast();
+
+  const [decisions,    setDecisions]    = useState([]);
+  const [communities,  setCommunities]  = useState([]);
+  const [loading,      setLoading]      = useState(true);
+  const [lastRefresh,  setLastRefresh]  = useState(null);
+  const [downloading,  setDownloading]  = useState(null);
+
+  // ── fetch all data ──────────────────────────────────────────────────────────
+  const fetchAll = useCallback(async () => {
+    setLoading(true);
+    try {
+      const [decRes, commRes] = await Promise.all([
+        api.get("/api/decisions"),
+        api.get("/api/communities").catch(() => ({ data: [] })),
+      ]);
+      setDecisions(decRes.data ?? []);
+      setCommunities(commRes.data ?? []);
+      setLastRefresh(new Date());
+    } catch (err) {
+      addToast("Failed to load analytics data.", "error");
+    } finally {
+      setLoading(false);
+    }
+  }, [addToast]);
+
+  useEffect(() => { fetchAll(); }, [fetchAll]);
+
+  // ── derived metrics ─────────────────────────────────────────────────────────
+  const totalDecisions   = decisions.length;
+  const activeDecisions  = decisions.filter((d) => d.status === "ACTIVE");
+  const closedDecisions  = decisions.filter((d) => d.status === "CLOSED");
+
+  // Total votes = sum of voteCount (choice) + unique raters (rating)
+  const totalVotes = decisions.reduce((sum, d) => sum + decisionVoteTotal(d), 0);
+
+  // Most voted decision
+  const mostVotedDecision = [...decisions].sort(
+    (a, b) => decisionVoteTotal(b) - decisionVoteTotal(a)
+  )[0];
+
+  // Participation rate = decisions with at least 1 vote / total active decisions
+  const activeWithVotes = activeDecisions.filter((d) => decisionVoteTotal(d) > 0).length;
+  const participationRate = activeDecisions.length === 0
+    ? 0
+    : Math.round((activeWithVotes / activeDecisions.length) * 100);
+
+  // Vote distribution per voting type (for bar chart)
+  const typeGroups = { SINGLE_CHOICE: 0, MULTIPLE_CHOICE: 0, RATING_BASED: 0 };
+  for (const d of decisions) {
+    typeGroups[d.votingType] = (typeGroups[d.votingType] ?? 0) + decisionVoteTotal(d);
+  }
+  const typeLabels = {
+    SINGLE_CHOICE:   "Single",
+    MULTIPLE_CHOICE: "Multiple",
+    RATING_BASED:    "Rating",
   };
 
+  // Top 5 decisions by vote count (for bar chart)
+  const topDecisions = [...decisions]
+    .sort((a, b) => decisionVoteTotal(b) - decisionVoteTotal(a))
+    .slice(0, 5);
+  const maxTopVotes = Math.max(...topDecisions.map(decisionVoteTotal), 1);
+
+  // Donut chart — decision status breakdown (Active vs Closed only)
+  const donutTotal  = Math.max(activeDecisions.length + closedDecisions.length, 1);
+  const activePct   = Math.round((activeDecisions.length / donutTotal) * 100);
+  const closedPct   = 100 - activePct;
+
+  // Donut strokeDasharray helpers (circumference ≈ 100 for r=15.915)
+  const donutOffset = (idx) => {
+    const pcts = [activePct, closedPct];
+    return -1 * pcts.slice(0, idx).reduce((s, p) => s + p, 0) + 25;
+  };
+
+  // Community top list by member count
+  const topCommunities = [...communities]
+    .sort((a, b) => (b.memberCount ?? 0) - (a.memberCount ?? 0))
+    .slice(0, 5);
+  const maxCommunityMembers = Math.max(...topCommunities.map((c) => c.memberCount ?? 0), 1);
+
+  // Decisions created per voting type (for type distribution bar chart)
+  const typeCounts = {
+    SINGLE_CHOICE:   decisions.filter((d) => d.votingType === "SINGLE_CHOICE").length,
+    MULTIPLE_CHOICE: decisions.filter((d) => d.votingType === "MULTIPLE_CHOICE").length,
+    RATING_BASED:    decisions.filter((d) => d.votingType === "RATING_BASED").length,
+  };
+  const maxTypeCount = Math.max(...Object.values(typeCounts), 1);
+
+  // ── export (mock — no backend endpoint yet) ─────────────────────────────────
+  const handleExport = (format) => {
+    setDownloading(format);
+    addToast(`Preparing ${format} export…`, "info");
+    setTimeout(() => {
+      setDownloading(null);
+      addToast(`Export ready (feature coming soon).`, "success");
+    }, 1500);
+  };
+
+  // ── render ──────────────────────────────────────────────────────────────────
   return (
     <div className="dashboard">
       <Sidebar />
       <div className="dashboard-main">
         <Navbar />
         <div className="dashboard-content animate-fade-in">
+
+          {/* ── Header ── */}
           <div className="analytics-header">
             <div>
               <h1>Platform Analytics</h1>
-              <p>Real-time analytics, voting trends, and community engagement metrics.</p>
+              <p>
+                Real-time decision, voting, and community metrics pulled
+                directly from the database.
+                {lastRefresh && (
+                  <span className="an-refresh-ts">
+                    {" "}· Updated {lastRefresh.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                  </span>
+                )}
+              </p>
             </div>
-
-            <div className="export-buttons">
+            <div className="analytics-header-right">
               <button
-                className="btn-secondary"
-                disabled={downloading !== null}
-                onClick={() => handleExport("PDF")}
+                className="vp-refresh-btn"
+                onClick={fetchAll}
+                disabled={loading}
+                title="Refresh"
               >
-                <FaFileDownload /> {downloading === "PDF" ? "Exporting..." : "Export PDF"}
+                <FaSync className={loading ? "spin" : ""} /> Refresh
               </button>
-              <button
-                className="btn-secondary"
-                disabled={downloading !== null}
-                onClick={() => handleExport("Excel")}
-              >
-                <FaFileDownload /> {downloading === "Excel" ? "Exporting..." : "Export Excel"}
-              </button>
-              <button
-                className="btn-secondary"
-                disabled={downloading !== null}
-                onClick={() => handleExport("CSV")}
-              >
-                <FaFileDownload /> {downloading === "CSV" ? "Exporting..." : "Export CSV"}
-              </button>
+              <div className="export-buttons">
+                {["PDF", "Excel", "CSV"].map((fmt) => (
+                  <button
+                    key={fmt}
+                    className="btn-secondary"
+                    disabled={downloading !== null}
+                    onClick={() => handleExport(fmt)}
+                  >
+                    <FaFileDownload />
+                    {downloading === fmt ? "Exporting…" : fmt}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
 
-          {/* Cards metrics */}
+          {/* ── KPI Cards ── */}
           <div className="stats-grid analytics-metrics">
             <div className="glass-card metric-item animate-glow">
               <FaVoteYea className="metric-icon purple" />
               <div>
                 <p>Total Votes Cast</p>
-                <h2>1,482</h2>
-                <span className="trend positive">+12.5% this month</span>
+                <h2>{loading ? "…" : totalVotes.toLocaleString()}</h2>
+                <span className="trend-text">
+                  across {totalDecisions} decision{totalDecisions !== 1 ? "s" : ""}
+                </span>
               </div>
             </div>
 
@@ -73,17 +192,25 @@ function Analytics() {
               <FaPercent className="metric-icon blue" />
               <div>
                 <p>Participation Rate</p>
-                <h2>87.4%</h2>
-                <span className="trend positive">+3.2% vs last week</span>
+                <h2>{loading ? "…" : `${participationRate}%`}</h2>
+                <span className="trend-text">
+                  {activeWithVotes} of {activeDecisions.length} active polls have votes
+                </span>
               </div>
             </div>
 
             <div className="glass-card metric-item">
               <FaTrophy className="metric-icon yellow" />
               <div>
-                <p>Most Popular Decision</p>
-                <h2>React vs Angular</h2>
-                <span className="trend-text">165 total votes</span>
+                <p>Most Voted Decision</p>
+                <h2 className="metric-h2-sm">
+                  {loading ? "…" : (mostVotedDecision?.title ?? "None yet")}
+                </h2>
+                <span className="trend-text">
+                  {mostVotedDecision
+                    ? `${decisionVoteTotal(mostVotedDecision)} total votes`
+                    : "No votes recorded"}
+                </span>
               </div>
             </div>
 
@@ -91,247 +218,199 @@ function Analytics() {
               <FaCalendarCheck className="metric-icon green" />
               <div>
                 <p>Active Decisions</p>
-                <h2>12 Polls</h2>
-                <span className="trend-text">5 closing this week</span>
+                <h2>{loading ? "…" : activeDecisions.length}</h2>
+                <span className="trend-text">
+                  {closedDecisions.length} closed
+                </span>
               </div>
             </div>
           </div>
 
-          {/* Charts Row 1 */}
+          {/* ── Charts Row 1 ── */}
           <div className="charts-grid">
-            {/* Bar Chart (Voting Distributions by Category) */}
-            <div className="glass-card chart-container">
-              <h3>Voting Distribution by Category</h3>
-              <p className="chart-desc">Total votes recorded across primary platform domains.</p>
-              
-              <div className="svg-chart-wrapper">
-                <svg width="100%" height="220" viewBox="0 0 400 220" preserveAspectRatio="none">
-                  {/* Grid Lines */}
-                  <line x1="40" y1="20" x2="380" y2="20" stroke="rgba(255,255,255,0.05)" />
-                  <line x1="40" y1="70" x2="380" y2="70" stroke="rgba(255,255,255,0.05)" />
-                  <line x1="40" y1="120" x2="380" y2="120" stroke="rgba(255,255,255,0.05)" />
-                  <line x1="40" y1="170" x2="380" y2="170" stroke="rgba(255,255,255,0.05)" />
-                  <line x1="40" y1="170" x2="380" y2="170" stroke="rgba(255,255,255,0.2)" />
-                  
-                  {/* Bars */}
-                  {/* Category 1: Tech (120) */}
-                  <rect x="60" y="40" width="35" height="130" fill="url(#purpleGrad)" rx="4" />
-                  <text x="77" y="30" fill="#fff" fontSize="10" textAnchor="middle">120</text>
-                  
-                  {/* Category 2: Education (85) */}
-                  <rect x="140" y="75" width="35" height="95" fill="url(#blueGrad)" rx="4" />
-                  <text x="157" y="65" fill="#fff" fontSize="10" textAnchor="middle">85</text>
-                  
-                  {/* Category 3: Travel (62) */}
-                  <rect x="220" y="100" width="35" height="70" fill="url(#greenGrad)" rx="4" />
-                  <text x="237" y="90" fill="#fff" fontSize="10" textAnchor="middle">62</text>
-                  
-                  {/* Category 4: Business (45) */}
-                  <rect x="300" y="120" width="35" height="50" fill="url(#yellowGrad)" rx="4" />
-                  <text x="317" y="110" fill="#fff" fontSize="10" textAnchor="middle">45</text>
 
-                  {/* Gradients */}
-                  <defs>
-                    <linearGradient id="purpleGrad" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="#8b5cf6" />
-                      <stop offset="100%" stopColor="#c084fc" stopOpacity="0.4" />
-                    </linearGradient>
-                    <linearGradient id="blueGrad" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="#3b82f6" />
-                      <stop offset="100%" stopColor="#60a5fa" stopOpacity="0.4" />
-                    </linearGradient>
-                    <linearGradient id="greenGrad" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="#10b981" />
-                      <stop offset="100%" stopColor="#34d399" stopOpacity="0.4" />
-                    </linearGradient>
-                    <linearGradient id="yellowGrad" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="#f59e0b" />
-                      <stop offset="100%" stopColor="#fbbf24" stopOpacity="0.4" />
-                    </linearGradient>
-                  </defs>
-                </svg>
-                <div className="chart-x-labels">
-                  <span>Technology</span>
-                  <span>Education</span>
-                  <span>Travel</span>
-                  <span>Business</span>
+            {/* Top decisions by vote count — dynamic bar chart */}
+            <div className="glass-card chart-container">
+              <h3>Top Decisions by Vote Count</h3>
+              <p className="chart-desc">
+                {loading ? "Loading…" : `${topDecisions.length} most-voted decisions on the platform.`}
+              </p>
+              {loading ? (
+                <div className="an-chart-loading">
+                  <FaSync className="spin" /> Loading chart…
                 </div>
-              </div>
+              ) : topDecisions.length === 0 ? (
+                <div className="an-empty-chart">No votes recorded yet.</div>
+              ) : (
+                <div className="an-bar-chart">
+                  {topDecisions.map((d, i) => {
+                    const votes = decisionVoteTotal(d);
+                    const h = barHeight(votes, maxTopVotes);
+                    return (
+                      <div key={d.id} className="an-bar-col">
+                        <span className="an-bar-value">{votes}</span>
+                        <div
+                          className="an-bar"
+                          style={{ height: `${h}px`, background: COLORS[i % COLORS.length] }}
+                          title={`${d.title}: ${votes} votes`}
+                        />
+                        <span className="an-bar-label">
+                          {d.title.length > 12 ? d.title.slice(0, 11) + "…" : d.title}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
 
-            {/* Line Chart (Voting Trends Over Time) */}
+            {/* Voting type distribution */}
             <div className="glass-card chart-container">
-              <h3>Voting Activity Trends</h3>
-              <p className="chart-desc">Monthly transaction volume (total votes submitted).</p>
-              
-              <div className="svg-chart-wrapper">
-                <svg width="100%" height="220" viewBox="0 0 400 220" preserveAspectRatio="none">
-                  {/* Grid Lines */}
-                  <line x1="30" y1="20" x2="380" y2="20" stroke="rgba(255,255,255,0.05)" />
-                  <line x1="30" y1="70" x2="380" y2="70" stroke="rgba(255,255,255,0.05)" />
-                  <line x1="30" y1="120" x2="380" y2="120" stroke="rgba(255,255,255,0.05)" />
-                  <line x1="30" y1="170" x2="380" y2="170" stroke="rgba(255,255,255,0.05)" />
-
-                  {/* Gradient Area under curve */}
-                  <path d="M 40 160 Q 100 130 150 110 T 260 70 T 360 40 L 360 170 L 40 170 Z" fill="url(#lineAreaGrad)" />
-
-                  {/* Trend line */}
-                  <path d="M 40 160 Q 100 130 150 110 T 260 70 T 360 40" fill="none" stroke="#8b5cf6" strokeWidth="3" />
-                  
-                  {/* Interactive Nodes */}
-                  <circle cx="40" cy="160" r="4" fill="#8b5cf6" stroke="#fff" strokeWidth="1" />
-                  <circle cx="107" cy="140" r="4" fill="#8b5cf6" stroke="#fff" strokeWidth="1" />
-                  <circle cx="174" cy="100" r="4" fill="#8b5cf6" stroke="#fff" strokeWidth="1" />
-                  <circle cx="241" cy="74" r="4" fill="#8b5cf6" stroke="#fff" strokeWidth="1" />
-                  <circle cx="308" cy="65" r="4" fill="#8b5cf6" stroke="#fff" strokeWidth="1" />
-                  <circle cx="360" cy="40" r="4" fill="#8b5cf6" stroke="#fff" strokeWidth="1" />
-
-                  <defs>
-                    <linearGradient id="lineAreaGrad" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="#8b5cf6" stopOpacity="0.4" />
-                      <stop offset="100%" stopColor="#8b5cf6" stopOpacity="0.0" />
-                    </linearGradient>
-                  </defs>
-                </svg>
-                <div className="chart-x-labels">
-                  <span>Jan</span>
-                  <span>Feb</span>
-                  <span>Mar</span>
-                  <span>Apr</span>
-                  <span>May</span>
-                  <span>Jun</span>
+              <h3>Decisions by Voting Type</h3>
+              <p className="chart-desc">How many decisions use each voting mechanism.</p>
+              {loading ? (
+                <div className="an-chart-loading"><FaSync className="spin" /> Loading…</div>
+              ) : (
+                <div className="an-type-list">
+                  {Object.entries(typeCounts).map(([type, count], i) => {
+                    const pct = Math.round((count / Math.max(totalDecisions, 1)) * 100);
+                    return (
+                      <div key={type} className="an-type-row">
+                        <div className="an-type-row__header">
+                          <span className={`voting-type-tag voting-type-tag--${type.toLowerCase()}`}>
+                            {typeLabels[type]}
+                          </span>
+                          <span className="an-type-count">
+                            {count} decision{count !== 1 ? "s" : ""}
+                            <span className="an-type-pct"> · {pct}%</span>
+                          </span>
+                        </div>
+                        <div className="an-type-bar-track">
+                          <div
+                            className="an-type-bar-fill"
+                            style={{
+                              width: `${pct}%`,
+                              background: COLORS[i],
+                            }}
+                          />
+                        </div>
+                        <div className="an-type-votes">
+                          {typeGroups[type]} total vote{typeGroups[type] !== 1 ? "s" : ""}
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
-              </div>
+              )}
             </div>
           </div>
 
+          {/* ── Live widgets ── */}
           <ComparisonDashboard />
           <VotingInsights />
 
-          {/* Charts Row 2 */}
+          {/* ── Charts Row 2 ── */}
           <div className="charts-grid bottom-charts">
-            {/* Donut Chart (Decision Status Composition) */}
+
+            {/* Decision status donut — real data */}
             <div className="glass-card chart-container">
-              <h3>Decision Status Composition</h3>
-              <div className="donut-chart-flex">
-                <svg width="180" height="180" viewBox="0 0 36 36" className="donut-svg">
-                  {/* Background Circle */}
-                  <circle cx="18" cy="18" r="15.915" fill="transparent" stroke="rgba(255,255,255,0.05)" strokeWidth="3.2" />
-                  
-                  {/* Segment 1: Active - Purple (58%) */}
-                  <circle
-                    cx="18"
-                    cy="18"
-                    r="15.915"
-                    fill="transparent"
-                    stroke="#8b5cf6"
-                    strokeWidth="3.2"
-                    strokeDasharray="58 42"
-                    strokeDashoffset="25"
-                  />
-                  
-                  {/* Segment 2: Closed - Blue (30%) */}
-                  <circle
-                    cx="18"
-                    cy="18"
-                    r="15.915"
-                    fill="transparent"
-                    stroke="#3b82f6"
-                    strokeWidth="3.2"
-                    strokeDasharray="30 70"
-                    strokeDashoffset="-33"
-                  />
+              <h3>Decision Status Breakdown</h3>
+              {loading ? (
+                <div className="an-chart-loading"><FaSync className="spin" /> Loading…</div>
+              ) : totalDecisions === 0 ? (
+                <div className="an-empty-chart">No decisions created yet.</div>
+              ) : (
+                <div className="donut-chart-flex">
+                  <svg width="180" height="180" viewBox="0 0 36 36" className="donut-svg">
+                    <circle cx="18" cy="18" r="15.915" fill="transparent"
+                      stroke="rgba(255,255,255,0.05)" strokeWidth="3.2" />
 
-                  {/* Segment 3: Private - Yellow (12%) */}
-                  <circle
-                    cx="18"
-                    cy="18"
-                    r="15.915"
-                    fill="transparent"
-                    stroke="#f59e0b"
-                    strokeWidth="3.2"
-                    strokeDasharray="12 88"
-                    strokeDashoffset="-63"
-                  />
+                    {/* Active segment */}
+                    <circle cx="18" cy="18" r="15.915" fill="transparent"
+                      stroke="#8b5cf6" strokeWidth="3.2"
+                      strokeDasharray={`${activePct} ${100 - activePct}`}
+                      strokeDashoffset={donutOffset(0)} />
 
-                  {/* Center Text */}
-                  <g className="donut-text">
-                    <text x="50%" y="47%" textAnchor="middle" fill="#fff" fontSize="4.5" fontWeight="700">72</text>
-                    <text x="50%" y="62%" textAnchor="middle" fill="var(--text-secondary)" fontSize="2">Polls Total</text>
-                  </g>
-                </svg>
+                    {/* Closed segment */}
+                    <circle cx="18" cy="18" r="15.915" fill="transparent"
+                      stroke="#3b82f6" strokeWidth="3.2"
+                      strokeDasharray={`${closedPct} ${100 - closedPct}`}
+                      strokeDashoffset={donutOffset(1)} />
 
-                <div className="donut-legend">
-                  <div className="legend-item">
-                    <span className="legend-dot purple"></span>
-                    <div>
-                      <span className="legend-title">Active Decisions</span>
-                      <span className="legend-value">42 (58%)</span>
+                    <g className="donut-text">
+                      <text x="50%" y="47%" textAnchor="middle" fill="#fff"
+                        fontSize="4.5" fontWeight="700">
+                        {activeDecisions.length + closedDecisions.length}
+                      </text>
+                      <text x="50%" y="62%" textAnchor="middle"
+                        fill="var(--text-secondary)" fontSize="2">Total</text>
+                    </g>
+                  </svg>
+
+                  <div className="donut-legend">
+                    <div className="legend-item">
+                      <span className="legend-dot purple" />
+                      <div>
+                        <span className="legend-title">Active</span>
+                        <span className="legend-value">
+                          {activeDecisions.length} ({activePct}%)
+                        </span>
+                      </div>
                     </div>
-                  </div>
-                  <div className="legend-item">
-                    <span className="legend-dot blue"></span>
-                    <div>
-                      <span className="legend-title">Closed Polls</span>
-                      <span className="legend-value">21 (30%)</span>
-                    </div>
-                  </div>
-                  <div className="legend-item">
-                    <span className="legend-dot yellow"></span>
-                    <div>
-                      <span className="legend-title">Private Invites</span>
-                      <span className="legend-value">9 (12%)</span>
+                    <div className="legend-item">
+                      <span className="legend-dot blue" />
+                      <div>
+                        <span className="legend-title">Closed</span>
+                        <span className="legend-value">
+                          {closedDecisions.length} ({closedPct}%)
+                        </span>
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
+              )}
             </div>
 
-            {/* Recent voting log summaries */}
+            {/* Community leaderboard — real member counts */}
             <div className="glass-card chart-container">
-              <h3>Community Growth Analytics</h3>
-              <p className="chart-desc">Growth rate of active members inside top communities.</p>
-              
-              <div className="community-growth-list">
-                <div className="growth-row">
-                  <div className="growth-info">
-                    <h4>Startup Founders</h4>
-                    <span>230 members</span>
-                  </div>
-                  <div className="growth-bar-wrapper">
-                    <div className="growth-bar-fill purple" style={{ width: "85%" }}></div>
-                    <span className="growth-percentage">+85%</span>
-                  </div>
+              <h3>Top Communities by Members</h3>
+              <p className="chart-desc">
+                {loading
+                  ? "Loading…"
+                  : `${communities.length} communit${communities.length !== 1 ? "ies" : "y"} on the platform.`}
+              </p>
+              {loading ? (
+                <div className="an-chart-loading"><FaSync className="spin" /> Loading…</div>
+              ) : topCommunities.length === 0 ? (
+                <div className="an-empty-chart">No communities created yet.</div>
+              ) : (
+                <div className="community-growth-list">
+                  {topCommunities.map((c, i) => {
+                    const members = c.memberCount ?? 0;
+                    const pct = Math.round((members / maxCommunityMembers) * 100);
+                    const barColors = ["purple", "blue", "green", "yellow", "purple"];
+                    return (
+                      <div key={c.id} className="growth-row">
+                        <div className="growth-info">
+                          <h4>{c.name}</h4>
+                          <span>{members} member{members !== 1 ? "s" : ""}</span>
+                        </div>
+                        <div className="growth-bar-wrapper">
+                          <div
+                            className={`growth-bar-fill ${barColors[i % barColors.length]}`}
+                            style={{ width: `${Math.max(pct, 4)}%` }}
+                          />
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
-
-                <div className="growth-row">
-                  <div className="growth-info">
-                    <h4>Career Community</h4>
-                    <span>156 members</span>
-                  </div>
-                  <div className="growth-bar-wrapper">
-                    <div className="growth-bar-fill blue" style={{ width: "62%" }}></div>
-                    <span className="growth-percentage">+62%</span>
-                  </div>
-                </div>
-
-                <div className="growth-row">
-                  <div className="growth-info">
-                    <h4>Travel Lovers</h4>
-                    <span>89 members</span>
-                  </div>
-                  <div className="growth-bar-wrapper">
-                    <div className="growth-bar-fill green" style={{ width: "40%" }}></div>
-                    <span className="growth-percentage">+40%</span>
-                  </div>
-                </div>
-              </div>
+              )}
             </div>
           </div>
+
         </div>
       </div>
     </div>
   );
 }
-
-export default Analytics;
