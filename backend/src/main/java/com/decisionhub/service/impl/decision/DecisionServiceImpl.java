@@ -212,7 +212,14 @@ public class DecisionServiceImpl implements DecisionService {
             throw new UnauthorizedActionException("Not authorized to edit this decision");
         }
 
-        // 2. Validate community integration
+        // 2. Preserve or update community integration.
+        // The Edit Board UI has no field to change or remove a decision's
+        // community — only Create Decision sets it, once, up front. So an
+        // edit/publish request that simply omits communityId must NOT be
+        // read as "clear the community" (that was the actual bug: every
+        // edit/publish silently detached the decision from its community).
+        // Community only changes here when the request explicitly provides
+        // a different, valid communityId.
         Community community = decision.getCommunity();
         if (request.communityId() != null && (community == null || !community.getId().equals(request.communityId()))) {
             community = communityRepository.findById(request.communityId())
@@ -221,8 +228,6 @@ public class DecisionServiceImpl implements DecisionService {
             if (!decisionAuthorizationService.canCreateDecision(request.communityId(), currentUserId)) {
                 throw new UnauthorizedActionException("Not authorized to associate decision with this community");
             }
-        } else if (request.communityId() == null) {
-            community = null;
         }
 
         // 3. Business Validation
@@ -233,11 +238,9 @@ public class DecisionServiceImpl implements DecisionService {
         decision.setTitle(request.title().trim());
         decision.setDescription(request.description());
         decision.setCommunity(community);
-        if (request.communityId() == null) {
-            decision.setVisibility(DecisionVisibility.PUBLIC);
-        } else {
-            decision.setVisibility(DecisionVisibility.COMMUNITY);
-        }
+        // Visibility follows the (preserved or newly-set) community — not
+        // whether this particular request happened to mention communityId.
+        decision.setVisibility(community != null ? DecisionVisibility.COMMUNITY : DecisionVisibility.PUBLIC);
         if (decision.getStatus() == DecisionStatus.DRAFT) {
             decision.setVotingType(request.votingType());
             decision.setVotingEndTime(request.votingEndTime());
