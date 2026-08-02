@@ -375,7 +375,7 @@ export default function DecisionDetail() {
                                     name={`decision-${decision.id}-choice`}
                                     checked={isSelected}
                                     disabled={voting || !canParticipate}
-                                    onChange={() => handleSingleChoiceVote(opt.id)}
+                                    onChange={() => {}} // No-op: click is handled by parent div's onClick
                                     style={{ flexShrink: 0, margin: 0, position: "static", float: "none", width: "18px", height: "18px" }}
                                   />
                                   <span style={{ flex: "initial", textAlign: "left" }}>
@@ -408,7 +408,7 @@ export default function DecisionDetail() {
                                     type="checkbox"
                                     checked={isSelected}
                                     disabled={voting || !canParticipate}
-                                    onChange={() => toggleMultipleChoiceOption(opt.id)}
+                                    onChange={() => {}} // No-op: click is handled by parent div's onClick
                                     style={{ flexShrink: 0, margin: 0, position: "static", float: "none", width: "18px", height: "18px" }}
                                   />
                                   <span style={{ flex: "initial", textAlign: "left" }}>

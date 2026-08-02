@@ -196,7 +196,13 @@ function DecisionList() {
                               </span>
                               <span className="desc-preview">{decision.description}</span>
                             </td>
-                            <td><span className="category-tag">{decision.categoryName}</span></td>
+                            <td>
+                              {decision.categoryName ? (
+                                <span className="category-tag">{decision.categoryName}</span>
+                              ) : (
+                                <span style={{ color: "var(--text-muted)", fontSize: "0.85rem" }}>—</span>
+                              )}
+                            </td>
                             <td>{decision.communityName || "Personal"}</td>
                             <td>
                               <span className={`status-badge ${decision.status.toLowerCase()}`}>

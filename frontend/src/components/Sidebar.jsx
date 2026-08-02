@@ -94,7 +94,7 @@ function Sidebar() {
 
           <li className={isActive(isAdmin ? "/feedback-dashboard" : "/feedback")}>
             <Link to={isAdmin ? "/feedback-dashboard" : "/feedback"}>
-              <FaCommentDots /> <span>Feedback</span>
+              <FaCommentDots /> <span>Help & Feedback</span>
             </Link>
           </li>
 
