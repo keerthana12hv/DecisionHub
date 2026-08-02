@@ -1,0 +1,16 @@
+$kind: http-request
+name: 7. Update Ticket Status
+url: http://localhost:8080/api/admin/support/1/status
+method: POST
+body:
+  type: json
+  content: "{\r
+
+    \    \"status\": \"IN_PROGRESS\"\r
+
+    }"
+auth:
+  type: bearer
+  credentials:
+    token: "{{authToken}}"
+order: 5000

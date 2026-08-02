@@ -1,0 +1,16 @@
+$kind: http-request
+name: 11.Varsha edits HER reply
+url: http://localhost:8080/api/comments/{{replyId}}
+method: PUT
+body:
+  type: json
+  content: "{\r
+
+    \    \"content\":\"I changed my opinion. Mysore is better.\"\r
+
+    }"
+auth:
+  type: bearer
+  credentials:
+    token: "{{authToken}}"
+order: 11000

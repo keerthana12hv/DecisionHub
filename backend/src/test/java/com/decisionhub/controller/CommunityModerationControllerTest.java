@@ -1,6 +1,7 @@
 package com.decisionhub.controller;
 
 import com.decisionhub.config.JwtService;
+import com.decisionhub.controller.community.CommunityModerationController;
 import com.decisionhub.dto.response.decision.DecisionResponse;
 import com.decisionhub.dto.response.discussion.CommentResponse;
 import com.decisionhub.enums.decision.DecisionStatus;
@@ -73,7 +74,7 @@ class CommunityModerationControllerTest {
         );
 
         commentResponse = new CommentResponse(
-                100L, "Appropriate content", 10L, "testuser", 1L, null, LocalDateTime.now(), false
+                100L, 1L, null, 10L, "testuser", "Appropriate content", false, 0, 0, false, LocalDateTime.now(), LocalDateTime.now()
         );
     }
 
@@ -140,7 +141,7 @@ class CommunityModerationControllerTest {
     @Test
     void pinComment_Success() throws Exception {
         CommentResponse pinnedResponse = new CommentResponse(
-                100L, "Appropriate content", 10L, "testuser", 1L, null, LocalDateTime.now(), true
+                100L, 1L, null, 10L, "testuser", "Appropriate content", false, 0, 0, true, LocalDateTime.now(), LocalDateTime.now()
         );
         when(communityModerationService.pinComment(eq(100L))).thenReturn(pinnedResponse);
 
@@ -163,7 +164,7 @@ class CommunityModerationControllerTest {
     @Test
     void getPinnedComment_Exists_Returns200() throws Exception {
         CommentResponse pinnedResponse = new CommentResponse(
-                100L, "Appropriate content", 10L, "testuser", 1L, null, LocalDateTime.now(), true
+                100L, 1L, null, 10L, "testuser", "Appropriate content", false, 0, 0, true, LocalDateTime.now(), LocalDateTime.now()
         );
         when(communityModerationService.getPinnedComment(eq(1L))).thenReturn(Optional.of(pinnedResponse));
 

@@ -165,13 +165,17 @@ public class CommunityModerationServiceImpl implements CommunityModerationServic
     private CommentResponse toCommentResponse(Comment comment) {
         return new CommentResponse(
                 comment.getId(),
-                comment.getContent(),
-                comment.getUser().getId(),
-                comment.getUser().getUsername(),
                 comment.getDecision().getId(),
                 comment.getParentComment() != null ? comment.getParentComment().getId() : null,
+                comment.getUser().getId(),
+                comment.getUser().getUsername(),
+                comment.getDeletedAt() == null ? comment.getContent() : "[deleted]",
+                comment.getDeletedAt() != null,
+                comment.getDepth(),
+                comment.getReplies() != null ? comment.getReplies().size() : 0,
+                comment.isPinned(),
                 comment.getCreatedAt(),
-                comment.isPinned()
+                comment.getUpdatedAt()
         );
     }
 

@@ -1,0 +1,16 @@
+$kind: http-request
+name: 18. Keerthana edits original comment
+url: http://localhost:8080/api/comments/{{commentId}}
+method: PUT
+body:
+  type: json
+  content: "{\r
+
+    \    \"content\":\"Updated Goa comment.\"\r
+
+    }"
+auth:
+  type: bearer
+  credentials:
+    token: "{{authToken}}"
+order: 18000

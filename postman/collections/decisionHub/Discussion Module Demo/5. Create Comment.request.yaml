@@ -1,0 +1,23 @@
+$kind: http-request
+name: 5. Create Comment
+url: http://localhost:8080/api/decisions/1/comments
+method: POST
+body:
+  type: json
+  content: "{\r
+
+    \  \"content\": \"I think Goa is the best choice for our final year
+    meetup!\"\r
+
+    }"
+auth:
+  type: bearer
+  credentials:
+    token: "{{authToken}}"
+scripts:
+  - type: afterResponse
+    code: "const response = pm.response.json();\r
+
+      pm.globals.set(\"commentId\", response.id);"
+    language: text/javascript
+order: 4000

@@ -69,7 +69,6 @@ class DecisionModerationLockTest {
     @Mock
     private com.decisionhub.repository.discussion.CommentRepository commentRepository;
 
-    @Spy
     private DecisionModificationValidator decisionModificationValidator;
 
     @InjectMocks

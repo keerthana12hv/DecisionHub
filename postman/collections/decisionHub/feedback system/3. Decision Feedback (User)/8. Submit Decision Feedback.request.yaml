@@ -1,0 +1,19 @@
+$kind: http-request
+name: 8. Submit Decision Feedback
+url: http://localhost:8080/api/decisions/1/feedback
+method: POST
+body:
+  type: json
+  content: "{\r
+
+    \    \"rating\": 4,\r
+
+    \    \"comments\": \"The decision process was smooth, but gathering the
+    comparison factors took longer than expected.\"\r
+
+    }"
+auth:
+  type: bearer
+  credentials:
+    token: "{{authToken}}"
+order: 7000

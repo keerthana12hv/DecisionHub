@@ -1,6 +1,7 @@
 package com.decisionhub.controller;
 
 import com.decisionhub.config.JwtService;
+import com.decisionhub.controller.community.CommunityRuleController;
 import com.decisionhub.dto.request.community.CommunityRuleRequest;
 import com.decisionhub.dto.response.community.CommunityRuleResponse;
 import com.decisionhub.service.impl.authentication.CustomUserDetailsService;

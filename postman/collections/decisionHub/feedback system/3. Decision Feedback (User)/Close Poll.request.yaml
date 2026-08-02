@@ -1,0 +1,8 @@
+$kind: http-request
+url: http://localhost:8080/api/decisions/{{decisionId}}/poll/close
+method: POST
+auth:
+  type: bearer
+  credentials:
+    token: "{{authToken}}"
+order: 6000
