@@ -13,9 +13,11 @@ import com.decisionhub.security.decision.AuthenticationFacade;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/decisions")
@@ -59,6 +61,30 @@ public class CommentController {
         );
 
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
+
+    @GetMapping("/{decisionId}/comments")
+    @Transactional(readOnly = true)
+    public ResponseEntity<List<CommentResponse>> getComments(@PathVariable Long decisionId) {
+        Decision decision = decisionRepository.findById(decisionId)
+                .orElseThrow(() -> new ResourceNotFoundException("Decision not found"));
+
+        List<Comment> comments = commentRepository.findByDecisionIdAndDeletedAtIsNull(decisionId);
+
+        List<CommentResponse> response = comments.stream()
+                .map(comment -> new CommentResponse(
+                        comment.getId(),
+                        comment.getContent(),
+                        comment.getUser().getId(),
+                        comment.getUser().getUsername(),
+                        comment.getDecision().getId(),
+                        comment.getParentComment() != null ? comment.getParentComment().getId() : null,
+                        comment.getCreatedAt(),
+                        comment.isPinned()
+                ))
+                .toList();
+
+        return ResponseEntity.ok(response);
     }
 
     public static class CommentRequest {

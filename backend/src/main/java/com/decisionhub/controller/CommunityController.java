@@ -8,6 +8,7 @@ import org.springframework.web.bind.annotation.*;
 
 import com.decisionhub.dto.request.community.CreateCommunityRequest;
 import com.decisionhub.dto.request.community.UpdateCommunityRequest;
+import com.decisionhub.dto.request.community.UpdateMemberRoleRequest;
 import com.decisionhub.dto.response.community.CommunityJoinRequestResponse;
 import com.decisionhub.dto.response.community.CommunityMemberResponse;
 import com.decisionhub.dto.response.community.CommunityResponse;
@@ -158,5 +159,21 @@ public class CommunityController {
         communityService.removeMember(id, memberId);
 
         return ResponseEntity.ok("Member removed successfully");
+    }
+
+    @PutMapping("/{id}/members/{memberId}/role")
+    @io.swagger.v3.oas.annotations.Operation(
+            summary = "Promote or demote a community member role",
+            description = "Modifies the role of a community member. Only the Community Owner or a Platform Admin can perform this action.",
+            security = @io.swagger.v3.oas.annotations.security.SecurityRequirement(name = "BearerAuth")
+    )
+    public ResponseEntity<CommunityMemberResponse> updateMemberRole(
+            @PathVariable Long id,
+            @PathVariable Long memberId,
+            @Valid @RequestBody UpdateMemberRoleRequest request) {
+
+        return ResponseEntity.ok(
+                communityService.updateMemberRole(id, memberId, request)
+        );
     }
 }

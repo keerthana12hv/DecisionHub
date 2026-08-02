@@ -194,7 +194,22 @@ public class CommunityModerationServiceImpl implements CommunityModerationServic
         User currentUser = userRepository.findById(currentUserId)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
-        if (!community.getOwner().getId().equals(currentUser.getId())) {
+        // Platform Admin has universal access
+        if (currentUser.getRole() == PlatformRole.ADMIN) {
+            return decision;
+        }
+
+        // Community Owner has access
+        if (community.getOwner().getId().equals(currentUser.getId())) {
+            return decision;
+        }
+
+        // Approved Community Moderator has access
+        boolean isModerator = communityMemberRepository.findByCommunityIdAndUserId(community.getId(), currentUser.getId())
+                .map(m -> m.getStatus() == MembershipStatus.APPROVED && m.getRole() == CommunityMemberRole.MODERATOR)
+                .orElse(false);
+
+        if (!isModerator) {
             throw new UnauthorizedActionException("Only the community moderator can perform this action");
         }
 

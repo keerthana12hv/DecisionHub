@@ -11,4 +11,5 @@ import java.util.Optional;
 public interface CommentRepository extends JpaRepository<Comment, Long> {
     Optional<Comment> findFirstByDecisionIdAndPinnedTrueAndDeletedAtIsNull(Long decisionId);
     List<Comment> findByDecisionId(Long decisionId);
+    List<Comment> findByDecisionIdAndDeletedAtIsNull(Long decisionId);
 }
