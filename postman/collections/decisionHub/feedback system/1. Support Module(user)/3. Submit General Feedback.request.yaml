@@ -1,0 +1,20 @@
+$kind: http-request
+url: http://localhost:8080/api/support
+method: POST
+body:
+  type: json
+  content: "{\r
+
+    \    \"type\": \"GENERAL_FEEDBACK\",\r
+
+    \    \"description\": \"Really enjoying the platform so far, it's very
+    intuitive!\",\r
+
+    \    \"rating\": 5\r
+
+    }"
+auth:
+  type: bearer
+  credentials:
+    token: "{{authToken}}"
+order: 5000

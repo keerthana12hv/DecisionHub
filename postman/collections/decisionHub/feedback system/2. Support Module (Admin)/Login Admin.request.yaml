@@ -1,0 +1,20 @@
+$kind: http-request
+name: Login Admin
+url: http://localhost:8080/api/auth/login
+method: POST
+body:
+  type: json
+  content: "{\r
+
+    \    \"email\": \"admin@gmail.com\",\r
+
+    \    \"password\": \"admin123\" \r
+
+    }"
+scripts:
+  - type: afterResponse
+    code: "const response = pm.response.json();\r
+
+      pm.collectionVariables.set(\"authToken\", response.token);"
+    language: text/javascript
+order: 2000
