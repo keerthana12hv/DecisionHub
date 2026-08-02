@@ -1,0 +1,11 @@
+$kind: http-request
+url: http://localhost:8080/api/decisions/{{decisionId}}/publish
+method: POST
+body:
+  type: json
+  content: ""
+auth:
+  type: bearer
+  credentials:
+    token: "{{authToken}}"
+order: 5000

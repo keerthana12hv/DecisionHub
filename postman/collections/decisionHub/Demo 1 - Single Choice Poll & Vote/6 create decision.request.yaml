@@ -8,7 +8,8 @@ body:
 
     \  \"title\": \"Annual Meetup Venue Selection\",\r
 
-    \  \"description\": \"Choose the venue for the BIT Final Year annual meetup.\",\r
+    \  \"description\": \"Choose the venue for the BIT Final Year annual
+    meetup.\",\r
 
     \  \"communityId\": {{communityId}},\r
 

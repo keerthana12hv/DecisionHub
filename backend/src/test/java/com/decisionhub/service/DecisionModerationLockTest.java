@@ -63,7 +63,6 @@ class DecisionModerationLockTest {
     @Mock
     private org.springframework.context.ApplicationEventPublisher eventPublisher;
 
-    @Spy
     private DecisionModificationValidator decisionModificationValidator;
 
     @InjectMocks

@@ -1,0 +1,9 @@
+$kind: http-request
+name: 5. Get All Tickets
+url: http://localhost:8080/api/admin/support
+method: GET
+auth:
+  type: bearer
+  credentials:
+    token: "{{authToken}}"
+order: 3000

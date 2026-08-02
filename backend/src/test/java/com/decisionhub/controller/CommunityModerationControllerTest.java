@@ -1,6 +1,7 @@
 package com.decisionhub.controller;
 
 import com.decisionhub.config.JwtService;
+import com.decisionhub.controller.community.CommunityModerationController;
 import com.decisionhub.dto.response.decision.DecisionResponse;
 import com.decisionhub.enums.decision.DecisionStatus;
 import com.decisionhub.service.impl.authentication.CustomUserDetailsService;

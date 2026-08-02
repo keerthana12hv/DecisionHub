@@ -21,4 +21,4 @@ scripts:
 
       pm.globals.set(\"authToken\", response.token);"
     language: text/javascript
-order: 2000
+order: 3000
