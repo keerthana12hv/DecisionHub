@@ -147,7 +147,15 @@ export default function DecisionDetail() {
     try {
       if (!silent) setLoading(true);
       const res = await axios.get(`${API}/decisions/${decisionId}`, headers());
-      setDecision(res.data);
+      const d = res.data;
+      if (d && d.description) {
+        const match = d.description.match(/^\[Cat:([^\]]+)\]\s*(.*)/s);
+        if (match) {
+          d.categoryName = match[1];
+          d.description = match[2];
+        }
+      }
+      setDecision(d);
     } catch (err) {
       console.error("Failed to fetch decision:", err);
       if (!silent) {

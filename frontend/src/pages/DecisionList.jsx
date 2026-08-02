@@ -62,7 +62,19 @@ function DecisionList() {
     try {
       setLoading(true);
       const res = await axios.get(`${API}/decisions`, headers());
-      setDecisions(res.data);
+      const parsed = (res.data || []).map((d) => {
+        if (!d.description) return d;
+        const match = d.description.match(/^\[Cat:([^\]]+)\]\s*(.*)/s);
+        if (match) {
+          return {
+            ...d,
+            categoryName: match[1],
+            description: match[2]
+          };
+        }
+        return d;
+      });
+      setDecisions(parsed);
     } catch (err) {
       console.error("Failed to fetch decisions:", err);
       addToast("Failed to load decisions", "error");
@@ -203,7 +215,7 @@ function DecisionList() {
                                 <span style={{ color: "var(--text-muted)", fontSize: "0.85rem" }}>—</span>
                               )}
                             </td>
-                            <td>{decision.communityName || "Personal"}</td>
+                            <td>{decision.communityName || "Public"}</td>
                             <td>
                               <span className={`status-badge ${decision.status.toLowerCase()}`}>
                                 {decision.status}
