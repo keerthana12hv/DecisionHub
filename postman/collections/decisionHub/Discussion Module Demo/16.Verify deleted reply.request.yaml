@@ -1,0 +1,9 @@
+$kind: http-request
+name: 16.Verify deleted reply
+url: http://localhost:8080/api/comments/{{commentId}}/replies
+method: GET
+auth:
+  type: bearer
+  credentials:
+    token: "{{authToken}}"
+order: 17000

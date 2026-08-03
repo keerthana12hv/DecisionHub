@@ -64,7 +64,7 @@ export default function EditBoardPanel({ decision, onSaved, onCancel }) {
       // nothing typed gets lost if the creator forgot to hit "Save Changes" first.
       const payload = {
         title,
-        description,
+        description: decision.categoryName ? `[Cat:${decision.categoryName}] ${description}` : description,
         tags: decision.categoryName ? [decision.categoryName] : [],
         votingType: decision.votingType,
         isPublic: decision.isPublic ?? true,
@@ -107,7 +107,7 @@ export default function EditBoardPanel({ decision, onSaved, onCancel }) {
         // no scores are collected from the creator, matching Create Decision.
         const payload = {
           title,
-          description,
+          description: decision.categoryName ? `[Cat:${decision.categoryName}] ${description}` : description,
           tags: decision.categoryName ? [decision.categoryName] : [],
           votingType: decision.votingType,
           isPublic: decision.isPublic ?? true,

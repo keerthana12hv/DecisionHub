@@ -180,8 +180,7 @@ function CreateDecision() {
         `${API}/decisions`,
         {
           title,
-          // category is sent via `tags` — no direct `category` field confirmed on this endpoint yet.
-          description,
+          description: category ? `[Cat:${category}] ${description}` : description,
           tags: [category],
           votingType,
           isPublic: visibility === "PUBLIC",
