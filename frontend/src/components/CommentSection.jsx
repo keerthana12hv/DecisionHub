@@ -1,103 +1,101 @@
-import { useEffect, useState } from "react";
-import { getComments, postComment, postReply, deleteComment } from "../services/commentService";
+import { useState, useEffect } from "react";
+import { useToast } from "../components/Toast";
+import api from "../services/api";
+import CommentThread from "./CommentThread";
 
-export default function CommentsSection({ decisionId }) {
+function CommentSection({ decisionId, decisionStatus }) {
+  const { addToast } = useToast();
+
   const [comments, setComments] = useState([]);
-  const [newComment, setNewComment] = useState("");
-  const [replyText, setReplyText] = useState({});
-  const [replyBoxOpen, setReplyBoxOpen] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [newComment, setNewComment] = useState("");
 
-  const currentUserId = localStorage.getItem("userId");
+  const isDecisionActive = decisionStatus === "ACTIVE";
 
   useEffect(() => {
     fetchComments();
   }, [decisionId]);
 
   const fetchComments = async () => {
+    setLoading(true);
     try {
-      const res = await getComments(decisionId);
+      const res = await api.get(`/api/decisions/${decisionId}/comments`);
       setComments(res.data);
-    } catch (err) {
-      console.error("Failed to fetch comments", err);
+    } catch (error) {
+      addToast("Failed to load comments.", "error");
     } finally {
       setLoading(false);
     }
   };
 
-  const handlePostComment = async () => {
+  const handleAddComment = async (e) => {
+    e.preventDefault();
     if (!newComment.trim()) return;
-    await postComment(decisionId, newComment);
-    setNewComment("");
-    fetchComments();
+    try {
+      const res = await api.post(`/api/decisions/${decisionId}/comments`, {
+        content: newComment,
+      });
+      setComments((prev) => [...prev, res.data]);
+      setNewComment("");
+      addToast("Comment posted.", "success");
+    } catch (error) {
+      addToast(
+        error.response?.data?.error || "Failed to post comment.",
+        "error"
+      );
+    }
   };
 
-  const handleReply = async (commentId) => {
-    const text = replyText[commentId];
-    if (!text?.trim()) return;
-    await postReply(commentId, text);
-    setReplyText({ ...replyText, [commentId]: "" });
-    setReplyBoxOpen(null);
-    fetchComments();
+  const handleCommentUpdated = (commentId, changes) => {
+    setComments((prev) =>
+      prev.map((c) => (c.id === commentId ? { ...c, ...changes } : c))
+    );
   };
 
-  const handleDelete = async (commentId) => {
-    if (!window.confirm("Delete this comment?")) return;
-    await deleteComment(commentId);
-    fetchComments();
+  const handleCommentDeleted = (commentId) => {
+    setComments((prev) =>
+      prev.map((c) => (c.id === commentId ? { ...c, deleted: true } : c))
+    );
   };
-
-  if (loading) return <p>Loading comments...</p>;
 
   return (
-    <div className="comments-section">
-      <h3>Discussion</h3>
+    <div className="comment-section">
+      <h2>Discussion</h2>
 
-      <div className="comment-input">
-        <textarea
-          value={newComment}
-          onChange={(e) => setNewComment(e.target.value)}
-          placeholder="Add a comment..."
-        />
-        <button onClick={handlePostComment}>Post</button>
-      </div>
+      {isDecisionActive ? (
+        <form onSubmit={handleAddComment} className="add-comment-form">
+          <textarea
+            value={newComment}
+            onChange={(e) => setNewComment(e.target.value)}
+            placeholder="Add a comment..."
+            required
+          />
+          <button type="submit">Post Comment</button>
+        </form>
+      ) : (
+        <p className="discussion-closed-notice">
+          This decision is closed. Commenting is no longer available.
+        </p>
+      )}
 
-      {comments.map((c) => (
-        <div key={c.id} className="comment-card">
-          <div className="comment-header">
-            <strong>{c.userName}</strong>
-            <span className="timestamp">{new Date(c.createdAt).toLocaleString()}</span>
-          </div>
-          <p>{c.content}</p>
-
-          <div className="comment-actions">
-            <button onClick={() => setReplyBoxOpen(replyBoxOpen === c.id ? null : c.id)}>
-              Reply
-            </button>
-            {c.userId === currentUserId && (
-              <button onClick={() => handleDelete(c.id)}>Delete</button>
-            )}
-          </div>
-
-          {replyBoxOpen === c.id && (
-            <div className="reply-input">
-              <input
-                type="text"
-                value={replyText[c.id] || ""}
-                onChange={(e) => setReplyText({ ...replyText, [c.id]: e.target.value })}
-                placeholder="Write a reply..."
-              />
-              <button onClick={() => handleReply(c.id)}>Send</button>
-            </div>
-          )}
-
-          {c.replies?.map((r) => (
-            <div key={r.id} className="reply-card">
-              <strong>{r.userName}</strong>: <span>{r.content}</span>
-            </div>
-          ))}
-        </div>
-      ))}
+      {loading ? (
+        <p>Loading comments...</p>
+      ) : comments.length === 0 ? (
+        <p>No comments yet. Be the first to start the discussion.</p>
+      ) : (
+        comments.map((comment) => (
+          <CommentThread
+            key={comment.id}
+            comment={comment}
+            decisionId={decisionId}
+            decisionStatus={decisionStatus}
+            onCommentUpdated={handleCommentUpdated}
+            onCommentDeleted={handleCommentDeleted}
+          />
+        ))
+      )}
     </div>
   );
 }
+
+export default CommentSection;

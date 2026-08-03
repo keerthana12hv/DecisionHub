@@ -1,3 +1,4 @@
+import Discussion from "./Discussion";
 import { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import axios from "axios";
@@ -449,10 +450,14 @@ export default function DecisionDetail() {
               )}
 
               {activeTab === "discussion" && (
-                <div className="detail-tab-content">
-                  <p className="tab-placeholder">Discussion — coming soon.</p>
-                </div>
-              )}
+  <div className="detail-tab-content">
+    <Discussion
+      decisionId={decision.id}
+      decisionStatus={decision.status}
+      canParticipate={canParticipate}
+    />
+  </div>
+)}
 
               {activeTab === "poll-results" && (
                 <div className="detail-tab-content">
