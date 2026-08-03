@@ -17,6 +17,10 @@ import com.decisionhub.security.decision.DecisionAuthorizationService;
 import com.decisionhub.service.interfaces.discussion.CommentService;
 import com.decisionhub.validator.decision.DecisionModificationValidator;
 import com.decisionhub.validator.discussion.CommentValidator;
+import com.decisionhub.event.CommentCreatedEvent;
+import com.decisionhub.event.ReplyCreatedEvent;
+import com.decisionhub.event.CommentRemovedEvent;
+import org.springframework.context.ApplicationEventPublisher;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -44,6 +48,8 @@ public class CommentServiceImpl implements CommentService {
 
     private final CommentValidator commentValidator;
     private final DecisionModificationValidator decisionModificationValidator;
+    private final ApplicationEventPublisher eventPublisher;
+
 
     @Override
     @Transactional
@@ -89,6 +95,17 @@ public class CommentServiceImpl implements CommentService {
                 "Comment created successfully with ID: {}",
                 savedComment.getId()
         );
+
+        if (eventPublisher != null) {
+            eventPublisher.publishEvent(new CommentCreatedEvent(
+                    this,
+                    savedComment.getId(),
+                    decision.getId(),
+                    decision.getTitle(),
+                    currentUser.getId(),
+                    currentUser.getUsername()
+            ));
+        }
 
         return commentMapper.toResponse(savedComment);
     }
@@ -156,6 +173,18 @@ public class CommentServiceImpl implements CommentService {
                 "Reply created successfully with ID: {}",
                 savedReply.getId()
         );
+
+        if (eventPublisher != null) {
+            eventPublisher.publishEvent(new ReplyCreatedEvent(
+                    this,
+                    savedReply.getId(),
+                    parentComment.getId(),
+                    decision.getId(),
+                    decision.getTitle(),
+                    currentUser.getId(),
+                    currentUser.getUsername()
+            ));
+        }
 
         return commentMapper.toResponse(savedReply);
     }
@@ -235,12 +264,26 @@ public class CommentServiceImpl implements CommentService {
         // Soft delete.
         comment.setDeletedAt(java.time.LocalDateTime.now());
 
-        commentRepository.save(comment);
+        Comment savedComment = commentRepository.save(comment);
 
         log.info(
                 "Comment soft deleted successfully with ID: {}",
                 commentId
         );
+
+        String contentSnippet = savedComment.getContent() != null ? 
+                savedComment.getContent().substring(0, Math.min(30, savedComment.getContent().length())) : "";
+
+        if (eventPublisher != null) {
+            eventPublisher.publishEvent(new CommentRemovedEvent(
+                    this,
+                    savedComment.getId(),
+                    savedComment.getDecision().getId(),
+                    savedComment.getDecision().getTitle(),
+                    currentUserId,
+                    contentSnippet
+            ));
+        }
     }
 
     @Override

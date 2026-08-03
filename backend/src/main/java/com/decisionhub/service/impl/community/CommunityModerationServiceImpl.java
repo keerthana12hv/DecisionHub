@@ -19,6 +19,11 @@ import com.decisionhub.repository.decision.DecisionRepository;
 import com.decisionhub.repository.discussion.CommentRepository;
 import com.decisionhub.security.decision.AuthenticationFacade;
 import com.decisionhub.service.interfaces.community.CommunityModerationService;
+import com.decisionhub.event.DecisionPinnedEvent;
+import com.decisionhub.event.DecisionUnpinnedEvent;
+import com.decisionhub.event.DecisionLockedEvent;
+import com.decisionhub.event.DecisionUnlockedEvent;
+import org.springframework.context.ApplicationEventPublisher;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -40,6 +45,8 @@ public class CommunityModerationServiceImpl implements CommunityModerationServic
     private final DecisionMapper decisionMapper;
     private final CommentRepository commentRepository;
     private final CommunityMemberRepository communityMemberRepository;
+    private final ApplicationEventPublisher eventPublisher;
+
 
     @Override
     public DecisionResponse pinDecision(Long decisionId) {
@@ -47,6 +54,12 @@ public class CommunityModerationServiceImpl implements CommunityModerationServic
         Decision decision = getAndValidateDecision(decisionId);
         decision.setPinned(true);
         Decision saved = decisionRepository.save(decision);
+        
+        if (eventPublisher != null) {
+            Long currentUserId = authenticationFacade.getCurrentUserId().orElse(null);
+            eventPublisher.publishEvent(new DecisionPinnedEvent(this, saved.getId(), saved.getTitle(), currentUserId));
+        }
+        
         return decisionMapper.toResponse(saved);
     }
 
@@ -56,6 +69,12 @@ public class CommunityModerationServiceImpl implements CommunityModerationServic
         Decision decision = getAndValidateDecision(decisionId);
         decision.setPinned(false);
         Decision saved = decisionRepository.save(decision);
+
+        if (eventPublisher != null) {
+            Long currentUserId = authenticationFacade.getCurrentUserId().orElse(null);
+            eventPublisher.publishEvent(new DecisionUnpinnedEvent(this, saved.getId(), saved.getTitle(), currentUserId));
+        }
+
         return decisionMapper.toResponse(saved);
     }
 
@@ -65,6 +84,12 @@ public class CommunityModerationServiceImpl implements CommunityModerationServic
         Decision decision = getAndValidateDecision(decisionId);
         decision.setLocked(true);
         Decision saved = decisionRepository.save(decision);
+
+        if (eventPublisher != null) {
+            Long currentUserId = authenticationFacade.getCurrentUserId().orElse(null);
+            eventPublisher.publishEvent(new DecisionLockedEvent(this, saved.getId(), saved.getTitle(), currentUserId));
+        }
+
         return decisionMapper.toResponse(saved);
     }
 
@@ -74,6 +99,12 @@ public class CommunityModerationServiceImpl implements CommunityModerationServic
         Decision decision = getAndValidateDecision(decisionId);
         decision.setLocked(false);
         Decision saved = decisionRepository.save(decision);
+
+        if (eventPublisher != null) {
+            Long currentUserId = authenticationFacade.getCurrentUserId().orElse(null);
+            eventPublisher.publishEvent(new DecisionUnlockedEvent(this, saved.getId(), saved.getTitle(), currentUserId));
+        }
+
         return decisionMapper.toResponse(saved);
     }
 

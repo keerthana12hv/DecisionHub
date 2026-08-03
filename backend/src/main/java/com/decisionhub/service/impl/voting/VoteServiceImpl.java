@@ -17,6 +17,8 @@ import com.decisionhub.repository.voting.PollRepository;
 import com.decisionhub.repository.voting.VoteRepository;
 import com.decisionhub.security.decision.AuthenticationFacade;
 import com.decisionhub.security.decision.DecisionAuthorizationService;
+import com.decisionhub.event.VoteSubmittedEvent;
+import org.springframework.context.ApplicationEventPublisher;
 import com.decisionhub.service.interfaces.voting.VoteService;
 import com.decisionhub.validator.voting.PollValidator;
 
@@ -66,6 +68,7 @@ public class VoteServiceImpl implements VoteService {
     private final PollValidator pollValidator;
     private final DecisionAuthorizationService decisionAuthorizationService;
     private final AuthenticationFacade authenticationFacade;
+    private final ApplicationEventPublisher eventPublisher;
 
     /**
      * Submits or updates the complete vote selection of the
@@ -234,6 +237,19 @@ public class VoteServiceImpl implements VoteService {
                 currentUserId,
                 decisionId
         );
+
+        if (eventPublisher != null) {
+            String username = userRepository.findById(currentUserId)
+                    .map(User::getUsername)
+                    .orElse("anonymous");
+            eventPublisher.publishEvent(new VoteSubmittedEvent(
+                    this,
+                    decisionId,
+                    decision.getTitle(),
+                    currentUserId,
+                    username
+            ));
+        }
 
         return buildVoteResponse(
                 poll,

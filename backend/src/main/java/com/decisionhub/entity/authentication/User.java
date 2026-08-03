@@ -103,7 +103,7 @@ public class User {
     // Notifications
     // ===========================
 
-    @OneToMany(mappedBy = "user", fetch = FetchType.LAZY)
+    @OneToMany(mappedBy = "recipient", fetch = FetchType.LAZY)
     private List<Notification> notifications;
 
     @OneToOne(mappedBy = "user", fetch = FetchType.LAZY)

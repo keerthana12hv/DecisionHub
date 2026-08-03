@@ -35,6 +35,10 @@ import com.decisionhub.exception.ResourceNotFoundException;
 import com.decisionhub.exception.ResourceAlreadyExistsException;
 import com.decisionhub.exception.UnauthorizedActionException;
 import com.decisionhub.exception.BadRequestException;
+import com.decisionhub.event.MembershipApprovedEvent;
+import com.decisionhub.event.MembershipRejectedEvent;
+import com.decisionhub.event.MemberPromotedEvent;
+import org.springframework.context.ApplicationEventPublisher;
 
 @Service
 @Transactional
@@ -44,18 +48,22 @@ public class CommunityServiceImpl implements CommunityService {
     private final CommunityMemberRepository communityMemberRepository;
     private final CategoryRepository categoryRepository;
     private final UserRepository userRepository;
+    private final ApplicationEventPublisher eventPublisher;
 
     public CommunityServiceImpl(
             CommunityRepository communityRepository,
             CommunityMemberRepository communityMemberRepository,
             CategoryRepository categoryRepository,
-            UserRepository userRepository) {
+            UserRepository userRepository,
+            ApplicationEventPublisher eventPublisher) {
 
         this.communityRepository = communityRepository;
         this.communityMemberRepository = communityMemberRepository;
         this.categoryRepository = categoryRepository;
         this.userRepository = userRepository;
+        this.eventPublisher = eventPublisher;
     }
+
 
     @Override
     public CommunityResponse createCommunity(CreateCommunityRequest request) {
@@ -415,10 +423,14 @@ public class CommunityServiceImpl implements CommunityService {
 
         member.setStatus(MembershipStatus.APPROVED);
         member.setJoinedAt(LocalDateTime.now());
-        communityMemberRepository.save(member);
+        CommunityMember savedMember = communityMemberRepository.save(member);
 
         community.setMemberCount(community.getMemberCount() + 1);
         communityRepository.save(community);
+
+        if (eventPublisher != null) {
+            eventPublisher.publishEvent(new MembershipApprovedEvent(this, communityId, community.getName(), savedMember.getUser().getId()));
+        }
     }
 
     @Override
@@ -440,7 +452,11 @@ public class CommunityServiceImpl implements CommunityService {
         }
 
         member.setStatus(MembershipStatus.REJECTED);
-        communityMemberRepository.save(member);
+        CommunityMember savedMember = communityMemberRepository.save(member);
+
+        if (eventPublisher != null) {
+            eventPublisher.publishEvent(new MembershipRejectedEvent(this, communityId, community.getName(), savedMember.getUser().getId()));
+        }
     }
 
     @Override
@@ -543,6 +559,16 @@ public class CommunityServiceImpl implements CommunityService {
 
         member.setRole(request.role());
         CommunityMember saved = communityMemberRepository.save(member);
+
+        if (eventPublisher != null) {
+            eventPublisher.publishEvent(new MemberPromotedEvent(
+                    this,
+                    communityId,
+                    community.getName(),
+                    saved.getUser().getId(),
+                    saved.getRole().name()
+            ));
+        }
 
         return new CommunityMemberResponse(
                 saved.getId(),
