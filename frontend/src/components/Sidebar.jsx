@@ -7,8 +7,7 @@ import {
   FaUser,
   FaCog,
   FaSignOutAlt,
-  FaUserShield,
-  FaComments
+  FaUserShield
 } from "react-icons/fa";
 import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
@@ -78,12 +77,6 @@ function Sidebar() {
               <FaBell /> <span>Notifications</span>
             </Link>
           </li>
-          
-          <li className={isActive("/discussion")}>
-  <Link to="/discussion">
-    <FaComments /> <span>Discussion</span>
-  </Link>
-</li>
 
           <li className={isActive("/profile")}>
             <Link to="/profile">
