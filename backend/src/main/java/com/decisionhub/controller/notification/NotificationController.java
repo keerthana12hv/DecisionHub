@@ -32,25 +32,25 @@ public class NotificationController {
         return ResponseEntity.ok(count);
     }
 
-    @PatchMapping("/{id}/read")
-    public ResponseEntity<NotificationResponse> markAsRead(@PathVariable Long id) {
-        NotificationResponse response = notificationService.markAsRead(id);
+    @PutMapping("/{notificationId}/read")
+    public ResponseEntity<NotificationResponse> markAsRead(@PathVariable Long notificationId) {
+        NotificationResponse response = notificationService.markAsRead(notificationId);
         return ResponseEntity.ok(response);
     }
 
-    @PatchMapping("/read-all")
+    @PutMapping("/read-all")
     public ResponseEntity<Void> markAllAsRead() {
         notificationService.markAllAsRead();
         return ResponseEntity.noContent().build();
     }
 
-    @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteNotification(@PathVariable Long id) {
-        notificationService.deleteNotification(id);
+    @DeleteMapping("/{notificationId}")
+    public ResponseEntity<Void> deleteNotification(@PathVariable Long notificationId) {
+        notificationService.deleteNotification(notificationId);
         return ResponseEntity.noContent().build();
     }
 
-    @DeleteMapping("/clear-all")
+    @DeleteMapping
     public ResponseEntity<Void> clearAllNotifications() {
         notificationService.clearAllNotifications();
         return ResponseEntity.noContent().build();

@@ -114,7 +114,7 @@ class NotificationControllerTest {
     void markAsRead_success() throws Exception {
         when(notificationService.markAsRead(10L)).thenReturn(notificationResponse);
 
-        mockMvc.perform(patch("/api/notifications/10/read")
+        mockMvc.perform(put("/api/notifications/10/read")
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(10));
@@ -124,7 +124,7 @@ class NotificationControllerTest {
     void markAllAsRead_success() throws Exception {
         doNothing().when(notificationService).markAllAsRead();
 
-        mockMvc.perform(patch("/api/notifications/read-all")
+        mockMvc.perform(put("/api/notifications/read-all")
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isNoContent());
 
@@ -146,7 +146,7 @@ class NotificationControllerTest {
     void clearAllNotifications_success() throws Exception {
         doNothing().when(notificationService).clearAllNotifications();
 
-        mockMvc.perform(delete("/api/notifications/clear-all")
+        mockMvc.perform(delete("/api/notifications")
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isNoContent());
 

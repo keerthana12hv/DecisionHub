@@ -9,6 +9,8 @@ import com.decisionhub.service.interfaces.notification.NotificationService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.event.TransactionPhase;
 import org.springframework.transaction.event.TransactionalEventListener;
 
@@ -20,6 +22,7 @@ public class CommunityNotificationListener {
     private final NotificationService notificationService;
 
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void handleMembershipApproved(MembershipApprovedEvent event) {
         log.info("Handling MembershipApprovedEvent for user ID: {} in community ID: {}", 
                 event.getUserId(), event.getCommunityId());
@@ -40,6 +43,7 @@ public class CommunityNotificationListener {
     }
 
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void handleMembershipRejected(MembershipRejectedEvent event) {
         log.info("Handling MembershipRejectedEvent for user ID: {} in community ID: {}", 
                 event.getUserId(), event.getCommunityId());
@@ -60,6 +64,7 @@ public class CommunityNotificationListener {
     }
 
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void handleMemberPromoted(MemberPromotedEvent event) {
         log.info("Handling MemberPromotedEvent for user ID: {} in community ID: {}", 
                 event.getUserId(), event.getCommunityId());

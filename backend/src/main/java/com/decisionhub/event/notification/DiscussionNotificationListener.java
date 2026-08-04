@@ -12,6 +12,8 @@ import com.decisionhub.service.interfaces.notification.NotificationService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.event.TransactionPhase;
 import org.springframework.transaction.event.TransactionalEventListener;
 
@@ -25,6 +27,7 @@ public class DiscussionNotificationListener {
     private final CommentRepository commentRepository;
 
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void handleCommentCreated(CommentCreatedEvent event) {
         log.info("Handling CommentCreatedEvent for comment ID: {}", event.getCommentId());
 
@@ -57,6 +60,7 @@ public class DiscussionNotificationListener {
     }
 
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void handleReplyCreated(ReplyCreatedEvent event) {
         log.info("Handling ReplyCreatedEvent for reply ID: {}", event.getReplyId());
 

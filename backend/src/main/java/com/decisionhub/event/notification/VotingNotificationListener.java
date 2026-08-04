@@ -11,6 +11,8 @@ import com.decisionhub.service.interfaces.notification.NotificationService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.event.TransactionPhase;
 import org.springframework.transaction.event.TransactionalEventListener;
 
@@ -23,6 +25,7 @@ public class VotingNotificationListener {
     private final DecisionRepository decisionRepository;
 
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void handleVoteSubmitted(VoteSubmittedEvent event) {
         log.info("Handling VoteSubmittedEvent for decision ID: {}", event.getDecisionId());
 
@@ -52,6 +55,7 @@ public class VotingNotificationListener {
     }
 
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void handlePollClosed(PollClosedEvent event) {
         log.info("Handling PollClosedEvent for poll ID: {}", event.getPollId());
 
@@ -76,6 +80,7 @@ public class VotingNotificationListener {
     }
 
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void handleFeedbackReminder(FeedbackReminderEvent event) {
         log.info("Handling FeedbackReminderEvent for recipient ID: {} on decision ID: {}", 
                 event.getRecipientId(), event.getDecisionId());
