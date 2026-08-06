@@ -12,6 +12,8 @@ import com.decisionhub.security.decision.AuthenticationFacade;
 import com.decisionhub.security.decision.DecisionAuthorizationService;
 import com.decisionhub.service.interfaces.voting.PollService;
 import com.decisionhub.validator.voting.PollValidator;
+import com.decisionhub.event.PollClosedEvent;
+import org.springframework.context.ApplicationEventPublisher;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -35,6 +37,7 @@ public class PollServiceImpl implements PollService {
     private final PollValidator pollValidator;
     private final DecisionAuthorizationService decisionAuthorizationService;
     private final AuthenticationFacade authenticationFacade;
+    private final ApplicationEventPublisher eventPublisher;
 
     /**
      * Retrieves the Poll associated with the specified Decision.
@@ -155,6 +158,17 @@ public class PollServiceImpl implements PollService {
                 "Poll closed successfully for decision ID: {}",
                 decisionId
         );
+
+        if (eventPublisher != null) {
+            Long decId = (closedPoll.getDecision() != null) ? closedPoll.getDecision().getId() : null;
+            String decTitle = (closedPoll.getDecision() != null) ? closedPoll.getDecision().getTitle() : null;
+            eventPublisher.publishEvent(new PollClosedEvent(
+                    this,
+                    closedPoll.getId(),
+                    decId,
+                    decTitle
+            ));
+        }
 
         return pollMapper.toResponse(closedPoll);
     }

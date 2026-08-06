@@ -3,6 +3,7 @@ package com.decisionhub.controller;
 import com.decisionhub.config.JwtService;
 import com.decisionhub.controller.community.CommunityModerationController;
 import com.decisionhub.dto.response.decision.DecisionResponse;
+import com.decisionhub.dto.response.discussion.CommentResponse;
 import com.decisionhub.enums.decision.DecisionStatus;
 import com.decisionhub.service.impl.authentication.CustomUserDetailsService;
 import com.decisionhub.service.interfaces.community.CommunityModerationService;
@@ -22,10 +23,11 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import java.time.LocalDateTime;
 import java.util.Collections;
+import java.util.Optional;
 
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -61,6 +63,7 @@ class CommunityModerationControllerTest {
     private PasswordEncoder passwordEncoder;
 
     private DecisionResponse response;
+    private CommentResponse commentResponse;
 
     @BeforeEach
     void setUp() {
@@ -68,6 +71,10 @@ class CommunityModerationControllerTest {
                 1L, "Decision Title", "Description", null, null, "Community Name",
                 DecisionStatus.DRAFT, null, Collections.emptyList(), Collections.emptyList(),
                 LocalDateTime.now(), true, true
+        );
+
+        commentResponse = new CommentResponse(
+                100L, 1L, null, 10L, "testuser", "Appropriate content", false, 0, 0, false, LocalDateTime.now(), LocalDateTime.now()
         );
     }
 
@@ -119,5 +126,59 @@ class CommunityModerationControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(1L))
                 .andExpect(jsonPath("$.locked").value(false));
+    }
+
+    @Test
+    void deleteComment_Success() throws Exception {
+        when(communityModerationService.deleteComment(eq(100L))).thenReturn(commentResponse);
+
+        mockMvc.perform(delete("/api/moderation/comments/100"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(100L))
+                .andExpect(jsonPath("$.content").value("Appropriate content"));
+    }
+
+    @Test
+    void pinComment_Success() throws Exception {
+        CommentResponse pinnedResponse = new CommentResponse(
+                100L, 1L, null, 10L, "testuser", "Appropriate content", false, 0, 0, true, LocalDateTime.now(), LocalDateTime.now()
+        );
+        when(communityModerationService.pinComment(eq(100L))).thenReturn(pinnedResponse);
+
+        mockMvc.perform(put("/api/moderation/comments/100/pin"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(100L))
+                .andExpect(jsonPath("$.pinned").value(true));
+    }
+
+    @Test
+    void unpinComment_Success() throws Exception {
+        when(communityModerationService.unpinComment(eq(100L))).thenReturn(commentResponse);
+
+        mockMvc.perform(put("/api/moderation/comments/100/unpin"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(100L))
+                .andExpect(jsonPath("$.pinned").value(false));
+    }
+
+    @Test
+    void getPinnedComment_Exists_Returns200() throws Exception {
+        CommentResponse pinnedResponse = new CommentResponse(
+                100L, 1L, null, 10L, "testuser", "Appropriate content", false, 0, 0, true, LocalDateTime.now(), LocalDateTime.now()
+        );
+        when(communityModerationService.getPinnedComment(eq(1L))).thenReturn(Optional.of(pinnedResponse));
+
+        mockMvc.perform(get("/api/moderation/decisions/1/comments/pinned"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(100L))
+                .andExpect(jsonPath("$.pinned").value(true));
+    }
+
+    @Test
+    void getPinnedComment_Empty_Returns204() throws Exception {
+        when(communityModerationService.getPinnedComment(eq(1L))).thenReturn(Optional.empty());
+
+        mockMvc.perform(get("/api/moderation/decisions/1/comments/pinned"))
+                .andExpect(status().isNoContent());
     }
 }

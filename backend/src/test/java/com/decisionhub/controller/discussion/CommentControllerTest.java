@@ -99,6 +99,7 @@ class CommentControllerTest {
                 false,
                 0,
                 0,
+                false,
                 LocalDateTime.now(),
                 LocalDateTime.now()
         );
