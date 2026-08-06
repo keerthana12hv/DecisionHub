@@ -8,6 +8,9 @@ import {
   FaCog,
   FaSignOutAlt,
   FaUserShield
+  FaUserShield,
+  FaComments,
+  FaCommentDots
 } from "react-icons/fa";
 import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
@@ -81,6 +84,12 @@ function Sidebar() {
           <li className={isActive("/profile")}>
             <Link to="/profile">
               <FaUser /> <span>My Profile</span>
+            </Link>
+          </li>
+
+          <li className={isActive(isAdmin ? "/feedback-dashboard" : "/feedback")}>
+            <Link to={isAdmin ? "/feedback-dashboard" : "/feedback"}>
+              <FaCommentDots /> <span>Help & Feedback</span>
             </Link>
           </li>
 
