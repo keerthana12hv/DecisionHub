@@ -7,7 +7,6 @@ import {
   FaUser,
   FaCog,
   FaSignOutAlt,
-  FaUserShield
   FaUserShield,
   FaComments,
   FaCommentDots
