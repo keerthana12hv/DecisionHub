@@ -1,5 +1,5 @@
 package com.decisionhub.service.impl.decision;
-
+import com.decisionhub.repository.discussion.CommentRepository;
 import com.decisionhub.dto.request.decision.DecisionRequest;
 import com.decisionhub.dto.response.decision.DecisionResponse;
 import com.decisionhub.entity.authentication.User;
@@ -57,6 +57,7 @@ public class DecisionServiceImpl implements DecisionService {
     private final ComparisonScoreRepository comparisonScoreRepository;
     private final PollRepository pollRepository;
     private final VoteRepository voteRepository;
+    private final CommentRepository commentRepository;
 
     private final DecisionMapper decisionMapper;
     private final ComparisonMapper comparisonMapper;

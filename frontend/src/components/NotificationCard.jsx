@@ -1,34 +1,74 @@
-import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   FaBell,
   FaArrowRight,
   FaCommentDots,
   FaUsers,
-  FaCheckCircle,
   FaInfoCircle
 } from "react-icons/fa";
+import { useNotifications } from "../context/NotificationsContext";
 import "../styles/NotificationCard.css";
 
 function NotificationCard() {
-  const [notifications, setNotifications] = useState([]);
+  const { notifications, markAsRead } = useNotifications();
   const navigate = useNavigate();
 
-  useEffect(() => {
-    const stored = localStorage.getItem("decisionhub-notifications");
-    if (stored) {
-      setNotifications(JSON.parse(stored).slice(0, 3)); // show first 3
+  const getIcon = (type) => {
+    switch (type) {
+      case "COMMENT":
+        return <FaCommentDots style={{ color: "var(--accent-purple)" }} />;
+      case "VOTE":
+        return <FaBell style={{ color: "var(--accent-blue)" }} />;
+      case "COMMUNITY":
+        return <FaUsers style={{ color: "var(--success)" }} />;
+      case "DECISION":
+        return <FaBell style={{ color: "var(--accent-blue)" }} />;
+      case "REMINDER":
+        return <FaBell style={{ color: "var(--warning, #eab308)" }} />;
+      case "SYSTEM":
+        return <FaInfoCircle style={{ color: "var(--text-muted)" }} />;
+      default:
+        return <FaInfoCircle style={{ color: "var(--text-muted)" }} />;
     }
-  }, []);
-
-  const getIcon = (text) => {
-    const txt = text.toLowerCase();
-    if (txt.includes("vote")) return <FaBell style={{ color: "var(--accent-blue)" }} />;
-    if (txt.includes("comment")) return <FaCommentDots style={{ color: "var(--accent-purple)" }} />;
-    if (txt.includes("community")) return <FaUsers style={{ color: "var(--success)" }} />;
-    if (txt.includes("close") || txt.includes("end")) return <FaCheckCircle style={{ color: "var(--danger)" }} />;
-    return <FaInfoCircle style={{ color: "var(--text-muted)" }} />;
   };
+
+  const formatTime = (dateStr) => {
+    if (!dateStr) return "";
+    try {
+      const date = new Date(dateStr);
+      if (isNaN(date.getTime())) return dateStr;
+      
+      const now = new Date();
+      const diffMs = now - date;
+      const diffMins = Math.floor(diffMs / 60000);
+      const diffHours = Math.floor(diffMins / 60);
+      const diffDays = Math.floor(diffHours / 24);
+
+      if (diffMins < 1) return "Just now";
+      if (diffMins < 60) return `${diffMins} min${diffMins > 1 ? "s" : ""} ago`;
+      if (diffHours < 24) return `${diffHours} hour${diffHours > 1 ? "s" : ""} ago`;
+      if (diffDays < 7) return `${diffDays} day${diffDays > 1 ? "s" : ""} ago`;
+
+      return date.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+    } catch (e) {
+      return dateStr;
+    }
+  };
+
+  const handleNotifClick = async (item) => {
+    try {
+      if (!item.isRead) {
+        await markAsRead(item.id);
+      }
+      if (item.actionUrl) {
+        navigate(item.actionUrl);
+      }
+    } catch (err) {
+      console.error("Failed to handle notification click:", err);
+    }
+  };
+
+  const latestNotifs = notifications.slice(0, 3);
 
   return (
     <div className="notif-card-container">
@@ -40,17 +80,25 @@ function NotificationCard() {
       </div>
 
       <div className="notification-card-element glass-panel">
-        {notifications.length === 0 ? (
+        {latestNotifs.length === 0 ? (
           <div className="empty-notifs">No new notifications.</div>
         ) : (
-          notifications.map((item) => (
-            <div key={item.id} className={`notification-item ${item.unread ? "unread" : ""}`}>
+          latestNotifs.map((item) => (
+            <div 
+              key={item.id} 
+              className={`notification-item ${!item.isRead ? "unread" : ""}`}
+              onClick={() => handleNotifClick(item)}
+              style={{ cursor: "pointer" }}
+            >
               <div className="notification-icon">
-                {getIcon(item.text)}
+                {getIcon(item.type)}
               </div>
               <div className="notif-details">
-                <span className="notif-msg">{item.text}</span>
-                <span className="notif-time">{item.time}</span>
+                <span className="notif-msg">
+                  {item.title ? <strong>{item.title}: </strong> : ""}
+                  {item.message}
+                </span>
+                <span className="notif-time">{formatTime(item.createdAt)}</span>
               </div>
             </div>
           ))
