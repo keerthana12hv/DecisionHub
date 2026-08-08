@@ -23,6 +23,7 @@ import com.decisionhub.event.DecisionPinnedEvent;
 import com.decisionhub.event.DecisionUnpinnedEvent;
 import com.decisionhub.event.DecisionLockedEvent;
 import com.decisionhub.event.DecisionUnlockedEvent;
+import com.decisionhub.event.CommentRemovedEvent;
 import org.springframework.context.ApplicationEventPublisher;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -117,6 +118,21 @@ public class CommunityModerationServiceImpl implements CommunityModerationServic
 
         comment.setDeletedAt(LocalDateTime.now());
         Comment saved = commentRepository.save(comment);
+
+        if (eventPublisher != null) {
+            Long currentUserId = authenticationFacade.getCurrentUserId().orElse(null);
+            String contentSnippet = saved.getContent() != null ? 
+                    saved.getContent().substring(0, Math.min(30, saved.getContent().length())) : "";
+            eventPublisher.publishEvent(new CommentRemovedEvent(
+                    this,
+                    saved.getId(),
+                    saved.getDecision().getId(),
+                    saved.getDecision().getTitle(),
+                    currentUserId,
+                    contentSnippet
+            ));
+        }
+
         return toCommentResponse(saved);
     }
 
