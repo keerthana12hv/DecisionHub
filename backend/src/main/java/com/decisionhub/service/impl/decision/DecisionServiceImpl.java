@@ -1,5 +1,5 @@
 package com.decisionhub.service.impl.decision;
-
+import com.decisionhub.repository.discussion.CommentRepository;
 import com.decisionhub.dto.request.decision.DecisionRequest;
 import com.decisionhub.dto.response.decision.DecisionResponse;
 import com.decisionhub.entity.authentication.User;
@@ -57,6 +57,7 @@ public class DecisionServiceImpl implements DecisionService {
     private final ComparisonScoreRepository comparisonScoreRepository;
     private final PollRepository pollRepository;
     private final VoteRepository voteRepository;
+    private final CommentRepository commentRepository;
 
     private final DecisionMapper decisionMapper;
     private final ComparisonMapper comparisonMapper;
@@ -298,6 +299,20 @@ public class DecisionServiceImpl implements DecisionService {
 
         List<DecisionOption> options = decisionOptionRepository.findByDecisionId(id);
         decisionOptionRepository.deleteAll(options);
+
+        // Cascade delete child comments
+        List<com.decisionhub.entity.discussion.Comment> comments = commentRepository.findByDecisionId(id);
+        commentRepository.deleteAll(comments);
+
+        // Cascade delete poll and its votes
+        java.util.Optional<com.decisionhub.entity.voting.Poll> pollOpt = pollRepository.findByDecisionId(id);
+        if (pollOpt.isPresent()) {
+            com.decisionhub.entity.voting.Poll poll = pollOpt.get();
+            if (poll.getVotes() != null && !poll.getVotes().isEmpty()) {
+                voteRepository.deleteAll(poll.getVotes());
+            }
+            pollRepository.delete(poll);
+        }
 
         // 3. Keep old value for audit log
         String oldValueJson = String.format("{\"title\":\"%s\"}", decision.getTitle());

@@ -50,6 +50,8 @@ public class CommentMapper {
                         ? 0
                         : comment.getReplies().size(),
 
+                comment.isPinned(),
+
                 comment.getCreatedAt(),
 
                 comment.getUpdatedAt()

@@ -1,52 +1,135 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import Sidebar from "../components/Sidebar";
 import Navbar from "../components/Navbar";
+import LoadingState from "../components/LoadingState";
 import { useToast } from "../components/Toast";
-import { FaBell, FaCheckDouble, FaTrash, FaCheck, FaInfoCircle } from "react-icons/fa";
+import { useNotifications } from "../context/NotificationsContext";
+import {
+  FaBell,
+  FaCheckDouble,
+  FaTrash,
+  FaCheck,
+  FaComment,
+  FaVoteYea,
+  FaUsers,
+  FaClock,
+  FaCog
+} from "react-icons/fa";
 import "../styles/NotificationsPage.css";
 
 function NotificationsPage() {
   const { addToast } = useToast();
-  const [notifications, setNotifications] = useState([]);
+  const navigate = useNavigate();
   const [filter, setFilter] = useState("all"); // "all", "unread"
 
+  const {
+    notifications,
+    loading,
+    fetchNotifications,
+    markAsRead,
+    markAllAsRead,
+    deleteNotif,
+    clearAllNotifs
+  } = useNotifications();
+
   useEffect(() => {
-    const storedNotifs = localStorage.getItem("decisionhub-notifications");
-    if (storedNotifs) {
-      setNotifications(JSON.parse(storedNotifs));
+    fetchNotifications(true);
+  }, [fetchNotifications]);
+
+  const handleMarkAllRead = async () => {
+    try {
+      await markAllAsRead();
+      addToast("All notifications marked as read.", "success");
+    } catch (err) {
+      console.error(err);
+      addToast("Failed to mark all notifications as read.", "error");
     }
-  }, []);
-
-  const persistNotifs = (nextNotifs) => {
-    setNotifications(nextNotifs);
-    localStorage.setItem("decisionhub-notifications", JSON.stringify(nextNotifs));
   };
 
-  const markAllAsRead = () => {
-    const updated = notifications.map((n) => ({ ...n, unread: false }));
-    persistNotifs(updated);
-    addToast("All notifications marked as read.", "success");
+  const handleMarkAsRead = async (id) => {
+    try {
+      await markAsRead(id);
+    } catch (err) {
+      console.error(err);
+      addToast("Failed to mark notification as read.", "error");
+    }
   };
 
-  const markAsRead = (id) => {
-    const updated = notifications.map((n) => n.id === id ? { ...n, unread: false } : n);
-    persistNotifs(updated);
+  const handleDeleteNotif = async (id) => {
+    try {
+      await deleteNotif(id);
+      addToast("Notification deleted.", "success");
+    } catch (err) {
+      console.error(err);
+      addToast("Failed to delete notification.", "error");
+    }
   };
 
-  const deleteNotification = (id) => {
-    const updated = notifications.filter((n) => n.id !== id);
-    persistNotifs(updated);
-    addToast("Notification deleted.", "success");
+  const handleClearAll = async () => {
+    try {
+      await clearAllNotifs();
+      addToast("All notifications deleted.", "info");
+    } catch (err) {
+      console.error(err);
+      addToast("Failed to delete all notifications.", "error");
+    }
   };
 
-  const clearAll = () => {
-    persistNotifs([]);
-    addToast("All notifications deleted.", "info");
+  const handleNotifClick = async (notif) => {
+    try {
+      if (!notif.isRead) {
+        await markAsRead(notif.id);
+      }
+      if (notif.actionUrl) {
+        navigate(notif.actionUrl);
+      }
+    } catch (err) {
+      console.error(err);
+      addToast("Failed to process notification click.", "error");
+    }
   };
 
-  const filteredNotifs = filter === "all"
-    ? notifications
-    : notifications.filter((n) => n.unread);
+  const filteredNotifs =
+    filter === "all"
+      ? notifications
+      : notifications.filter((n) => !n.isRead);
+
+  const getNotificationIcon = (type) => {
+    switch (type) {
+      case "COMMENT":
+        return <FaComment />;
+      case "VOTE":
+        return <FaVoteYea />;
+      case "COMMUNITY":
+        return <FaUsers />;
+      case "DECISION":
+        return <FaBell />;
+      case "REMINDER":
+        return <FaClock />;
+      case "SYSTEM":
+        return <FaCog />;
+      default:
+        return <FaBell />;
+    }
+  };
+
+  const formatDateTime = (dateStr) => {
+    if (!dateStr) return "";
+    try {
+      const d = new Date(dateStr);
+      if (isNaN(d.getTime())) return dateStr;
+      return d.toLocaleString(undefined, {
+        year: "numeric",
+        month: "short",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+    } catch {
+      return dateStr;
+    }
+  };
 
   return (
     <div className="dashboard">
@@ -61,13 +144,13 @@ function NotificationsPage() {
             </div>
 
             <div className="notifications-page-actions">
-              {notifications.some((n) => n.unread) && (
-                <button className="btn-secondary" onClick={markAllAsRead}>
+              {notifications.some((n) => !n.isRead) && (
+                <button className="btn-secondary" onClick={handleMarkAllRead}>
                   <FaCheckDouble /> Mark All Read
                 </button>
               )}
               {notifications.length > 0 && (
-                <button className="btn-secondary clear-btn-all" onClick={clearAll}>
+                <button className="btn-secondary clear-btn-all" onClick={handleClearAll}>
                   <FaTrash /> Delete All
                 </button>
               )}
@@ -87,34 +170,54 @@ function NotificationsPage() {
                 className={`tab-btn ${filter === "unread" ? "active-tab" : ""}`}
                 onClick={() => setFilter("unread")}
               >
-                Unread <span className="tab-count">{notifications.filter(n => n.unread).length}</span>
+                Unread{" "}
+                <span className="tab-count">
+                  {notifications.filter((n) => !n.isRead).length}
+                </span>
               </button>
             </div>
 
             {/* List */}
             <div className="notifications-page-list">
-              {filteredNotifs.length === 0 ? (
+              {loading ? (
+                <LoadingState />
+              ) : filteredNotifs.length === 0 ? (
                 <div className="empty-state">
                   <FaBell className="empty-icon" />
                   <h3>No notifications found</h3>
-                  <p>You're all caught up! When new activities occur, they'll show up here.</p>
+                  <p>
+                    You're all caught up! When new activities occur, they'll
+                    show up here.
+                  </p>
                 </div>
               ) : (
                 filteredNotifs.map((n) => (
-                  <div key={n.id} className={`notif-page-item ${n.unread ? "unread" : ""}`}>
+                  <div
+                    key={n.id}
+                    className={`notif-page-item ${!n.isRead ? "unread" : ""}`}
+                  >
                     <div className="notif-indicator-dot"></div>
                     <div className="notif-page-icon">
-                      <FaInfoCircle />
+                      {getNotificationIcon(n.type)}
                     </div>
-                    <div className="notif-page-content" onClick={() => markAsRead(n.id)}>
-                      <p>{n.text}</p>
-                      <span className="notif-page-time">{n.time}</span>
+                    <div
+                      className="notif-page-content"
+                      onClick={() => handleNotifClick(n)}
+                    >
+                      {n.title && <h4>{n.title}</h4>}
+                      <p>{n.message}</p>
+                      <span className="notif-page-time">
+                        {formatDateTime(n.createdAt)}
+                      </span>
                     </div>
                     <div className="notif-page-buttons">
-                      {n.unread && (
+                      {!n.isRead && (
                         <button
                           className="action-btn-p read-btn-p"
-                          onClick={() => markAsRead(n.id)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleMarkAsRead(n.id);
+                          }}
                           title="Mark as Read"
                         >
                           <FaCheck /> Mark read
@@ -122,7 +225,10 @@ function NotificationsPage() {
                       )}
                       <button
                         className="action-btn-p delete-btn-p"
-                        onClick={() => deleteNotification(n.id)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDeleteNotif(n.id);
+                        }}
                         title="Delete"
                       >
                         <FaTrash />

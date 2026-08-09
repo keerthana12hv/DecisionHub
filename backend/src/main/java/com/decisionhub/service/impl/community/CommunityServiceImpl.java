@@ -35,6 +35,10 @@ import com.decisionhub.exception.ResourceNotFoundException;
 import com.decisionhub.exception.ResourceAlreadyExistsException;
 import com.decisionhub.exception.UnauthorizedActionException;
 import com.decisionhub.exception.BadRequestException;
+import com.decisionhub.event.MembershipApprovedEvent;
+import com.decisionhub.event.MembershipRejectedEvent;
+import com.decisionhub.event.MemberPromotedEvent;
+import org.springframework.context.ApplicationEventPublisher;
 
 @Service
 @Transactional
@@ -44,18 +48,22 @@ public class CommunityServiceImpl implements CommunityService {
     private final CommunityMemberRepository communityMemberRepository;
     private final CategoryRepository categoryRepository;
     private final UserRepository userRepository;
+    private final ApplicationEventPublisher eventPublisher;
 
     public CommunityServiceImpl(
             CommunityRepository communityRepository,
             CommunityMemberRepository communityMemberRepository,
             CategoryRepository categoryRepository,
-            UserRepository userRepository) {
+            UserRepository userRepository,
+            ApplicationEventPublisher eventPublisher) {
 
         this.communityRepository = communityRepository;
         this.communityMemberRepository = communityMemberRepository;
         this.categoryRepository = categoryRepository;
         this.userRepository = userRepository;
+        this.eventPublisher = eventPublisher;
     }
+
 
     @Override
     public CommunityResponse createCommunity(CreateCommunityRequest request) {
@@ -214,8 +222,10 @@ public class CommunityServiceImpl implements CommunityService {
         }
 
         User currentUser = getCurrentUser();
-        if (!community.getOwner().getId().equals(currentUser.getId())) {
-            throw new UnauthorizedActionException("Only the community moderator can delete this community");
+        boolean isOwner = community.getOwner().getId().equals(currentUser.getId());
+        boolean isAdmin = currentUser.getRole() == com.decisionhub.enums.authentication.PlatformRole.ADMIN;
+        if (!isOwner && !isAdmin) {
+            throw new UnauthorizedActionException("Only the community owner or a platform admin can delete this community");
         }
 
         community.setDeletedAt(LocalDateTime.now());
@@ -360,6 +370,29 @@ public class CommunityServiceImpl implements CommunityService {
                 .toList();
     }
 
+    private void checkModeratorOrOwnerOrAdmin(Community community, String actionDescription) {
+        User currentUser = getCurrentUser();
+
+        // 1. Platform Admin has universal access
+        if (currentUser.getRole() == PlatformRole.ADMIN) {
+            return;
+        }
+
+        // 2. Community Owner has access
+        if (community.getOwner().getId().equals(currentUser.getId())) {
+            return;
+        }
+
+        // 3. Approved Community Moderator has access
+        boolean isModerator = communityMemberRepository.findByCommunityAndUser(community, currentUser)
+                .map(m -> m.getStatus() == MembershipStatus.APPROVED && m.getRole() == CommunityMemberRole.MODERATOR)
+                .orElse(false);
+
+        if (!isModerator) {
+            throw new UnauthorizedActionException(actionDescription);
+        }
+    }
+
     @Override
     public List<CommunityJoinRequestResponse> getPendingRequests(Long communityId) {
         Community community = communityRepository.findById(communityId)
@@ -369,10 +402,7 @@ public class CommunityServiceImpl implements CommunityService {
             throw new ResourceNotFoundException("Community not found");
         }
 
-        User currentUser = getCurrentUser();
-        if (!community.getOwner().getId().equals(currentUser.getId())) {
-            throw new UnauthorizedActionException("Only the community moderator can view pending requests");
-        }
+        checkModeratorOrOwnerOrAdmin(community, "Only the community moderator can view pending requests");
 
         return communityMemberRepository.findByCommunityAndStatus(community, MembershipStatus.PENDING)
                 .stream()
@@ -395,10 +425,7 @@ public class CommunityServiceImpl implements CommunityService {
             throw new ResourceNotFoundException("Community not found");
         }
 
-        User currentUser = getCurrentUser();
-        if (!community.getOwner().getId().equals(currentUser.getId())) {
-            throw new UnauthorizedActionException("Only the community moderator can approve requests");
-        }
+        checkModeratorOrOwnerOrAdmin(community, "Only the community moderator can approve requests");
 
         CommunityMember member = communityMemberRepository.findByIdAndCommunity(memberId, community)
                 .orElseThrow(() -> new ResourceNotFoundException("Join request not found"));
@@ -409,10 +436,14 @@ public class CommunityServiceImpl implements CommunityService {
 
         member.setStatus(MembershipStatus.APPROVED);
         member.setJoinedAt(LocalDateTime.now());
-        communityMemberRepository.save(member);
+        CommunityMember savedMember = communityMemberRepository.save(member);
 
         community.setMemberCount(community.getMemberCount() + 1);
         communityRepository.save(community);
+
+        if (eventPublisher != null) {
+            eventPublisher.publishEvent(new MembershipApprovedEvent(this, communityId, community.getName(), savedMember.getUser().getId()));
+        }
     }
 
     @Override
@@ -424,10 +455,7 @@ public class CommunityServiceImpl implements CommunityService {
             throw new ResourceNotFoundException("Community not found");
         }
 
-        User currentUser = getCurrentUser();
-        if (!community.getOwner().getId().equals(currentUser.getId())) {
-            throw new UnauthorizedActionException("Only the community moderator can reject requests");
-        }
+        checkModeratorOrOwnerOrAdmin(community, "Only the community moderator can reject requests");
 
         CommunityMember member = communityMemberRepository.findByIdAndCommunity(memberId, community)
                 .orElseThrow(() -> new ResourceNotFoundException("Join request not found"));
@@ -437,7 +465,11 @@ public class CommunityServiceImpl implements CommunityService {
         }
 
         member.setStatus(MembershipStatus.REJECTED);
-        communityMemberRepository.save(member);
+        CommunityMember savedMember = communityMemberRepository.save(member);
+
+        if (eventPublisher != null) {
+            eventPublisher.publishEvent(new MembershipRejectedEvent(this, communityId, community.getName(), savedMember.getUser().getId()));
+        }
     }
 
     @Override
@@ -451,12 +483,14 @@ public class CommunityServiceImpl implements CommunityService {
         }
 
         User currentUser = getCurrentUser();
-        CommunityMember currentMember = communityMemberRepository
-                .findByCommunityAndUser(community, currentUser)
-                .orElseThrow(() -> new UnauthorizedActionException("You are not a member of this community"));
+        if (currentUser.getRole() != PlatformRole.ADMIN) {
+            CommunityMember currentMember = communityMemberRepository
+                    .findByCommunityAndUser(community, currentUser)
+                    .orElseThrow(() -> new UnauthorizedActionException("You are not a member of this community"));
 
-        if (currentMember.getStatus() != MembershipStatus.APPROVED) {
-            throw new UnauthorizedActionException("You must be an approved member to view the member list");
+            if (currentMember.getStatus() != MembershipStatus.APPROVED) {
+                throw new UnauthorizedActionException("You must be an approved member to view the member list");
+            }
         }
 
         return communityMemberRepository.findByCommunityAndStatus(community, MembershipStatus.APPROVED)
@@ -482,10 +516,7 @@ public class CommunityServiceImpl implements CommunityService {
             throw new ResourceNotFoundException("Community not found");
         }
 
-        User currentUser = getCurrentUser();
-        if (!community.getOwner().getId().equals(currentUser.getId())) {
-            throw new UnauthorizedActionException("Only the community moderator can remove members");
-        }
+        checkModeratorOrOwnerOrAdmin(community, "Only the community moderator can remove members");
 
         CommunityMember member = communityMemberRepository.findByIdAndCommunity(memberId, community)
                 .orElseThrow(() -> new ResourceNotFoundException("Membership not found"));
@@ -507,6 +538,60 @@ public class CommunityServiceImpl implements CommunityService {
 
         community.setMemberCount(Math.max(0, community.getMemberCount() - 1));
         communityRepository.save(community);
+    }
+
+    @Override
+    public CommunityMemberResponse updateMemberRole(Long communityId, Long memberId, com.decisionhub.dto.request.community.UpdateMemberRoleRequest request) {
+        Community community = communityRepository.findById(communityId)
+                .orElseThrow(() -> new ResourceNotFoundException("Community not found"));
+
+        if (community.getDeletedAt() != null) {
+            throw new ResourceNotFoundException("Community not found");
+        }
+
+        User currentUser = getCurrentUser();
+
+        // Only Community Owner or Platform Admin may change roles
+        boolean isAuthorized = currentUser.getRole() == PlatformRole.ADMIN ||
+                               community.getOwner().getId().equals(currentUser.getId());
+        if (!isAuthorized) {
+            throw new UnauthorizedActionException("Only the community owner or a platform admin can modify roles");
+        }
+
+        CommunityMember member = communityMemberRepository.findByIdAndCommunity(memberId, community)
+                .orElseThrow(() -> new ResourceNotFoundException("Member not found in this community"));
+
+        if (member.getStatus() != MembershipStatus.APPROVED) {
+            throw new BadRequestException("Role can only be modified for approved members");
+        }
+
+        // Owner cannot demote themselves/be demoted
+        if (community.getOwner().getId().equals(member.getUser().getId())) {
+            throw new BadRequestException("Community owner's role cannot be modified");
+        }
+
+        member.setRole(request.role());
+        CommunityMember saved = communityMemberRepository.save(member);
+
+        if (eventPublisher != null) {
+            eventPublisher.publishEvent(new MemberPromotedEvent(
+                    this,
+                    communityId,
+                    community.getName(),
+                    saved.getUser().getId(),
+                    saved.getRole().name()
+            ));
+        }
+
+        return new CommunityMemberResponse(
+                saved.getId(),
+                saved.getUser().getId(),
+                saved.getUser().getUsername(),
+                saved.getUser().getEmail(),
+                saved.getRole(),
+                saved.getStatus(),
+                saved.getJoinedAt()
+        );
     }
 
     private User getCurrentUser() {

@@ -55,6 +55,9 @@ public class Comment {
     @Column(name = "deleted_at")
     private LocalDateTime deletedAt;
 
+    @Column(name = "pinned", nullable = false)
+    private boolean pinned = false;
+
     @Column(nullable = false)
     private Integer depth = 0;
 

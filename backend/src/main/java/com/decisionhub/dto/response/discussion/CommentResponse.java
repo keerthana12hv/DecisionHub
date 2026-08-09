@@ -8,27 +8,16 @@ import java.time.LocalDateTime;
  * Replies are loaded lazily through a separate endpoint.
  */
 public record CommentResponse(
-
         Long id,
-
         Long decisionId,
-
         Long parentCommentId,
-
         Long userId,
-
         String username,
-
         String content,
-
         boolean deleted,
-
         int depth,
-
         int replyCount,
-
+        boolean pinned,
         LocalDateTime createdAt,
-
         LocalDateTime updatedAt
-
 ) {}
