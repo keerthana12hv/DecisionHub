@@ -1,13 +1,28 @@
 import api from "./api";
 
-const BASE = "/api/comments";
+// ─── Comments ─────────────────────────────────────────────────────────────────
+// CommentController → @RequestMapping("/api")
 
-export const getComments  = (decisionId) => api.get(`${BASE}/decision/${decisionId}`);
-export const postComment  = (decisionId, content) => api.post(BASE, { decisionId, content });
-export const postReply    = (commentId, content)  => api.post(`${BASE}/${commentId}/reply`, { content });
-export const deleteComment = (commentId)           => api.delete(`${BASE}/${commentId}`);
+/** GET /api/decisions/{decisionId}/comments */
+export const getComments = (decisionId) =>
+  api.get(`/api/decisions/${decisionId}/comments`);
 
-// ── Stubs — wired to future backend endpoints ────────────────────────────────
-export const pinComment   = (commentId) => api.put(`${BASE}/${commentId}/pin`).catch(() => ({ _local: true }));
-export const unpinComment = (commentId) => api.put(`${BASE}/${commentId}/unpin`).catch(() => ({ _local: true }));
-export const hideComment  = (commentId) => api.put(`${BASE}/${commentId}/hide`).catch(() => ({ _local: true }));
+/** POST /api/decisions/{decisionId}/comments  body: { content } */
+export const postComment = (decisionId, content) =>
+  api.post(`/api/decisions/${decisionId}/comments`, { content });
+
+/** POST /api/decisions/{decisionId}/comments/{parentCommentId}/replies  body: { content } */
+export const postReply = (decisionId, parentCommentId, content) =>
+  api.post(`/api/decisions/${decisionId}/comments/${parentCommentId}/replies`, { content });
+
+/** PUT /api/comments/{commentId}  body: { content } */
+export const updateComment = (commentId, content) =>
+  api.put(`/api/comments/${commentId}`, { content });
+
+/** DELETE /api/comments/{commentId} */
+export const deleteComment = (commentId) =>
+  api.delete(`/api/comments/${commentId}`);
+
+/** GET /api/comments/{commentId}/replies */
+export const getReplies = (commentId) =>
+  api.get(`/api/comments/${commentId}/replies`);

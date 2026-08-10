@@ -1,36 +1,32 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import {
   FaShieldAlt, FaLock, FaLockOpen, FaThumbtack,
-  FaUserMinus, FaCheck, FaTimes, FaUsers,
-  FaSync, FaExclamationTriangle,
+  FaUserMinus, FaCheck, FaTimes, FaUsers, FaSync,
+  FaExclamationTriangle,
 } from "react-icons/fa";
 import { useToast } from "./Toast";
 import {
-  getJoinRequests,
-  approveRequest,
-  rejectRequest,
-  getMembers,
-  removeMember,
+  getJoinRequests, approveRequest, rejectRequest,
+  getMembers, removeMember,
 } from "../services/communityService";
 import {
-  pinDecision,
-  unpinDecision,
-  lockDiscussion,
-  unlockDiscussion,
+  pinDecision, unpinDecision,
+  lockDiscussion, unlockDiscussion,
+  getPinnedComment, unpinComment,
 } from "../services/moderationService";
+import "../styles/ModeratorPanel.css";
 
 // ─── ConfirmModal ─────────────────────────────────────────────────────────────
 
 function ConfirmModal({ message, onConfirm, onCancel }) {
   return (
-    <div className="mod-modal-overlay" onClick={onCancel}>
-      <div className="mod-modal glass-panel mod-modal--sm" onClick={(e) => e.stopPropagation()}>
-        <div className="mod-modal__header">
-          <FaExclamationTriangle />
-          <h3>Confirm</h3>
+    <div className="disc-modal-overlay" onClick={onCancel}>
+      <div className="disc-modal disc-modal--sm glass-panel" onClick={(e) => e.stopPropagation()}>
+        <div className="disc-modal-header">
+          <FaExclamationTriangle /> <h3>Confirm</h3>
         </div>
-        <p className="mod-modal__sub">{message}</p>
-        <div className="mod-modal__footer">
+        <p className="disc-modal-sub">{message}</p>
+        <div className="disc-modal-footer">
           <button className="btn-ghost" onClick={onCancel}>Cancel</button>
           <button className="btn-danger" onClick={onConfirm}>Confirm</button>
         </div>
@@ -44,29 +40,47 @@ function ConfirmModal({ message, onConfirm, onCancel }) {
 export default function ModeratorPanel({ decisionId, communityId, isPinned, isLocked, onDecisionUpdate }) {
   const { addToast } = useToast();
 
-  // Decision moderation state (mirrors what backend returns)
-  const [pinned, setPinned]   = useState(isPinned ?? false);
-  const [locked, setLocked]   = useState(isLocked ?? false);
-  const [actionLoading, setActionLoading] = useState(null);
+  // decision state — mirrors backend
+  const [pinned,  setPinned]  = useState(isPinned ?? false);
+  const [locked,  setLocked]  = useState(isLocked ?? false);
+  const [actBusy, setActBusy] = useState(null); // which action is in-flight
 
-  // Community member management
+  // pinned comment
+  const [pinnedComment, setPinnedComment] = useState(null);
+  const [loadingPinned, setLoadingPinned] = useState(false);
+
+  // community management
   const [requests, setRequests] = useState([]);
   const [members,  setMembers]  = useState([]);
   const [loadingMod, setLoadingMod] = useState(false);
-  const [confirm,  setConfirm]  = useState(null); // { message, onConfirm }
 
-  // Sync props → local state when decision reloads
+  const [confirm, setConfirm] = useState(null);
+
+  // sync props when decision reloads externally
   useEffect(() => {
     setPinned(isPinned ?? false);
     setLocked(isLocked ?? false);
   }, [isPinned, isLocked]);
 
-  // Load community member data only when a communityId is provided
-  useEffect(() => {
-    if (communityId) fetchMemberData();
-  }, [communityId]);
+  // load pinned comment
+  const fetchPinnedComment = useCallback(async () => {
+    if (!decisionId) return;
+    setLoadingPinned(true);
+    try {
+      const res = await getPinnedComment(decisionId);
+      setPinnedComment(res.data ?? null);
+    } catch {
+      setPinnedComment(null);
+    } finally {
+      setLoadingPinned(false);
+    }
+  }, [decisionId]);
 
-  const fetchMemberData = async () => {
+  useEffect(() => { fetchPinnedComment(); }, [fetchPinnedComment]);
+
+  // load community data when communityId provided
+  const fetchMemberData = useCallback(async () => {
+    if (!communityId) return;
     setLoadingMod(true);
     try {
       const [reqRes, memRes] = await Promise.all([
@@ -76,37 +90,61 @@ export default function ModeratorPanel({ decisionId, communityId, isPinned, isLo
       setRequests(reqRes.data ?? []);
       setMembers(memRes.data ?? []);
     } catch {
-      // community may not require member management
+      // community may be open (no approval needed)
     } finally {
       setLoadingMod(false);
     }
-  };
+  }, [communityId]);
 
-  // ── Decision actions ──────────────────────────────────────────────────────
+  useEffect(() => { fetchMemberData(); }, [fetchMemberData]);
 
-  const handleAction = async (action, label) => {
-    setActionLoading(action);
+  // ── decision actions ──────────────────────────────────────────────────────
+
+  const runAction = async (key, apiFn, optimisticFn, rollbackFn, label) => {
+    setActBusy(key);
+    optimisticFn();
     try {
-      let res;
-      if (action === "pin")    { res = await pinDecision(decisionId);    setPinned(true); }
-      if (action === "unpin")  { res = await unpinDecision(decisionId);  setPinned(false); }
-      if (action === "lock")   { res = await lockDiscussion(decisionId); setLocked(true); }
-      if (action === "unlock") { res = await unlockDiscussion(decisionId); setLocked(false); }
+      const res = await apiFn();
       addToast(`${label} successful.`, "success");
-      onDecisionUpdate?.(res?.data);
+      onDecisionUpdate?.(res.data);
     } catch (err) {
+      rollbackFn();
       addToast(err?.response?.data?.message ?? `${label} failed.`, "error");
-      // Revert optimistic state
-      if (action === "pin")    setPinned(false);
-      if (action === "unpin")  setPinned(true);
-      if (action === "lock")   setLocked(false);
-      if (action === "unlock") setLocked(true);
     } finally {
-      setActionLoading(null);
+      setActBusy(null);
     }
   };
 
-  // ── Community member actions ──────────────────────────────────────────────
+  const handlePin = () =>
+    runAction("pin", () => pinDecision(decisionId),
+      () => setPinned(true), () => setPinned(false), "Pin");
+
+  const handleUnpin = () =>
+    runAction("unpin", () => unpinDecision(decisionId),
+      () => setPinned(false), () => setPinned(true), "Unpin");
+
+  const handleLock = () =>
+    runAction("lock", () => lockDiscussion(decisionId),
+      () => setLocked(true), () => setLocked(false), "Lock discussion");
+
+  const handleUnlock = () =>
+    runAction("unlock", () => unlockDiscussion(decisionId),
+      () => setLocked(false), () => setLocked(true), "Unlock discussion");
+
+  // ── unpin comment ─────────────────────────────────────────────────────────
+
+  const handleUnpinComment = async () => {
+    if (!pinnedComment) return;
+    try {
+      await unpinComment(pinnedComment.id);
+      setPinnedComment(null);
+      addToast("Comment unpinned.", "success");
+    } catch (err) {
+      addToast(err?.response?.data?.message ?? "Could not unpin comment.", "error");
+    }
+  };
+
+  // ── community actions ─────────────────────────────────────────────────────
 
   const handleApprove = async (memberId) => {
     try {
@@ -144,113 +182,114 @@ export default function ModeratorPanel({ decisionId, communityId, isPinned, isLo
     });
   };
 
+  const isBusy = (key) => actBusy === key;
+
   return (
     <>
-      <div className="moderator-panel glass-panel">
+      <div className="mod-panel glass-panel">
 
-        {/* ── Panel header ── */}
+        {/* Header */}
         <div className="mod-panel-header">
-          <FaShieldAlt />
-          <h3>Moderator Controls</h3>
+          <FaShieldAlt /> <h3>Moderator Controls</h3>
         </div>
 
-        {/* ── Discussion controls ── */}
+        {/* ── Decision actions ── */}
         <div className="mod-section">
-          <h4 className="mod-section-title">Discussion Controls</h4>
-          <div className="mod-action-grid">
+          <p className="mod-section-label">Discussion Controls</p>
+          <div className="mod-action-stack">
 
-            {/* Pin / Unpin */}
+            {/* Pin / Unpin decision */}
             <button
-              className={`mod-action-btn${pinned ? " mod-action-btn--active" : ""}`}
-              disabled={actionLoading !== null}
-              onClick={() => handleAction(pinned ? "unpin" : "pin", pinned ? "Unpin" : "Pin")}
+              className={`mod-btn${pinned ? " mod-btn--active-yellow" : ""}`}
+              disabled={actBusy !== null}
+              onClick={pinned ? handleUnpin : handlePin}
             >
-              {actionLoading === "pin" || actionLoading === "unpin" ? (
-                <FaSync className="spin" />
-              ) : (
-                <FaThumbtack />
-              )}
+              {(isBusy("pin") || isBusy("unpin")) ? <FaSync className="spin" /> : <FaThumbtack />}
               <span>{pinned ? "Unpin Decision" : "Pin Decision"}</span>
-              {pinned && <span className="mod-active-badge">Active</span>}
+              {pinned && <span className="mod-badge mod-badge--yellow">Pinned</span>}
             </button>
 
             {/* Lock / Unlock */}
             <button
-              className={`mod-action-btn${locked ? " mod-action-btn--danger" : ""}`}
-              disabled={actionLoading !== null}
-              onClick={() => handleAction(locked ? "unlock" : "lock", locked ? "Unlock" : "Lock")}
+              className={`mod-btn${locked ? " mod-btn--active-red" : ""}`}
+              disabled={actBusy !== null}
+              onClick={locked ? handleUnlock : handleLock}
             >
-              {actionLoading === "lock" || actionLoading === "unlock" ? (
-                <FaSync className="spin" />
-              ) : locked ? (
-                <FaLockOpen />
-              ) : (
-                <FaLock />
-              )}
+              {(isBusy("lock") || isBusy("unlock")) ? <FaSync className="spin" /> : (locked ? <FaLockOpen /> : <FaLock />)}
               <span>{locked ? "Unlock Discussion" : "Lock Discussion"}</span>
-              {locked && <span className="mod-active-badge mod-active-badge--danger">Locked</span>}
+              {locked && <span className="mod-badge mod-badge--red">Locked</span>}
             </button>
           </div>
+
+          {/* Status chips */}
+          <div className="mod-status-row">
+            <span className={`mod-chip${pinned ? " mod-chip--yellow" : ""}`}>
+              <FaThumbtack /> {pinned ? "Pinned" : "Not pinned"}
+            </span>
+            <span className={`mod-chip${locked ? " mod-chip--red" : ""}`}>
+              <FaLock /> {locked ? "Locked" : "Open"}
+            </span>
+          </div>
         </div>
 
-        {/* ── Status strip ── */}
-        <div className="mod-status-strip">
-          <div className={`mod-status-chip${pinned ? " mod-status-chip--on" : ""}`}>
-            <FaThumbtack /> {pinned ? "Pinned" : "Not pinned"}
+        {/* ── Pinned comment ── */}
+        <div className="mod-section">
+          <div className="mod-section-row">
+            <p className="mod-section-label">Pinned Comment</p>
+            <button className="vp-refresh-btn" onClick={fetchPinnedComment} disabled={loadingPinned} title="Refresh">
+              <FaSync className={loadingPinned ? "spin" : ""} />
+            </button>
           </div>
-          <div className={`mod-status-chip${locked ? " mod-status-chip--danger" : ""}`}>
-            <FaLock /> {locked ? "Locked" : "Open"}
-          </div>
+
+          {loadingPinned ? (
+            <p className="mod-muted"><FaSync className="spin" /> Loading…</p>
+          ) : pinnedComment ? (
+            <div className="mod-pinned-comment">
+              <div className="mod-pinned-meta">
+                <span className="mod-pinned-author">{pinnedComment.username}</span>
+                <span className="mod-pinned-time">{new Date(pinnedComment.createdAt).toLocaleDateString()}</span>
+              </div>
+              <p className="mod-pinned-content">
+                {pinnedComment.content.length > 120
+                  ? pinnedComment.content.slice(0, 120) + "…"
+                  : pinnedComment.content}
+              </p>
+              <button className="mod-btn mod-btn--sm" onClick={handleUnpinComment}>
+                <FaThumbtack /> Unpin
+              </button>
+            </div>
+          ) : (
+            <p className="mod-muted">No comment is currently pinned.</p>
+          )}
         </div>
 
-        {/* ── Community member management (only when communityId provided) ── */}
+        {/* ── Community member management ── */}
         {communityId && (
           <>
             <div className="mod-section">
-              <div className="mod-section-title-row">
-                <h4 className="mod-section-title">
+              <div className="mod-section-row">
+                <p className="mod-section-label">
                   Pending Requests
-                  {requests.length > 0 && (
-                    <span className="mod-count-badge">{requests.length}</span>
-                  )}
-                </h4>
-                <button
-                  className="vp-refresh-btn"
-                  onClick={fetchMemberData}
-                  disabled={loadingMod}
-                  title="Refresh"
-                >
+                  {requests.length > 0 && <span className="mod-count">{requests.length}</span>}
+                </p>
+                <button className="vp-refresh-btn" onClick={fetchMemberData} disabled={loadingMod} title="Refresh">
                   <FaSync className={loadingMod ? "spin" : ""} />
                 </button>
               </div>
 
               {loadingMod ? (
-                <p className="mod-loading"><FaSync className="spin" /> Loading…</p>
+                <p className="mod-muted"><FaSync className="spin" /> Loading…</p>
               ) : requests.length === 0 ? (
-                <p className="mod-empty">No pending requests.</p>
+                <p className="mod-muted">No pending requests.</p>
               ) : (
                 <div className="mod-list">
                   {requests.map((r) => (
                     <div key={r.id} className="mod-list-row">
-                      <div className="mod-list-avatar">
-                        {(r.username ?? r.email ?? "?")[0].toUpperCase()}
-                      </div>
+                      <div className="mod-avatar">{(r.username ?? r.email ?? "?")[0].toUpperCase()}</div>
                       <span className="mod-list-name">{r.username ?? r.email}</span>
-                      <div className="mod-list-actions">
-                        <button
-                          className="mod-icon-btn mod-icon-btn--approve"
-                          onClick={() => handleApprove(r.id)}
-                          title="Approve"
-                        >
-                          <FaCheck />
-                        </button>
-                        <button
-                          className="mod-icon-btn mod-icon-btn--reject"
-                          onClick={() => handleReject(r.id)}
-                          title="Reject"
-                        >
-                          <FaTimes />
-                        </button>
+                      <div className="mod-list-btns">
+                        <button className="mod-icon-btn mod-icon-btn--approve" title="Approve" onClick={() => handleApprove(r.id)}><FaCheck /></button>
+                        <button className="mod-icon-btn mod-icon-btn--reject"  title="Reject"  onClick={() => handleReject(r.id)}><FaTimes /></button>
                       </div>
                     </div>
                   ))}
@@ -259,21 +298,18 @@ export default function ModeratorPanel({ decisionId, communityId, isPinned, isLo
             </div>
 
             <div className="mod-section">
-              <h4 className="mod-section-title">
-                <FaUsers /> Members
-                <span className="mod-count-badge">{members.length}</span>
-              </h4>
+              <p className="mod-section-label">
+                <FaUsers /> Members <span className="mod-count">{members.length}</span>
+              </p>
               {loadingMod ? (
-                <p className="mod-loading"><FaSync className="spin" /> Loading…</p>
+                <p className="mod-muted"><FaSync className="spin" /> Loading…</p>
               ) : members.length === 0 ? (
-                <p className="mod-empty">No members yet.</p>
+                <p className="mod-muted">No members yet.</p>
               ) : (
                 <div className="mod-list">
                   {members.map((m) => (
                     <div key={m.id} className="mod-list-row">
-                      <div className="mod-list-avatar">
-                        {(m.username ?? m.email ?? "?")[0].toUpperCase()}
-                      </div>
+                      <div className="mod-avatar">{(m.username ?? m.email ?? "?")[0].toUpperCase()}</div>
                       <div className="mod-list-info">
                         <span className="mod-list-name">{m.username ?? m.email}</span>
                         {m.role && (
@@ -282,11 +318,8 @@ export default function ModeratorPanel({ decisionId, communityId, isPinned, isLo
                           </span>
                         )}
                       </div>
-                      <button
-                        className="mod-icon-btn mod-icon-btn--remove"
-                        onClick={() => handleRemove(m.id, m.username ?? m.email)}
-                        title="Remove member"
-                      >
+                      <button className="mod-icon-btn mod-icon-btn--remove" title="Remove"
+                        onClick={() => handleRemove(m.id, m.username ?? m.email)}>
                         <FaUserMinus />
                       </button>
                     </div>

@@ -1,33 +1,40 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import {
   FaComments, FaReply, FaTrash, FaFlag, FaLock,
-  FaThumbtack, FaEyeSlash, FaEye, FaShieldAlt,
-  FaExclamationTriangle, FaTimes, FaSync,
+  FaThumbtack, FaEdit, FaSync, FaExclamationTriangle,
+  FaTimes, FaChevronDown, FaChevronUp,
 } from "react-icons/fa";
 import { useAuth } from "../context/AuthContext";
 import { useToast } from "../components/Toast";
-import { getComments, postComment, postReply, deleteComment, pinComment, unpinComment, hideComment } from "../services/commentService";
+import {
+  getComments,
+  postComment,
+  postReply,
+  updateComment,
+  deleteComment,
+  getReplies,
+} from "../services/commentService";
 import { reportContent } from "../services/moderationService";
 import "../styles/Discussion.css";
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
 
-const avatar = (name = "?") => (name[0] ?? "?").toUpperCase();
+const avatar = (name = "?") => (name?.[0] ?? "?").toUpperCase();
 
 const timeAgo = (iso) => {
   if (!iso) return "";
   const diff = Date.now() - new Date(iso).getTime();
-  const mins  = Math.floor(diff / 60000);
-  if (mins < 1)  return "just now";
-  if (mins < 60) return `${mins}m ago`;
-  const hrs = Math.floor(mins / 60);
-  if (hrs < 24)  return `${hrs}h ago`;
-  return `${Math.floor(hrs / 24)}d ago`;
+  const m = Math.floor(diff / 60000);
+  if (m < 1)  return "just now";
+  if (m < 60) return `${m}m ago`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `${h}h ago`;
+  return `${Math.floor(h / 24)}d ago`;
 };
 
 // ─── ReportModal ──────────────────────────────────────────────────────────────
 
-function ReportModal({ target, onClose, onSubmit }) {
+function ReportModal({ onClose, onSubmit }) {
   const reasons = [
     "Spam or advertising",
     "Harassment or hate speech",
@@ -37,57 +44,46 @@ function ReportModal({ target, onClose, onSubmit }) {
   ];
   const [selected, setSelected] = useState("");
   const [custom, setCustom]     = useState("");
-  const [loading, setLoading]   = useState(false);
+  const [busy, setBusy]         = useState(false);
+
+  const canSubmit = selected && (selected !== "Other" || custom.trim());
 
   const handleSubmit = async () => {
-    const reason = selected === "Other" ? custom.trim() : selected;
-    if (!reason) return;
-    setLoading(true);
-    await onSubmit(reason);
-    setLoading(false);
+    if (!canSubmit || busy) return;
+    setBusy(true);
+    await onSubmit(selected === "Other" ? custom.trim() : selected);
+    setBusy(false);
   };
 
   return (
-    <div className="mod-modal-overlay" onClick={onClose}>
-      <div className="mod-modal glass-panel" onClick={(e) => e.stopPropagation()}>
-        <div className="mod-modal__header">
-          <FaFlag />
-          <h3>Report Comment</h3>
-          <button className="mod-modal__close" onClick={onClose}><FaTimes /></button>
+    <div className="disc-modal-overlay" onClick={onClose}>
+      <div className="disc-modal glass-panel" onClick={(e) => e.stopPropagation()}>
+        <div className="disc-modal-header">
+          <FaFlag /> <h3>Report Comment</h3>
+          <button className="disc-modal-close" onClick={onClose}><FaTimes /></button>
         </div>
-        <p className="mod-modal__sub">
-          Select a reason for reporting{target ? ` "${target}"` : ""}.
-        </p>
-        <div className="mod-reason-list">
+        <p className="disc-modal-sub">Select a reason for reporting this comment.</p>
+        <div className="disc-reason-list">
           {reasons.map((r) => (
-            <label key={r} className={`mod-reason-item${selected === r ? " selected" : ""}`}>
-              <input
-                type="radio"
-                name="reason"
-                value={r}
-                checked={selected === r}
-                onChange={() => setSelected(r)}
-              />
+            <label key={r} className={`disc-reason-item${selected === r ? " active" : ""}`}>
+              <input type="radio" name="reason" checked={selected === r}
+                onChange={() => setSelected(r)} />
               {r}
             </label>
           ))}
         </div>
         {selected === "Other" && (
           <textarea
-            className="mod-custom-reason"
+            className="disc-custom-reason"
             placeholder="Describe the issue…"
             value={custom}
             onChange={(e) => setCustom(e.target.value)}
           />
         )}
-        <div className="mod-modal__footer">
-          <button className="btn-secondary" onClick={onClose}>Cancel</button>
-          <button
-            className="btn-danger"
-            disabled={!selected || loading || (selected === "Other" && !custom.trim())}
-            onClick={handleSubmit}
-          >
-            {loading ? "Submitting…" : "Submit Report"}
+        <div className="disc-modal-footer">
+          <button className="btn-ghost" onClick={onClose}>Cancel</button>
+          <button className="btn-danger" disabled={!canSubmit || busy} onClick={handleSubmit}>
+            {busy ? "Submitting…" : "Submit Report"}
           </button>
         </div>
       </div>
@@ -97,49 +93,112 @@ function ReportModal({ target, onClose, onSubmit }) {
 
 // ─── CommentCard ──────────────────────────────────────────────────────────────
 
-function CommentCard({
-  comment, currentUserId, isMod, isLocked,
-  onDelete, onPin, onHide, onReport,
-}) {
-  const [showReply, setShowReply]   = useState(false);
-  const [replyText, setReplyText]   = useState("");
-  const [replying, setReplying]     = useState(false);
-  const [reporting, setReporting]   = useState(false);
-  const [localHidden, setLocalHidden] = useState(comment.hidden ?? false);
-  const [localPinned, setLocalPinned] = useState(comment.pinned ?? false);
-  const [showHidden, setShowHidden] = useState(false);
-  const textareaRef = useRef(null);
+function CommentCard({ comment, decisionId, currentUserId, isMod, isLocked, onDeleted, onPinToggle }) {
+  const { addToast }                    = useToast();
+  const [replies, setReplies]           = useState([]);
+  const [repliesLoaded, setRepliesLoaded] = useState(false);
+  const [showReplies, setShowReplies]   = useState(false);
+  const [replyText, setReplyText]       = useState("");
+  const [showReplyBox, setShowReplyBox] = useState(false);
+  const [editing, setEditing]           = useState(false);
+  const [editText, setEditText]         = useState(comment.content);
+  const [reporting, setReporting]       = useState(false);
+  const [busy, setBusy]                 = useState(false);
+  const replyRef                        = useRef(null);
 
-  const isOwn = String(comment.userId) === String(currentUserId);
-  const canDelete = isOwn || isMod;
+  const isOwn    = String(comment.userId) === String(currentUserId);
+  const isDeleted = comment.deleted;
 
-  const handleReplySubmit = async () => {
-    if (!replyText.trim() || replying) return;
-    setReplying(true);
-    await postReply(comment.id, replyText).catch(() => {});
-    setReplyText("");
-    setShowReply(false);
-    setReplying(false);
+  // ── load replies ─────────────────────────────────────────────────────────
+  const loadReplies = useCallback(async () => {
+    try {
+      const res = await getReplies(comment.id);
+      setReplies(res.data ?? []);
+      setRepliesLoaded(true);
+    } catch {
+      addToast("Could not load replies.", "error");
+    }
+  }, [comment.id, addToast]);
+
+  const toggleReplies = async () => {
+    if (!repliesLoaded) await loadReplies();
+    setShowReplies((p) => !p);
   };
 
-  const handlePin = async () => {
-    const next = !localPinned;
-    setLocalPinned(next);
-    await onPin(comment.id, next);
+  // ── reply ─────────────────────────────────────────────────────────────────
+  const handleReply = async () => {
+    if (!replyText.trim() || busy) return;
+    setBusy(true);
+    try {
+      const res = await postReply(decisionId, comment.id, replyText);
+      setReplies((p) => [...p, res.data]);
+      setRepliesLoaded(true);
+      setShowReplies(true);
+      setReplyText("");
+      setShowReplyBox(false);
+      addToast("Reply posted.", "success");
+    } catch (err) {
+      addToast(err?.response?.data?.message ?? "Failed to post reply.", "error");
+    } finally {
+      setBusy(false);
+    }
   };
 
-  const handleHide = async () => {
-    const next = !localHidden;
-    setLocalHidden(next);
-    await onHide(comment.id, next);
+  // ── edit ──────────────────────────────────────────────────────────────────
+  const handleEdit = async () => {
+    if (!editText.trim() || busy) return;
+    setBusy(true);
+    try {
+      await updateComment(comment.id, editText);
+      comment.content = editText; // mutate local ref so UI updates without refetch
+      setEditing(false);
+      addToast("Comment updated.", "success");
+    } catch (err) {
+      addToast(err?.response?.data?.message ?? "Failed to update comment.", "error");
+    } finally {
+      setBusy(false);
+    }
   };
 
-  // Hidden comments: show placeholder with toggle for mods
-  if (localHidden && !isMod && !isOwn) {
+  // ── delete ────────────────────────────────────────────────────────────────
+  const handleDelete = async () => {
+    if (!window.confirm("Delete this comment?")) return;
+    setBusy(true);
+    try {
+      // Owners use regular DELETE; mods use moderation DELETE (same result)
+      await deleteComment(comment.id);
+      onDeleted(comment.id);
+      addToast("Comment deleted.", "success");
+    } catch (err) {
+      addToast(err?.response?.data?.message ?? "Failed to delete comment.", "error");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  // ── report ────────────────────────────────────────────────────────────────
+  const handleReport = async (reason) => {
+    await reportContent("COMMENT", comment.id, reason);
+    setReporting(false);
+    addToast("Report submitted. Thank you.", "success");
+  };
+
+  // ── deleted placeholder ───────────────────────────────────────────────────
+  if (isDeleted) {
     return (
-      <div className="comment-card comment-card--hidden">
-        <FaEyeSlash />
-        <span>This comment was hidden by a moderator.</span>
+      <div className="comment-card comment-card--deleted">
+        <span className="deleted-label">[This comment was deleted]</span>
+        {comment.replyCount > 0 && (
+          <button className="replies-toggle" onClick={toggleReplies}>
+            {showReplies ? <FaChevronUp /> : <FaChevronDown />}
+            {comment.replyCount} {comment.replyCount === 1 ? "reply" : "replies"}
+          </button>
+        )}
+        {showReplies && replies.map((r) => (
+          <CommentCard key={r.id} comment={r} decisionId={decisionId}
+            currentUserId={currentUserId} isMod={isMod} isLocked={isLocked}
+            onDeleted={onDeleted} onPinToggle={onPinToggle} />
+        ))}
       </div>
     );
   }
@@ -148,146 +207,128 @@ function CommentCard({
     <>
       <div className={[
         "comment-card",
-        localPinned  ? "comment-card--pinned"  : "",
-        localHidden  ? "comment-card--hidden-mod" : "",
+        comment.pinned ? "comment-card--pinned" : "",
       ].filter(Boolean).join(" ")}>
 
         {/* Pinned banner */}
-        {localPinned && (
+        {comment.pinned && (
           <div className="comment-pinned-banner">
             <FaThumbtack /> Pinned by moderator
           </div>
         )}
 
-        {/* Hidden badge (mod only) */}
-        {localHidden && isMod && (
-          <div className="comment-hidden-banner">
-            <FaEyeSlash /> Hidden from users
-          </div>
-        )}
-
-        {/* Comment header */}
+        {/* Header row */}
         <div className="comment-header">
-          <div className="comment-avatar">
-            {avatar(comment.userName ?? comment.username)}
-          </div>
+          <div className="comment-avatar">{avatar(comment.username)}</div>
           <div className="comment-meta">
-            <span className="comment-author">{comment.userName ?? comment.username}</span>
+            <span className="comment-author">{comment.username}</span>
             <span className="comment-time">{timeAgo(comment.createdAt)}</span>
           </div>
 
-          {/* Actions */}
-          <div className="comment-actions-row">
-            {/* Reply — only when discussion isn't locked */}
+          {/* Action buttons */}
+          <div className="comment-actions">
+            {/* Reply */}
             {!isLocked && (
-              <button
-                className="comment-action-btn"
-                onClick={() => { setShowReply(!showReply); setTimeout(() => textareaRef.current?.focus(), 50); }}
-                title="Reply"
-              >
-                <FaReply /> <span>Reply</span>
+              <button className="cmt-btn" title="Reply"
+                onClick={() => { setShowReplyBox((p) => !p); setTimeout(() => replyRef.current?.focus(), 50); }}>
+                <FaReply />
               </button>
             )}
 
-            {/* Report — any non-owner */}
+            {/* Edit — own comment only, not locked */}
+            {isOwn && !isLocked && (
+              <button className="cmt-btn" title="Edit" onClick={() => setEditing((p) => !p)}>
+                <FaEdit />
+              </button>
+            )}
+
+            {/* Report — not own */}
             {!isOwn && (
-              <button
-                className="comment-action-btn comment-action-btn--report"
-                onClick={() => setReporting(true)}
-                title="Report comment"
-              >
+              <button className="cmt-btn cmt-btn--warn" title="Report" onClick={() => setReporting(true)}>
                 <FaFlag />
               </button>
             )}
 
-            {/* Moderator-only actions */}
+            {/* Pin / Unpin — mod only */}
             {isMod && (
-              <>
-                <button
-                  className={`comment-action-btn${localPinned ? " active-mod-btn" : ""}`}
-                  onClick={handlePin}
-                  title={localPinned ? "Unpin" : "Pin comment"}
-                >
-                  <FaThumbtack />
-                </button>
-                <button
-                  className={`comment-action-btn${localHidden ? " active-mod-btn" : ""}`}
-                  onClick={handleHide}
-                  title={localHidden ? "Unhide" : "Hide comment"}
-                >
-                  {localHidden ? <FaEye /> : <FaEyeSlash />}
-                </button>
-              </>
+              <button
+                className={`cmt-btn${comment.pinned ? " cmt-btn--active" : ""}`}
+                title={comment.pinned ? "Unpin" : "Pin"}
+                onClick={() => onPinToggle(comment)}
+              >
+                <FaThumbtack />
+              </button>
             )}
 
             {/* Delete — own or mod */}
-            {canDelete && (
-              <button
-                className="comment-action-btn comment-action-btn--delete"
-                onClick={() => onDelete(comment.id)}
-                title="Delete comment"
-              >
+            {(isOwn || isMod) && (
+              <button className="cmt-btn cmt-btn--danger" title="Delete" disabled={busy} onClick={handleDelete}>
                 <FaTrash />
               </button>
             )}
           </div>
         </div>
 
-        {/* Comment body */}
-        <p className="comment-body">{comment.content}</p>
-
-        {/* Reply box */}
-        {showReply && !isLocked && (
-          <div className="reply-compose">
+        {/* Body — edit mode or plain text */}
+        {editing ? (
+          <div className="comment-edit-box">
             <textarea
-              ref={textareaRef}
-              value={replyText}
-              onChange={(e) => setReplyText(e.target.value)}
-              placeholder={`Replying to ${comment.userName ?? comment.username}…`}
+              value={editText}
+              onChange={(e) => setEditText(e.target.value)}
               rows={3}
             />
-            <div className="reply-compose__footer">
-              <button className="btn-ghost" onClick={() => setShowReply(false)}>Cancel</button>
-              <button
-                className="btn-primary btn-sm"
-                disabled={!replyText.trim() || replying}
-                onClick={handleReplySubmit}
-              >
-                {replying ? "Posting…" : "Post Reply"}
+            <div className="edit-actions">
+              <button className="btn-ghost btn-sm" onClick={() => setEditing(false)}>Cancel</button>
+              <button className="btn-primary btn-sm" disabled={!editText.trim() || busy} onClick={handleEdit}>
+                {busy ? "Saving…" : "Save"}
+              </button>
+            </div>
+          </div>
+        ) : (
+          <p className="comment-body">{comment.content}</p>
+        )}
+
+        {/* Reply compose */}
+        {showReplyBox && !isLocked && (
+          <div className="reply-compose">
+            <textarea
+              ref={replyRef}
+              value={replyText}
+              onChange={(e) => setReplyText(e.target.value)}
+              placeholder={`Replying to ${comment.username}…`}
+              rows={2}
+            />
+            <div className="reply-compose-footer">
+              <button className="btn-ghost btn-sm" onClick={() => setShowReplyBox(false)}>Cancel</button>
+              <button className="btn-primary btn-sm" disabled={!replyText.trim() || busy} onClick={handleReply}>
+                {busy ? "Posting…" : "Post Reply"}
               </button>
             </div>
           </div>
         )}
 
-        {/* Replies */}
-        {comment.replies?.length > 0 && (
+        {/* Replies toggle */}
+        {comment.replyCount > 0 && (
+          <button className="replies-toggle" onClick={toggleReplies}>
+            {showReplies ? <FaChevronUp /> : <FaChevronDown />}
+            {comment.replyCount} {comment.replyCount === 1 ? "reply" : "replies"}
+          </button>
+        )}
+
+        {/* Replies list */}
+        {showReplies && (
           <div className="replies-list">
-            {comment.replies.map((r) => (
-              <div key={r.id} className="reply-card">
-                <div className="reply-avatar">{avatar(r.userName ?? r.username)}</div>
-                <div className="reply-body">
-                  <div className="reply-meta">
-                    <span className="comment-author">{r.userName ?? r.username}</span>
-                    <span className="comment-time">{timeAgo(r.createdAt)}</span>
-                  </div>
-                  <p>{r.content}</p>
-                </div>
-              </div>
+            {replies.map((r) => (
+              <CommentCard key={r.id} comment={r} decisionId={decisionId}
+                currentUserId={currentUserId} isMod={isMod} isLocked={isLocked}
+                onDeleted={onDeleted} onPinToggle={onPinToggle} />
             ))}
           </div>
         )}
       </div>
 
-      {/* Report modal */}
       {reporting && (
-        <ReportModal
-          target={comment.content?.slice(0, 40)}
-          onClose={() => setReporting(false)}
-          onSubmit={async (reason) => {
-            await onReport("COMMENT", comment.id, reason);
-            setReporting(false);
-          }}
-        />
+        <ReportModal onClose={() => setReporting(false)} onSubmit={handleReport} />
       )}
     </>
   );
@@ -296,43 +337,49 @@ function CommentCard({
 // ─── Discussion (main export) ─────────────────────────────────────────────────
 
 export default function Discussion({ decisionId, isLocked = false, isPinned = false }) {
-  const { user } = useAuth();
+  const { user }     = useAuth();
   const { addToast } = useToast();
 
-  const [comments,   setComments]   = useState([]);
-  const [newComment, setNewComment] = useState("");
-  const [posting,    setPosting]    = useState(false);
-  const [loading,    setLoading]    = useState(true);
-  const [error,      setError]      = useState(null);
+  const [comments,    setComments]    = useState([]);
+  const [newComment,  setNewComment]  = useState("");
+  const [posting,     setPosting]     = useState(false);
+  const [loading,     setLoading]     = useState(true);
+  const [error,       setError]       = useState(null);
 
-  const isMod = user?.role === "ADMIN" || user?.role === "MODERATOR";
+  const isMod         = user?.role === "ADMIN" || user?.role === "MODERATOR";
   const currentUserId = user?.id ?? localStorage.getItem("userId");
 
-  // ── load comments ──────────────────────────────────────────────────────────
-  const fetchComments = async () => {
+  // ── fetch comments ────────────────────────────────────────────────────────
+  const fetchComments = useCallback(async () => {
     if (!decisionId) return;
     setLoading(true);
     setError(null);
     try {
       const res = await getComments(decisionId);
-      setComments(res.data ?? []);
-    } catch {
-      setError("Could not load comments.");
+      // Pinned comments float to top
+      const sorted = [...(res.data ?? [])].sort((a, b) => {
+        if (a.pinned && !b.pinned) return -1;
+        if (!a.pinned && b.pinned) return 1;
+        return 0;
+      });
+      setComments(sorted);
+    } catch (err) {
+      setError(err?.response?.data?.message ?? "Could not load comments.");
     } finally {
       setLoading(false);
     }
-  };
+  }, [decisionId]);
 
-  useEffect(() => { fetchComments(); }, [decisionId]);
+  useEffect(() => { fetchComments(); }, [fetchComments]);
 
-  // ── post comment ───────────────────────────────────────────────────────────
+  // ── post comment ──────────────────────────────────────────────────────────
   const handlePost = async () => {
     if (!newComment.trim() || posting || isLocked) return;
     setPosting(true);
     try {
-      await postComment(decisionId, newComment);
+      const res = await postComment(decisionId, newComment);
+      setComments((prev) => [...prev, res.data]);
       setNewComment("");
-      await fetchComments();
       addToast("Comment posted.", "success");
     } catch (err) {
       addToast(err?.response?.data?.message ?? "Failed to post comment.", "error");
@@ -341,147 +388,111 @@ export default function Discussion({ decisionId, isLocked = false, isPinned = fa
     }
   };
 
-  // ── delete ─────────────────────────────────────────────────────────────────
-  const handleDelete = async (commentId) => {
-    if (!window.confirm("Delete this comment?")) return;
+  // ── delete callback (from CommentCard) ────────────────────────────────────
+  const handleDeleted = (commentId) => {
+    setComments((prev) => prev.filter((c) => c.id !== commentId));
+  };
+
+  // ── pin toggle (mod only) ─────────────────────────────────────────────────
+  const handlePinToggle = async (comment) => {
     try {
-      await deleteComment(commentId);
-      setComments((prev) => prev.filter((c) => c.id !== commentId));
-      addToast("Comment deleted.", "success");
-    } catch {
-      addToast("Failed to delete comment.", "error");
+      const { pinComment, unpinComment } = await import("../services/moderationService");
+      if (comment.pinned) {
+        await unpinComment(comment.id);
+        addToast("Comment unpinned.", "success");
+      } else {
+        await pinComment(comment.id);
+        addToast("Comment pinned.", "success");
+      }
+      fetchComments(); // re-fetch so only-one-pinned rule is respected
+    } catch (err) {
+      addToast(err?.response?.data?.message ?? "Could not update pin.", "error");
     }
   };
-
-  // ── pin ────────────────────────────────────────────────────────────────────
-  const handlePin = async (commentId, pin) => {
-    try {
-      pin ? await pinComment(commentId) : await unpinComment(commentId);
-      addToast(pin ? "Comment pinned." : "Comment unpinned.", "success");
-    } catch {
-      addToast("Could not update pin status.", "error");
-    }
-  };
-
-  // ── hide ───────────────────────────────────────────────────────────────────
-  const handleHide = async (commentId, hide) => {
-    try {
-      await hideComment(commentId);
-      addToast(hide ? "Comment hidden." : "Comment visible again.", "success");
-    } catch {
-      addToast("Could not update visibility.", "error");
-    }
-  };
-
-  // ── report ─────────────────────────────────────────────────────────────────
-  const handleReport = async (type, targetId, reason) => {
-    await reportContent(type, targetId, reason);
-    addToast("Report submitted. Thank you.", "success");
-  };
-
-  // ── sort: pinned first ─────────────────────────────────────────────────────
-  const sorted = [...comments].sort((a, b) => {
-    if (a.pinned && !b.pinned) return -1;
-    if (!a.pinned && b.pinned) return 1;
-    return 0;
-  });
 
   return (
     <div className="discussion-panel">
 
-      {/* ── Section header ── */}
+      {/* ── Header ── */}
       <div className="discussion-header">
-        <div className="discussion-header__left">
+        <div className="disc-header-left">
           <FaComments />
           <h3>Discussion</h3>
-          <span className="discussion-count">{comments.length}</span>
+          <span className="disc-count">{comments.length}</span>
           {isPinned && (
-            <span className="discussion-pinned-badge">
-              <FaThumbtack /> Pinned
-            </span>
+            <span className="disc-pinned-badge"><FaThumbtack /> Pinned</span>
           )}
         </div>
-        <button
-          className="vp-refresh-btn"
-          onClick={fetchComments}
-          disabled={loading}
-          title="Refresh comments"
-        >
+        <button className="vp-refresh-btn" onClick={fetchComments} disabled={loading} title="Refresh">
           <FaSync className={loading ? "spin" : ""} />
         </button>
       </div>
 
       {/* ── Lock banner ── */}
       {isLocked && (
-        <div className="discussion-locked-banner">
+        <div className="disc-lock-banner">
           <FaLock />
           <div>
             <strong>Discussion locked</strong>
-            <p>A moderator has locked this discussion. New comments are not allowed.</p>
+            <p>A moderator has locked this discussion. New comments are disabled.</p>
           </div>
         </div>
       )}
 
       {/* ── Compose ── */}
       {!isLocked ? (
-        <div className="comment-compose glass-panel">
-          <div className="compose-avatar">{avatar(user?.username)}</div>
-          <div className="compose-body">
+        <div className="disc-compose glass-panel">
+          <div className="disc-compose-avatar">{avatar(user?.username)}</div>
+          <div className="disc-compose-body">
             <textarea
               value={newComment}
               onChange={(e) => setNewComment(e.target.value)}
               placeholder="Share your thoughts on this decision…"
               rows={3}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) handlePost();
-              }}
+              onKeyDown={(e) => { if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) handlePost(); }}
             />
-            <div className="compose-footer">
-              <span className="compose-hint">Ctrl + Enter to post</span>
-              <button
-                className="btn-primary btn-sm"
-                disabled={!newComment.trim() || posting}
-                onClick={handlePost}
-              >
+            <div className="disc-compose-footer">
+              <span className="disc-compose-hint">Ctrl + Enter to post</span>
+              <button className="btn-primary btn-sm"
+                disabled={!newComment.trim() || posting} onClick={handlePost}>
                 {posting ? "Posting…" : "Post Comment"}
               </button>
             </div>
           </div>
         </div>
       ) : (
-        <div className="compose-locked-msg">
+        <div className="disc-locked-msg">
           <FaLock /> Comments are disabled while this discussion is locked.
         </div>
       )}
 
-      {/* ── Comments list ── */}
+      {/* ── Body ── */}
       {loading ? (
-        <div className="discussion-loading">
+        <div className="disc-state">
           <FaSync className="spin" /> Loading comments…
         </div>
       ) : error ? (
-        <div className="discussion-error">
+        <div className="disc-state disc-state--error">
           <FaExclamationTriangle /> {error}
           <button className="btn-link" onClick={fetchComments}>Retry</button>
         </div>
-      ) : sorted.length === 0 ? (
-        <div className="discussion-empty">
+      ) : comments.length === 0 ? (
+        <div className="disc-state disc-state--empty">
           <FaComments />
           <p>No comments yet. Be the first to share your thoughts.</p>
         </div>
       ) : (
         <div className="comments-list">
-          {sorted.map((c) => (
+          {comments.map((c) => (
             <CommentCard
               key={c.id}
               comment={c}
+              decisionId={decisionId}
               currentUserId={currentUserId}
               isMod={isMod}
               isLocked={isLocked}
-              onDelete={handleDelete}
-              onPin={handlePin}
-              onHide={handleHide}
-              onReport={handleReport}
+              onDeleted={handleDeleted}
+              onPinToggle={handlePinToggle}
             />
           ))}
         </div>

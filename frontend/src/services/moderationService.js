@@ -1,38 +1,36 @@
 import api from "./api";
 
-// ─── Decision moderation (CommunityModerationController) ─────────────────────
-// PUT /api/moderation/decisions/{id}/pin|unpin|lock|unlock
+// ─── Decision moderation ──────────────────────────────────────────────────────
+// CommunityModerationController → @RequestMapping("/api/moderation")
 
-export const pinDecision   = (decisionId) => api.put(`/api/moderation/decisions/${decisionId}/pin`);
-export const unpinDecision = (decisionId) => api.put(`/api/moderation/decisions/${decisionId}/unpin`);
-export const lockDiscussion   = (decisionId) => api.put(`/api/moderation/decisions/${decisionId}/lock`);
-export const unlockDiscussion = (decisionId) => api.put(`/api/moderation/decisions/${decisionId}/unlock`);
+export const pinDecision     = (decisionId) => api.put(`/api/moderation/decisions/${decisionId}/pin`);
+export const unpinDecision   = (decisionId) => api.put(`/api/moderation/decisions/${decisionId}/unpin`);
+export const lockDiscussion  = (decisionId) => api.put(`/api/moderation/decisions/${decisionId}/lock`);
+export const unlockDiscussion= (decisionId) => api.put(`/api/moderation/decisions/${decisionId}/unlock`);
 
 // ─── Comment moderation ───────────────────────────────────────────────────────
-// CommentController is a stub — these will be wired once backend endpoints exist.
-// Until then they resolve locally so UI doesn't break.
 
-export const pinComment = (commentId) =>
-  api.put(`/api/comments/${commentId}/pin`).catch(() => ({ data: null, _local: true }));
+/** PUT /api/moderation/comments/{commentId}/pin */
+export const pinComment   = (commentId) => api.put(`/api/moderation/comments/${commentId}/pin`);
 
-export const unpinComment = (commentId) =>
-  api.put(`/api/comments/${commentId}/unpin`).catch(() => ({ data: null, _local: true }));
+/** PUT /api/moderation/comments/{commentId}/unpin */
+export const unpinComment = (commentId) => api.put(`/api/moderation/comments/${commentId}/unpin`);
 
-export const hideComment = (commentId) =>
-  api.put(`/api/comments/${commentId}/hide`).catch(() => ({ data: null, _local: true }));
+/** DELETE /api/moderation/comments/{commentId}  — moderator force-delete */
+export const modDeleteComment = (commentId) => api.delete(`/api/moderation/comments/${commentId}`);
 
-export const unhideComment = (commentId) =>
-  api.put(`/api/comments/${commentId}/unhide`).catch(() => ({ data: null, _local: true }));
+/** GET /api/moderation/decisions/{decisionId}/comments/pinned */
+export const getPinnedComment = (decisionId) =>
+  api.get(`/api/moderation/decisions/${decisionId}/comments/pinned`);
 
-// ─── Report ───────────────────────────────────────────────────────────────────
-// ReportController is a stub — stores report locally until backend is ready.
-
-export const reportContent = (type, targetId, reason) =>
-  api.post(`/api/report`, { type, targetId, reason }).catch(() => {
-    // Persist locally so report isn't lost
-    const key = "decisionhub-pending-reports";
-    const existing = JSON.parse(localStorage.getItem(key) ?? "[]");
-    existing.push({ type, targetId, reason, reportedAt: new Date().toISOString() });
-    localStorage.setItem(key, JSON.stringify(existing));
-    return { data: null, _local: true };
-  });
+// ─── Report (stub — queues locally until backend endpoint is built) ───────────
+export const reportContent = async (type, targetId, reason) => {
+  try {
+    await api.post(`/api/report`, { type, targetId, reason });
+  } catch {
+    const key = "dh-pending-reports";
+    const list = JSON.parse(localStorage.getItem(key) ?? "[]");
+    list.push({ type, targetId, reason, reportedAt: new Date().toISOString() });
+    localStorage.setItem(key, JSON.stringify(list));
+  }
+};
