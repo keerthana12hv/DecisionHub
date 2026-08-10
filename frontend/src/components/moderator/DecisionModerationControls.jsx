@@ -12,8 +12,8 @@ export default function DecisionModerationControls({ decision, onUpdate }) {
       const res = pinned
         ? await unpinDecision(decision.id)
         : await pinDecision(decision.id);
-      setPinned(res.data.pinned);
-      if (onUpdate) onUpdate(res.data);
+      setPinned(res.pinned);
+      if (onUpdate) onUpdate(res);
     } catch (err) {
       console.error("Failed to toggle pin:", err);
     } finally {
@@ -27,8 +27,8 @@ export default function DecisionModerationControls({ decision, onUpdate }) {
       const res = locked
         ? await unlockDecision(decision.id)
         : await lockDecision(decision.id);
-      setLocked(res.data.locked);
-      if (onUpdate) onUpdate(res.data);
+      setLocked(res.locked);
+      if (onUpdate) onUpdate(res);
     } catch (err) {
       console.error("Failed to toggle lock:", err);
     } finally {
