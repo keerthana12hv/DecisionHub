@@ -20,4 +20,14 @@ public interface PollRepository extends JpaRepository<Poll, Long> {
             PollStatus status,
             LocalDateTime time
     );
+
+    long countByStatus(PollStatus status);
+
+
+    long countByDecisionCommunityId(Long communityId);
+
+long countByDecisionCommunityIdAndStatus(
+        Long communityId,
+        PollStatus status
+);
 }
