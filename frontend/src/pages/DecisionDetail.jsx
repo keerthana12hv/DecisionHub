@@ -1,484 +1,459 @@
-import Discussion from "./Discussion";
 import { useState, useEffect } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, Link } from "react-router-dom";
 import axios from "axios";
+import RatingPanel from "../components/RatingPanel";
 import Sidebar from "../components/Sidebar";
 import Navbar from "../components/Navbar";
-import RatingPanel from "../components/RatingPanel";
-import PollResultsPanel from "../components/PollResultsPanel";
-import EditBoardPanel from "../components/EditBoardPanel";
-import DecisionModerationControls from "../components/moderator/DecisionModerationControls";
-import { getModeratingCommunities } from "../services/moderationService";
-import { getCommunities, getMembers } from "../services/communityService";
 import { useToast } from "../components/Toast";
+import { useAuth } from "../context/AuthContext";
+import { FaArrowLeft, FaCalendarAlt, FaVoteYea, FaCommentAlt, FaPaperPlane } from "react-icons/fa";
+
 import "../styles/DecisionDetail.css";
 
 const API = "http://localhost:8080/api";
 
-const token = () =>
-  localStorage.getItem("token") ||
-  localStorage.getItem("authToken") ||
-  localStorage.getItem("jwt");
-
-const headers = () => ({
-  headers: { Authorization: `Bearer ${token()}` }
-});
-
-// Options store values in comparisonScores keyed by factorId, one entry per
-// voter (each entry also carries a userId). Showing a single raw entry would
-// leak one specific person's individual rating to everyone viewing this page —
-// instead we average all submitted scores for that factor/option, which is
-// the correct aggregate view for the Overview/analytics screen. Individual
-// scores stay private to the voter who submitted them (see RatingPanel).
-const findCriterionValue = (option, factor) => {
-  const matches = (option.comparisonScores || []).filter((s) => s.factorId === factor.id);
-  if (matches.length === 0) return "—";
-  const avg = matches.reduce((sum, s) => sum + (s.score || 0), 0) / matches.length;
-  return Math.round(avg * 10) / 10;
+const getToken = () => {
+  return (
+    localStorage.getItem("token") ||
+    localStorage.getItem("authToken") ||
+    localStorage.getItem("jwt")
+  );
 };
 
 export default function DecisionDetail() {
-  const { id: decisionId } = useParams();
+  const params = useParams();
+  const { user } = useAuth();
   const { addToast } = useToast();
+
+  const decisionId = params.decisionId || params.id;
+
   const [decision, setDecision] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [currentUserId, setCurrentUserId] = useState(null);
-  const [activeTab, setActiveTab] = useState("overview");
+  const [error, setError] = useState("");
+  
+  // Voting State
+  const [selectedOption, setSelectedOption] = useState(null);
+  const [votingProgress, setVotingProgress] = useState(false);
+  const [hasVoted, setHasVoted] = useState(false);
+  const [myVote, setMyVote] = useState(null);
 
-  // Voting state for SINGLE_CHOICE / MULTIPLE_CHOICE
-  const [myVoteOptionIds, setMyVoteOptionIds] = useState([]);
-  const [voting, setVoting] = useState(false);
-  // MULTIPLE_CHOICE only: checkbox selections staged here until the user
-  // clicks Submit — unlike SINGLE_CHOICE, which submits instantly on click.
-  const [pendingSelection, setPendingSelection] = useState(null);
+  // Comments State (LocalStorage Fallback for Milestone 3 Demo)
+  const [comments, setComments] = useState([]);
+  const [newComment, setNewComment] = useState("");
+  const [replyInputs, setReplyInputs] = useState({});
+  const [activeReplyId, setActiveReplyId] = useState(null);
 
-  // Communities the logged-in user moderates — used to check whether they can
-  // pin/lock THIS decision. The DecisionResponse only returns communityName
-  // (no communityId), so we match by name against this list.
-  const [moderatingCommunities, setModeratingCommunities] = useState([]);
+  // =========================================================
+  // FETCH DECISION & VOTE
+  // =========================================================
 
-  // Community membership gate: decisions with a communityName require the
-  // viewer to be an APPROVED member of that community to vote/rate.
-  // Decisions with no community (communityName null) are open to everyone.
-  const [canParticipate, setCanParticipate] = useState(true);
-  const [membershipChecked, setMembershipChecked] = useState(false);
+  const fetchDecision = async () => {
+    try {
+      setLoading(true);
+      setError("");
+
+      const authToken = getToken();
+      if (!authToken) {
+        setError("You are not logged in. Please login again.");
+        return;
+      }
+
+      const response = await axios.get(
+        `${API}/decisions/${decisionId}`,
+        {
+          headers: {
+            Authorization: `Bearer ${authToken}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      setDecision(response.data);
+
+      // Try fetching user's existing vote
+      try {
+        const myVoteRes = await axios.get(
+          `${API}/decisions/${decisionId}/votes/me`,
+          {
+            headers: {
+              Authorization: `Bearer ${authToken}`,
+            },
+          }
+        );
+        if (myVoteRes.data && myVoteRes.data.optionIds && myVoteRes.data.optionIds.length > 0) {
+          setMyVote(myVoteRes.data);
+          setHasVoted(true);
+          setSelectedOption(myVoteRes.data.optionIds[0]);
+        }
+      } catch (voteErr) {
+        console.log("No existing vote found or error fetching vote");
+      }
+
+    } catch (err) {
+      console.error("FETCH DECISION ERROR:", err);
+      setError(err.response?.data?.message || "Failed to load decision.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Load comments from localstorage keyed by decisionId
+  const loadComments = () => {
+    const allComments = JSON.parse(localStorage.getItem(`decisionhub-comments-${decisionId}`) || "[]");
+    setComments(allComments);
+  };
 
   useEffect(() => {
-    fetchDecision();
-    fetchMyVote();
-    fetchModeratingCommunities();
-    try {
-      const t = token();
-      const payload = JSON.parse(atob(t.split(".")[1]));
-      setCurrentUserId(payload.id);
-    } catch (err) {
-      console.error("Failed to decode token:", err);
+    if (decisionId) {
+      fetchDecision();
+      loadComments();
     }
   }, [decisionId]);
 
-  const fetchModeratingCommunities = async () => {
-    try {
-      const data = await getModeratingCommunities();
-      setModeratingCommunities(data || []);
-    } catch (err) {
-      // Not being a moderator of anything is a normal state, not an error.
-      setModeratingCommunities([]);
-    }
-  };
+  // =========================================================
+  // SUBMIT VOTE
+  // =========================================================
 
-  // Live vote counts: poll the decision every 5s while the poll is still open,
-  // so other users' votes/ratings show up without a manual reload.
-  useEffect(() => {
-    if (!decision) return;
-    const pollOpen = decision.poll?.status === "OPEN" || decision.status === "ACTIVE";
-    if (!pollOpen) return;
-
-    const intervalId = setInterval(() => {
-      fetchDecision(true);
-    }, 5000);
-
-    return () => clearInterval(intervalId);
-  }, [decisionId, decision?.status, decision?.poll?.status]);
-
-  // Check community membership once we have both the decision and the
-  // current user's ID. Decisions with no community are open to everyone;
-  // decisions with a community require an APPROVED membership record.
-  useEffect(() => {
-    if (!decision || !currentUserId) return;
-
-    if (!decision.communityName) {
-      setCanParticipate(true);
-      setMembershipChecked(true);
+  const handleVoteSubmit = async () => {
+    if (!selectedOption) {
+      addToast("Please select an option to vote.", "error");
       return;
     }
 
-    checkMembership();
-  }, [decision?.communityName, currentUserId]);
-
-  const checkMembership = async () => {
+    setVotingProgress(true);
     try {
-      setMembershipChecked(false);
-      // DecisionResponse only gives us communityName (no communityId), so
-      // find the matching community by name first to get its real ID.
-      const allCommunities = await getCommunities();
-      const match = (allCommunities || []).find((c) => c.name === decision.communityName);
-      if (!match) {
-        // Community not found (edge case) — fail closed, block participation.
-        setCanParticipate(false);
-        return;
-      }
-      const membersRes = await getMembers(match.id);
-      const members = membersRes.data || [];
-      const myMembership = members.find((m) => String(m.userId) === String(currentUserId));
-      setCanParticipate(!!myMembership && myMembership.status === "APPROVED");
-    } catch (err) {
-      console.error("Failed to check community membership:", err);
-      // Fail closed on error — don't accidentally allow voting when we
-      // couldn't actually confirm membership.
-      setCanParticipate(false);
-    } finally {
-      setMembershipChecked(true);
-    }
-  };
-
-  // silent=true is used for background polling refreshes so they update the
-  // data without toggling `loading` and re-flashing the whole page.
-  const fetchDecision = async (silent = false) => {
-    try {
-      if (!silent) setLoading(true);
-      const res = await axios.get(`${API}/decisions/${decisionId}`, headers());
-      const d = res.data;
-      if (d && d.description) {
-        const match = d.description.match(/^\[Cat:([^\]]+)\]\s*(.*)/s);
-        if (match) {
-          d.categoryName = match[1];
-          d.description = match[2];
-        }
-      }
-      setDecision(d);
-    } catch (err) {
-      console.error("Failed to fetch decision:", err);
-      if (!silent) {
-        if (err.response?.status === 403) {
-          setError(
-            "This is a private decision — you must be an approved member of its community to view it."
-          );
-        } else {
-          setError("Could not load this decision.");
-        }
-      }
-    } finally {
-      if (!silent) setLoading(false);
-    }
-  };
-
-  // Reuses the same endpoint already confirmed working in VotingPage.jsx
-  const fetchMyVote = async () => {
-    try {
-      const res = await axios.get(`${API}/decisions/${decisionId}/votes/me`, headers());
-      setMyVoteOptionIds(res.data?.optionIds || []);
-    } catch (err) {
-      // No vote cast yet is a normal state, not necessarily an error
-      setMyVoteOptionIds([]);
-    }
-  };
-
-  // SINGLE_CHOICE: called the instant a radio button is selected — submits
-  // immediately, no separate button needed.
-  const handleSingleChoiceVote = async (optionId) => {
-    if (voting || !canParticipate) return;
-    const isFirstVote = myVoteOptionIds.length === 0;
-    setVoting(true);
-    try {
+      const authToken = getToken();
       await axios.put(
         `${API}/decisions/${decisionId}/votes`,
-        { optionIds: [optionId] },
-        headers()
+        {
+          optionIds: [selectedOption]
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${authToken}`,
+            "Content-Type": "application/json"
+          }
+        }
       );
-      setMyVoteOptionIds([optionId]);
-      addToast(isFirstVote ? "Vote submitted successfully." : "Vote updated successfully.", "success");
-      await fetchDecision();
+
+      addToast("Your vote has been successfully cast!", "success");
+      setHasVoted(true);
+      
+      // Refresh decision options stats
+      fetchDecision();
     } catch (err) {
-      console.error("Failed to submit vote:", err);
-      addToast("Failed to submit vote.", "error");
+      console.error("VOTE ERROR:", err);
+      addToast(err.response?.data?.message || "Failed to cast vote.", "error");
     } finally {
-      setVoting(false);
+      setVotingProgress(false);
     }
   };
 
-  // MULTIPLE_CHOICE: checkbox toggles only update the staged local selection.
-  const toggleMultipleChoiceOption = (optionId) => {
-    if (!canParticipate) return;
-    const current = pendingSelection ?? myVoteOptionIds;
-    const next = current.includes(optionId)
-      ? current.filter((id) => id !== optionId)
-      : [...current, optionId];
-    setPendingSelection(next);
+  // =========================================================
+  // COMMENTS INTERACTIONS
+  // =========================================================
+
+  const handleAddComment = (e) => {
+    e.preventDefault();
+    if (!newComment.trim()) return;
+
+    const nextComment = {
+      id: Date.now(),
+      author: user?.username || "Anonymous User",
+      text: newComment.trim(),
+      time: "Just now",
+      replies: []
+    };
+
+    const nextComments = [nextComment, ...comments];
+    setComments(nextComments);
+    localStorage.setItem(`decisionhub-comments-${decisionId}`, JSON.stringify(nextComments));
+    setNewComment("");
+    addToast("Comment posted successfully!", "success");
   };
 
-  // MULTIPLE_CHOICE: explicit Submit button sends the staged selection.
-  const submitMultipleChoiceVote = async () => {
-    if (voting || !canParticipate) return;
-    const isFirstVote = myVoteOptionIds.length === 0;
-    const optionIds = pendingSelection ?? myVoteOptionIds;
-    setVoting(true);
-    try {
-      await axios.put(
-        `${API}/decisions/${decisionId}/votes`,
-        { optionIds },
-        headers()
-      );
-      setMyVoteOptionIds(optionIds);
-      setPendingSelection(null);
-      addToast(isFirstVote ? "Vote submitted successfully." : "Vote updated successfully.", "success");
-      await fetchDecision();
-    } catch (err) {
-      console.error("Failed to submit vote:", err);
-      addToast("Failed to submit vote.", "error");
-    } finally {
-      setVoting(false);
-    }
+  const handleAddReply = (commentId, e) => {
+    e.preventDefault();
+    const replyText = replyInputs[commentId]?.trim();
+    if (!replyText) return;
+
+    const nextReply = {
+      id: Date.now(),
+      author: user?.username || "Anonymous User",
+      text: replyText,
+      time: "Just now"
+    };
+
+    const nextComments = comments.map(comment => {
+      if (comment.id === commentId) {
+        return {
+          ...comment,
+          replies: [...(comment.replies || []), nextReply]
+        };
+      }
+      return comment;
+    });
+
+    setComments(nextComments);
+    localStorage.setItem(`decisionhub-comments-${decisionId}`, JSON.stringify(nextComments));
+    setReplyInputs(prev => ({ ...prev, [commentId]: "" }));
+    setActiveReplyId(null);
+    addToast("Reply posted successfully!", "success");
   };
 
-  // Pin/lock controls belong to the COMMUNITY MODERATOR, not the decision's
-  // creator. A decision only has a communityName (string) from the backend,
-  // so we match it against the names of communities this user moderates.
-  // Decisions with no community (Personal/Public) have no community moderator,
-  // so no one gets pin/lock controls for them via this check.
-  const isModerator =
-    !!decision?.communityName &&
-    moderatingCommunities.some((c) => c.name === decision.communityName);
+  // =========================================================
+  // RENDER BLOCKS
+  // =========================================================
 
-  const hasCriteria = decision?.factors && decision.factors.length > 0;
+  if (loading) {
+    return (
+      <div className="dashboard">
+        <Sidebar />
+        <div className="dashboard-main">
+          <Navbar />
+          <div className="dashboard-content decision-detail-page">
+            <h2 style={{ color: "#fff" }}>Loading decision details...</h2>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
-  // Edit Board access: the decision's CREATOR, or the COMMUNITY MODERATOR of
-  // the community this decision belongs to (if any). Regular members/voters
-  // never get edit access, even if they're viewing their own community's decision.
-  const isCreator =
-    decision?.creator && String(decision.creator.id) === String(currentUserId);
-  const canEdit = isCreator || isModerator;
+  if (error || !decision) {
+    return (
+      <div className="dashboard">
+        <Sidebar />
+        <div className="dashboard-main">
+          <Navbar />
+          <div className="dashboard-content decision-detail-page">
+            <h2 style={{ color: "#ef4444" }}>Error Loading Decision</h2>
+            <p style={{ color: "#9ca3af" }}>{error || "Decision not found."}</p>
+            <Link to="/decisions" className="btn-vote" style={{ display: "inline-block", marginTop: "15px", textDecoration: "none" }}>
+              Back to Decisions
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  const pollOpen = decision.status === "ACTIVE" || decision.status === "Active";
+
+  // Calculate vote percentages
+  const totalVotes = decision.options?.reduce((acc, opt) => acc + (opt.votes?.length || 0), 0) || 0;
 
   return (
     <div className="dashboard">
       <Sidebar />
       <div className="dashboard-main">
         <Navbar />
-        <div className="dashboard-content animate-fade-in">
-          {loading && <p>Loading decision...</p>}
-          {error && <p>{error}</p>}
-          {!loading && !error && decision && (
-            <div className="decision-detail-page">
-              <div className="detail-page-tags">
-                {decision.categoryName && <span className="tag-pill">#{decision.categoryName}</span>}
-                <span className="tag-pill status-pill">{decision.status}</span>
+        <div className="dashboard-content decision-detail-page">
+          
+          <Link to="/decisions" className="back-link">
+            <FaArrowLeft /> Back to Decisions
+          </Link>
+
+          {/* MAIN CARD */}
+          <div className="decision-detail-card">
+            <div className="decision-detail-header">
+              <div>
+                <h1>{decision.title}</h1>
+                <p className="description">{decision.description}</p>
               </div>
-              <h2>{decision.title}</h2>
+            </div>
 
-              {isModerator && (
-                <DecisionModerationControls
-                  decision={decision}
-                  onUpdate={(updated) => setDecision(updated)}
-                />
-              )}
-
-              {/* Tabs — "Edit Board" shown to the decision's creator OR the
-                  community moderator of the community it belongs to.
-                  Labels are distinct from the internal keys on purpose: the
-                  keys ("overview"/"discussion"/"poll-results"/"edit-board")
-                  still drive routing/state below unchanged, but the visible
-                  text uses DecisionHub's own decision/verdict vocabulary
-                  instead of generic tab names. */}
-              <div className="detail-tabs">
-                {[
-                  { key: "overview", label: "Brief" },
-                  { key: "discussion", label: "Debate" },
-                  { key: "poll-results", label: "Verdict" }
-                ]
-                  .concat(canEdit ? [{ key: "edit-board", label: "Edit Brief" }] : [])
-                  .map(({ key, label }) => (
-                    <button
-                      key={key}
-                      className={`detail-tab-btn ${activeTab === key ? "active" : ""}`}
-                      onClick={() => setActiveTab(key)}
-                    >
-                      {label}
-                    </button>
-                  ))}
-              </div>
-
-              {/* Overview Tab */}
-              {activeTab === "overview" && (
-                <div className="detail-tab-content">
-                  <div className="description-context-card">
-                    <h3>Description &amp; Context</h3>
-                    <p>{decision.description}</p>
-                  </div>
-
-                  {hasCriteria && (
-                    <div className="comparison-matrix">
-                      <h3>Comparison Matrix</h3>
-                      <table>
-                        <thead>
-                          <tr>
-                            <th>Parameter</th>
-                            {decision.options.map((opt) => (
-                              <th key={opt.id}>{opt.title}</th>
-                            ))}
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {decision.factors.map((factor) => (
-                            <tr key={factor.id || factor.name}>
-                              <td>{factor.name}</td>
-                              {decision.options.map((opt) => (
-                                <td key={opt.id}>
-                                  {findCriterionValue(opt, factor)}
-                                </td>
-                              ))}
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  )}
-
-                  {membershipChecked && !canParticipate && (
-                    <div className="membership-required-notice">
-                      <p>
-                        You must be an approved member of this community to vote, rate, or
-                        comment on this decision.
-                      </p>
-                    </div>
-                  )}
-
-                  {decision.votingType === "RATING_BASED" ? (
-                    <RatingPanel
-                      decision={decision}
-                      currentUserId={currentUserId}
-                      pollOpen={
-                        (decision.poll?.status === "OPEN" || decision.status === "ACTIVE") &&
-                        canParticipate
-                      }
-                      onScoreSubmitted={fetchDecision}
-                    />
-                  ) : (
-                    <div className="available-options">
-                      <h3>{decision.title}</h3>
-                      <div className="vote-question-list" style={{ display: "flex", flexDirection: "column", gap: "0.75rem", marginTop: "1rem", width: "100%" }}>
-                        {decision.votingType === "SINGLE_CHOICE"
-                          ? decision.options.map((opt) => {
-                              const isSelected = myVoteOptionIds.includes(opt.id);
-                              return (
-                                <label
-                                  key={opt.id}
-                                  style={{
-                                    display: "flex",
-                                    flexDirection: "row",
-                                    alignItems: "center",
-                                    gap: "0.6rem",
-                                    cursor: canParticipate ? "pointer" : "default",
-                                    width: "100%",
-                                    float: "none",
-                                    position: "static",
-                                    textAlign: "left"
-                                  }}
-                                >
-                                  <input
-                                    type="radio"
-                                    name={`decision-${decision.id}-choice`}
-                                    checked={isSelected}
-                                    disabled={voting || !canParticipate}
-                                    onChange={() => handleSingleChoiceVote(opt.id)}
-                                    style={{ flexShrink: 0, margin: 0, position: "static", float: "none", width: "18px", height: "18px" }}
-                                  />
-                                  <span style={{ flex: "initial", textAlign: "left" }}>
-                                    <strong>{opt.title}</strong>
-                                    {opt.description && <span> — {opt.description}</span>}
-                                  </span>
-                                </label>
-                              );
-                            })
-                          : decision.options.map((opt) => {
-                              const current = pendingSelection ?? myVoteOptionIds;
-                              const isSelected = current.includes(opt.id);
-                              return (
-                                <label
-                                  key={opt.id}
-                                  style={{
-                                    display: "flex",
-                                    flexDirection: "row",
-                                    alignItems: "center",
-                                    gap: "0.6rem",
-                                    cursor: canParticipate ? "pointer" : "default",
-                                    width: "100%",
-                                    float: "none",
-                                    position: "static",
-                                    textAlign: "left"
-                                  }}
-                                >
-                                  <input
-                                    type="checkbox"
-                                    checked={isSelected}
-                                    disabled={voting || !canParticipate}
-                                    onChange={() => toggleMultipleChoiceOption(opt.id)}
-                                    style={{ flexShrink: 0, margin: 0, position: "static", float: "none", width: "18px", height: "18px" }}
-                                  />
-                                  <span style={{ flex: "initial", textAlign: "left" }}>
-                                    <strong>{opt.title}</strong>
-                                    {opt.description && <span> — {opt.description}</span>}
-                                  </span>
-                                </label>
-                              );
-                            })}
-                      </div>
-
-                      {/* Only MULTIPLE_CHOICE needs an explicit submit — SINGLE_CHOICE
-                          submits instantly the moment a radio button is selected. */}
-                      {decision.votingType === "MULTIPLE_CHOICE" && (
-                        <button
-                          className="btn-primary"
-                          disabled={voting || !canParticipate || pendingSelection === null}
-                          onClick={submitMultipleChoiceVote}
-                        >
-                          {voting ? "Submitting..." : "Submit Vote"}
-                        </button>
-                      )}
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {activeTab === "discussion" && (
-  <div className="detail-tab-content">
-    <Discussion
-      decisionId={decision.id}
-      decisionStatus={decision.status}
-      canParticipate={canParticipate}
-    />
-  </div>
-)}
-
-              {activeTab === "poll-results" && (
-                <div className="detail-tab-content">
-                  <PollResultsPanel decision={decision} />
-                </div>
-              )}
-
-              {activeTab === "edit-board" && canEdit && (
-                <div className="detail-tab-content">
-                  <EditBoardPanel
-                    decision={decision}
-                    onSaved={(updated) => {
-                      setDecision(updated);
-                      setActiveTab("overview");
-                    }}
-                    onCancel={() => setActiveTab("overview")}
-                  />
-                </div>
+            {/* METADATA BADGES */}
+            <div className="decision-meta-badges">
+              <span className={`meta-pill ${pollOpen ? "active" : "closed"}`}>
+                {pollOpen ? "● Active Poll" : "● Closed"}
+              </span>
+              <span className="meta-pill voting-type">
+                🗳️ {decision.votingType?.replace("_", " ")}
+              </span>
+              {decision.votingEndTime && (
+                <span className="meta-pill">
+                  <FaCalendarAlt /> Ends: {new Date(decision.votingEndTime).toLocaleDateString()}
+                </span>
               )}
             </div>
-          )}
+
+            {/* RATING BASED SYSTEM */}
+            {decision.votingType === "RATING_BASED" && (
+              <RatingPanel decision={decision} pollOpen={pollOpen} />
+            )}
+
+            {/* SINGLE CHOICE SYSTEM */}
+            {decision.votingType === "SINGLE_CHOICE" && (
+              <div className="voting-section">
+                <h2>{pollOpen && !hasVoted ? "Cast Your Vote" : "Voting Results"}</h2>
+
+                {pollOpen && !hasVoted ? (
+                  /* VOTE INPUT VIEW */
+                  <>
+                    <div className="options-container">
+                      {decision.options?.map((option) => (
+                        <div
+                          key={option.id}
+                          className={`option-card ${selectedOption === option.id ? "selected" : ""}`}
+                          onClick={() => setSelectedOption(option.id)}
+                        >
+                          <div className="option-radio">
+                            <div className="option-radio-dot"></div>
+                          </div>
+                          <div className="option-details">
+                            <span className="option-title">{option.title || option.optionName}</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="vote-submit-bar">
+                      <button
+                        className="btn-vote"
+                        onClick={handleVoteSubmit}
+                        disabled={selectedOption === null || votingProgress}
+                      >
+                        {votingProgress ? "Submitting..." : "Submit Vote"}
+                      </button>
+                    </div>
+                  </>
+                ) : (
+                  /* VOTE RESULTS VIEW */
+                  <div className="results-display">
+                    {decision.options?.map((option) => {
+                      const votesCount = option.votes?.length || 0;
+                      const percent = totalVotes > 0 ? (votesCount / totalVotes) * 100 : 0;
+                      return (
+                        <div key={option.id} className="result-bar-wrapper">
+                          <div className="result-bar-info">
+                            <span className="result-bar-title">
+                              {option.title || option.optionName} {selectedOption === option.id && "⭐ (Your Vote)"}
+                            </span>
+                            <span className="result-bar-stats">
+                              {votesCount} votes ({percent.toFixed(0)}%)
+                            </span>
+                          </div>
+                          <div className="progress-track">
+                            <div className="progress-fill" style={{ width: `${percent}%` }}></div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* MULTIPLE CHOICE SYSTEM */}
+            {decision.votingType === "MULTIPLE_CHOICE" && (
+              <div className="voting-section">
+                <h2>Voting Results</h2>
+                <div className="results-display">
+                  {decision.options?.map((option) => {
+                    const votesCount = option.votes?.length || 0;
+                    const percent = totalVotes > 0 ? (votesCount / totalVotes) * 100 : 0;
+                    return (
+                      <div key={option.id} className="result-bar-wrapper">
+                        <div className="result-bar-info">
+                          <span className="result-bar-title">{option.title || option.optionName}</span>
+                          <span className="result-bar-stats">
+                            {votesCount} votes ({percent.toFixed(0)}%)
+                          </span>
+                        </div>
+                        <div className="progress-track">
+                          <div className="progress-fill" style={{ width: `${percent}%` }}></div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+          </div>
+
+          {/* COMMENTS & DISCUSSIONS */}
+          <div className="discussion-section">
+            <h2><FaCommentAlt /> Discussions</h2>
+
+            {/* Comment Form */}
+            <form onSubmit={handleAddComment} className="comment-input-form">
+              <textarea
+                placeholder="Share your thoughts or feedback about this decision..."
+                value={newComment}
+                onChange={(e) => setNewComment(e.target.value)}
+                required
+              />
+              <button type="submit" className="btn-vote" style={{ display: "inline-flex", alignItems: "center", gap: "8px" }}>
+                <FaPaperPlane /> Post Comment
+              </button>
+            </form>
+
+            {/* Comments list */}
+            <div className="comments-list">
+              {comments.length > 0 ? (
+                comments.map((comment) => (
+                  <div key={comment.id} className="comment-bubble">
+                    <div className="comment-header">
+                      <span className="comment-author">@{comment.author}</span>
+                      <span className="comment-time">{comment.time}</span>
+                    </div>
+                    <p className="comment-text">{comment.text}</p>
+                    
+                    <div className="comment-actions">
+                      <button 
+                        onClick={() => setActiveReplyId(activeReplyId === comment.id ? null : comment.id)}
+                        className="btn-action"
+                      >
+                        Reply
+                      </button>
+                    </div>
+
+                    {/* Replies */}
+                    {comment.replies && comment.replies.length > 0 && (
+                      <div style={{ marginLeft: "30px", marginTop: "15px", paddingLeft: "15px", borderLeft: "2px solid rgba(255,255,255,0.06)" }}>
+                        {comment.replies.map(reply => (
+                          <div key={reply.id} className="comment-bubble" style={{ marginTop: "10px", padding: "12px 15px", background: "rgba(255,255,255,0.01)" }}>
+                            <div className="comment-header" style={{ marginBottom: "5px" }}>
+                              <span className="comment-author" style={{ fontSize: "13px" }}>@{reply.author}</span>
+                              <span className="comment-time" style={{ fontSize: "11px" }}>{reply.time}</span>
+                            </div>
+                            <p className="comment-text" style={{ fontSize: "13px", margin: 0 }}>{reply.text}</p>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Reply Input Box */}
+                    {activeReplyId === comment.id && (
+                      <form 
+                        onSubmit={(e) => handleAddReply(comment.id, e)} 
+                        className="comment-input-form" 
+                        style={{ marginLeft: "30px", marginTop: "15px" }}
+                      >
+                        <textarea
+                          placeholder="Write a reply..."
+                          value={replyInputs[comment.id] || ""}
+                          onChange={(e) => setReplyInputs(prev => ({ ...prev, [comment.id]: e.target.value }))}
+                          required
+                          style={{ minHeight: "60px", fontSize: "13px" }}
+                        />
+                        <button type="submit" className="btn-vote" style={{ padding: "8px 16px", fontSize: "13px" }}>
+                          Reply
+                        </button>
+                      </form>
+                    )}
+
+                  </div>
+                ))
+              ) : (
+                <p style={{ color: "#9ca3af", textAlign: "center", padding: "20px" }}>
+                  No comments yet. Start the conversation!
+                </p>
+              )}
+            </div>
+
+          </div>
+
         </div>
       </div>
     </div>
