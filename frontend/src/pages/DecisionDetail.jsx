@@ -461,7 +461,7 @@ export default function DecisionDetail() {
 
               {activeTab === "poll-results" && (
                 <div className="detail-tab-content">
-                  <PollResultsPanel decision={decision} />
+                  <PollResultsPanel decision={decision} pollOpen={pollOpen} />
                 </div>
               )}
 
