@@ -263,3 +263,41 @@
     gap: 1.5rem;
   }
 }
+/* ================= Participation Summary ================= */
+
+.participation-summary{
+    margin-top:30px;
+    padding:25px;
+}
+
+.summary-grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
+    gap:20px;
+    margin-top:20px;
+}
+
+.summary-item{
+    background:rgba(255,255,255,0.05);
+    border:1px solid rgba(255,255,255,0.08);
+    border-radius:16px;
+    padding:20px;
+    transition:0.3s;
+}
+
+.summary-item:hover{
+    transform:translateY(-4px);
+    border-color:#8b5cf6;
+}
+
+.summary-item h4{
+    color:#bdbdbd;
+    font-size:15px;
+    margin-bottom:10px;
+}
+
+.summary-item p{
+    font-size:28px;
+    font-weight:bold;
+    color:white;
+}

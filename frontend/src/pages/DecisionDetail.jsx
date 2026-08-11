@@ -258,6 +258,7 @@ export default function DecisionDetail() {
   const isCreator =
     decision?.creator && String(decision.creator.id) === String(currentUserId);
   const canEdit = isCreator || isModerator;
+  const pollOpen = decision?.poll?.status === "OPEN" || decision?.status === "ACTIVE";
 
   return (
     <div className="dashboard">
@@ -461,7 +462,7 @@ export default function DecisionDetail() {
 
               {activeTab === "poll-results" && (
                 <div className="detail-tab-content">
-                  <PollResultsPanel decision={decision} />
+                  <PollResultsPanel decision={decision} pollOpen={pollOpen} />
                 </div>
               )}
 

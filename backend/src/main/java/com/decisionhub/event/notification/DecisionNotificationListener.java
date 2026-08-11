@@ -76,7 +76,7 @@ public class DecisionNotificationListener {
     }
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     @Transactional(propagation = Propagation.REQUIRES_NEW)
-    public void handleDecisionClosed(DecisionClosedEvent event) {
+    public void handleDecisionClosed(com.decisionhub.event.voting.DecisionClosedEvent event) {
         log.info("Handling DecisionClosedEvent for decision ID: {}", event.getDecisionId());
 
         Decision decision = decisionRepository.findById(event.getDecisionId()).orElse(null);

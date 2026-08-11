@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import axios from "axios";
 import { getRanking } from "../services/voteService";
 
 // Confirmed from the real API response: { decisionId, decisionTitle, options: [...], status }
@@ -132,14 +133,48 @@ function RatingResults({ decisionId, pollOpen, refreshTick }) {
   );
 }
 
-function VoteCountResults({ decision }) {
-  const options = decision.options || [];
-  const totalVotes = options.reduce((sum, opt) => sum + (opt.voteCount ?? 0), 0);
 
-  const items = options.map((opt) => ({
-    key: opt.id,
-    label: opt.title,
-    value: opt.voteCount ?? 0
+function VoteCountResults({ decisionId, pollOpen }) {
+  const [distribution, setDistribution] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  const fetchDistribution = async (silent = false) => {
+    if (!decisionId) return;
+    if (!silent) setLoading(true);
+    try {
+      const t = localStorage.getItem("token") || localStorage.getItem("authToken") || localStorage.getItem("jwt");
+      const res = await axios.get(`http://localhost:8080/api/analytics/decisions/${decisionId}/distribution`, {
+        headers: { Authorization: `Bearer ${t}` }
+      });
+      console.log("Analytics distribution response:", res.data);
+      setDistribution(Array.isArray(res.data) ? res.data : []);
+    } catch (err) {
+      console.error("Failed to fetch vote distribution:", err);
+      setDistribution([]);
+    } finally {
+      if (!silent) setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchDistribution();
+  }, [decisionId]);
+
+  useEffect(() => {
+    if (!pollOpen || !decisionId) return;
+    const intervalId = setInterval(() => fetchDistribution(true), 5000);
+    return () => clearInterval(intervalId);
+  }, [decisionId, pollOpen]);
+
+  if (loading) return <p className="poll-results-empty">Loading results...</p>;
+
+  const list = Array.isArray(distribution) ? distribution : [];
+  const totalVotes = list.reduce((sum, d) => sum + (d.voteCount ?? 0), 0);
+
+  const items = list.map((d) => ({
+    key: d.optionId,
+    label: d.optionName,
+    value: d.voteCount ?? 0
   }));
 
   return (
@@ -157,5 +192,5 @@ export default function PollResultsPanel({ decision, pollOpen, refreshTick }) {
       <RatingResults decisionId={decision.id} pollOpen={pollOpen} refreshTick={refreshTick} />
     );
   }
-  return <VoteCountResults decision={decision} />;
+  return <VoteCountResults decisionId={decision.id} pollOpen={pollOpen} />;
 }
