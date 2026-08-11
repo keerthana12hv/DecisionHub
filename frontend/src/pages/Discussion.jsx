@@ -24,7 +24,7 @@ const Discussion = () => {
   const [decisionStatus, setDecisionStatus] = useState(null);
   const [errorMsg, setErrorMsg] = useState("");
 
-  const isDecisionActive = decisionStatus === "ACTIVE";
+  const isDecisionActive = decisionStatus === "ACTIVE" || decisionStatus === "DRAFT" || decisionStatus === "Draft";
 
   useEffect(() => {
     api
