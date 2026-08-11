@@ -134,7 +134,7 @@ function Analytics() {
                   <input
                     type="number"
                     value={decisionId}
-                    onChange={(e) => setDecisionId(Number(e.target.value) || 1)}
+                    onChange={(e) => setDecisionId(e.target.value === "" ? "" : Number(e.target.value))}
                     style={{
                       width: "60px",
                       padding: "4px 8px",
@@ -155,7 +155,7 @@ function Analytics() {
                   <input
                     type="number"
                     value={communityId}
-                    onChange={(e) => setCommunityId(Number(e.target.value) || 1)}
+                    onChange={(e) => setCommunityId(e.target.value === "" ? "" : Number(e.target.value))}
                     style={{
                       width: "60px",
                       padding: "4px 8px",
