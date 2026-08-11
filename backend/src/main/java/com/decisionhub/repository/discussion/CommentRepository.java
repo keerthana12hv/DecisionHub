@@ -14,6 +14,7 @@ import java.util.Optional;
 public interface CommentRepository extends JpaRepository<Comment, Long> {
 
     Optional<Comment> findFirstByDecisionIdAndPinnedTrueAndDeletedAtIsNull(Long decisionId);
+
     List<Comment> findByDecisionId(Long decisionId);
     List<Comment> findByDecisionIdAndDeletedAtIsNull(Long decisionId);
 
@@ -40,21 +41,13 @@ public interface CommentRepository extends JpaRepository<Comment, Long> {
     /**
      * Returns the number of direct replies
      * for the specified parent comment.
-     *
-     * Used for lazy-loading discussions.
      */
-    int countByParentCommentId(
-            Long parentCommentId
-    );
+    int countByParentCommentId(Long parentCommentId);
 
     /**
      * Checks whether a comment has at least one reply.
-     *
-     * Used to determine whether editing is allowed.
      */
-    boolean existsByParentCommentId(
-            Long parentCommentId
-    );
+    boolean existsByParentCommentId(Long parentCommentId);
 
     long countByDecisionCommunityIdAndParentCommentIsNull(Long communityId);
 
