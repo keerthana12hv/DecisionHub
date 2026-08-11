@@ -139,16 +139,18 @@ function VoteCountResults({ decisionId, pollOpen }) {
   const [loading, setLoading] = useState(true);
 
   const fetchDistribution = async (silent = false) => {
+    if (!decisionId) return;
     if (!silent) setLoading(true);
     try {
       const t = localStorage.getItem("token") || localStorage.getItem("authToken") || localStorage.getItem("jwt");
       const res = await axios.get(`http://localhost:8080/api/analytics/decisions/${decisionId}/distribution`, {
         headers: { Authorization: `Bearer ${t}` }
       });
-      setDistribution(res.data || []);
+      console.log("Analytics distribution response:", res.data);
+      setDistribution(Array.isArray(res.data) ? res.data : []);
     } catch (err) {
       console.error("Failed to fetch vote distribution:", err);
-      if (!silent) setDistribution([]);
+      setDistribution([]);
     } finally {
       if (!silent) setLoading(false);
     }
@@ -159,16 +161,17 @@ function VoteCountResults({ decisionId, pollOpen }) {
   }, [decisionId]);
 
   useEffect(() => {
-    if (!pollOpen) return;
+    if (!pollOpen || !decisionId) return;
     const intervalId = setInterval(() => fetchDistribution(true), 5000);
     return () => clearInterval(intervalId);
   }, [decisionId, pollOpen]);
 
   if (loading) return <p className="poll-results-empty">Loading results...</p>;
 
-  const totalVotes = distribution.reduce((sum, d) => sum + (d.voteCount ?? 0), 0);
+  const list = Array.isArray(distribution) ? distribution : [];
+  const totalVotes = list.reduce((sum, d) => sum + (d.voteCount ?? 0), 0);
 
-  const items = distribution.map((d) => ({
+  const items = list.map((d) => ({
     key: d.optionId,
     label: d.optionName,
     value: d.voteCount ?? 0
