@@ -149,6 +149,27 @@ export default function DecisionDetail() {
     }
   };
 
+  const handlePublishDecision = async () => {
+    try {
+      const authToken = getToken();
+      await axios.put(
+        `${API}/decisions/${decisionId}/publish`,
+        {},
+        {
+          headers: {
+            Authorization: `Bearer ${authToken}`,
+            "Content-Type": "application/json"
+          }
+        }
+      );
+      addToast("Decision published successfully! It is now ACTIVE and open for voting.", "success");
+      fetchDecision();
+    } catch (err) {
+      console.error("PUBLISH ERROR:", err);
+      addToast(err.response?.data?.message || "Failed to publish decision.", "error");
+    }
+  };
+
   // =========================================================
   // COMMENTS INTERACTIONS
   // =========================================================
@@ -238,6 +259,7 @@ export default function DecisionDetail() {
   }
 
   const pollOpen = decision.status === "ACTIVE" || decision.status === "Active";
+  const isDraft = decision.status === "DRAFT" || decision.status === "Draft";
 
   // Calculate vote percentages
   const totalVotes = decision.options?.reduce((acc, opt) => acc + (opt.votes?.length || 0), 0) || 0;
@@ -255,17 +277,26 @@ export default function DecisionDetail() {
 
           {/* MAIN CARD */}
           <div className="decision-detail-card">
-            <div className="decision-detail-header">
+            <div className="decision-detail-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "15px" }}>
               <div>
                 <h1>{decision.title}</h1>
                 <p className="description">{decision.description}</p>
               </div>
+              {isDraft && (decision.creator?.username === user?.username || decision.creator?.id === user?.id) && (
+                <button
+                  className="btn-vote"
+                  onClick={handlePublishDecision}
+                  style={{ background: "#10b981", borderColor: "#10b981", padding: "10px 20px", borderRadius: "8px", fontWeight: "bold" }}
+                >
+                  🚀 Publish Decision
+                </button>
+              )}
             </div>
 
             {/* METADATA BADGES */}
             <div className="decision-meta-badges">
-              <span className={`meta-pill ${pollOpen ? "active" : "closed"}`}>
-                {pollOpen ? "● Active Poll" : "● Closed"}
+              <span className={`meta-pill ${pollOpen ? "active" : isDraft ? "draft" : "closed"}`}>
+                {pollOpen ? "● Active Poll" : isDraft ? "● Draft" : "● Closed"}
               </span>
               <span className="meta-pill voting-type">
                 🗳️ {decision.votingType?.replace("_", " ")}

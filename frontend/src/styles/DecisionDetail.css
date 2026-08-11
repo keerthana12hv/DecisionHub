@@ -88,6 +88,12 @@
   color: #ef4444;
 }
 
+.meta-pill.draft {
+  background: rgba(245, 158, 11, 0.1);
+  border-color: rgba(245, 158, 11, 0.3);
+  color: #f59e0b;
+}
+
 .meta-pill.voting-type {
   background: rgba(99, 102, 241, 0.1);
   border-color: rgba(99, 102, 241, 0.3);
