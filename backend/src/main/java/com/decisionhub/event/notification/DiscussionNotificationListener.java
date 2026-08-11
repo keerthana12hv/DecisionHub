@@ -77,8 +77,8 @@ public class DiscussionNotificationListener {
         }
 
         String title = "New Reply";
-        String message = String.format("@%s replied to your comment on '%s'",
-                event.getReplierUsername(), event.getDecisionTitle());
+        String message = String.format("@%s replied to your comment on decision '%s'",
+            event.getReplierUsername(), event.getDecisionTitle());
         String actionUrl = "/decisions/" + event.getDecisionId();
 
         notificationService.createNotification(

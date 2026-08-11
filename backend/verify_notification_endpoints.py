@@ -185,16 +185,16 @@ def main():
     decision_id = res.json()["id"]
     
     print("Owner adding Option A...")
-    res = requests.post(f"{BASE_URL}/api/decisions/{decision_id}/options", headers=owner_headers, json={"title": "Option A", "description": "Desc"})
+    res = requests.put(f"{BASE_URL}/api/decisions/{decision_id}/options", headers=owner_headers, json={"title": "Option A", "description": "Desc"})
     assert_status(res, 201)
     option_id_a = res.json()["id"]
 
     print("Owner adding Option B...")
-    res = requests.post(f"{BASE_URL}/api/decisions/{decision_id}/options", headers=owner_headers, json={"title": "Option B", "description": "Desc"})
+    res = requests.put(f"{BASE_URL}/api/decisions/{decision_id}/options", headers=owner_headers, json={"title": "Option B", "description": "Desc"})
     assert_status(res, 201)
 
     print("Owner publishing decision...")
-    res = requests.post(f"{BASE_URL}/api/decisions/{decision_id}/publish", headers=owner_headers)
+    res = requests.put(f"{BASE_URL}/api/decisions/{decision_id}/publish", headers=owner_headers)
     assert_status(res, 200)
     time.sleep(0.5)
 
@@ -205,7 +205,7 @@ def main():
 
     # 8. User A creates a comment -> triggers COMMENT_CREATED
     print("User A creating comment...")
-    res = requests.post(f"{BASE_URL}/api/decisions/{decision_id}/comments", headers=usera_headers, json={
+    res = requests.put(f"{BASE_URL}/api/decisions/{decision_id}/comments", headers=usera_headers, json={
         "content": "Verify CommentCreatedEvent notification triggers"
     })
     assert_status(res, 201)
@@ -219,7 +219,7 @@ def main():
 
     # 9. Owner replies to User A comment -> triggers REPLY_CREATED
     print("Owner replying to User A comment...")
-    res = requests.post(f"{BASE_URL}/api/decisions/{decision_id}/comments/{comment_id}/replies", headers=owner_headers, json={
+    res = requests.put(f"{BASE_URL}/api/decisions/{decision_id}/comments/{comment_id}/replies", headers=owner_headers, json={
         "content": "Verify ReplyCreatedEvent notification triggers"
     })
     assert_status(res, 201)
@@ -245,7 +245,7 @@ def main():
 
     # 11. Owner closes poll early -> triggers POLL_CLOSED
     print("Owner closing poll early...")
-    res = requests.post(f"{BASE_URL}/api/decisions/{decision_id}/poll/close", headers=owner_headers)
+    res = requests.put(f"{BASE_URL}/api/decisions/{decision_id}/poll/close", headers=owner_headers)
     assert_status(res, 200)
     time.sleep(0.5)
 
@@ -300,7 +300,7 @@ def main():
 
     # 16. Owner creates a comment, and User A (Moderator) deletes it -> triggers COMMENT_REMOVED
     print("Owner creating comment to be removed...")
-    res = requests.post(f"{BASE_URL}/api/decisions/{decision_id}/comments", headers=owner_headers, json={
+    res = requests.put(f"{BASE_URL}/api/decisions/{decision_id}/comments", headers=owner_headers, json={
         "content": "Inappropriate comment text to be removed"
     })
     assert_status(res, 201)

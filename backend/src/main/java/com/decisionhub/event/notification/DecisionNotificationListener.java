@@ -7,7 +7,7 @@ import com.decisionhub.enums.community.MembershipStatus;
 import com.decisionhub.enums.notification.NotificationType;
 import com.decisionhub.enums.notification.ReferenceType;
 import com.decisionhub.event.DecisionPublishedEvent;
-import com.decisionhub.event.DecisionClosedEvent;
+import com.decisionhub.event.voting.DecisionClosedEvent;
 import com.decisionhub.repository.community.CommunityMemberRepository;
 import com.decisionhub.repository.community.CommunityRepository;
 import com.decisionhub.repository.decision.DecisionRepository;

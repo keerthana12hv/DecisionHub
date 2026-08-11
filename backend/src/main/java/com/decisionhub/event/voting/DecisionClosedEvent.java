@@ -1,4 +1,4 @@
-package com.decisionhub.event;
+package com.decisionhub.event.voting;
 
 import org.springframework.context.ApplicationEvent;
 

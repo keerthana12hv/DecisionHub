@@ -34,7 +34,7 @@ import com.decisionhub.service.interfaces.decision.DecisionService;
 import com.decisionhub.validator.decision.DecisionValidator;
 import com.decisionhub.validator.decision.DecisionModificationValidator;
 import com.decisionhub.event.DecisionPublishedEvent;
-import com.decisionhub.event.DecisionClosedEvent;
+import com.decisionhub.event.voting.DecisionClosedEvent;
 import org.springframework.context.ApplicationEventPublisher;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
