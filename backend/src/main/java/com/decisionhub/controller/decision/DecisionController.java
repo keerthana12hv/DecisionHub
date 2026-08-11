@@ -94,6 +94,19 @@ public class DecisionController {
         DecisionResponse response = decisionService.publishDecision(id, ipAddress, userAgent);
         return ResponseEntity.ok(response);
     }
+    @PutMapping("/{id}/close")
+    @Operation(summary = "Close Decision", description = "Changes a decision's status from ACTIVE to CLOSED, ending voting.")
+    public ResponseEntity<DecisionResponse> closeDecision(
+            @PathVariable Long id,
+            HttpServletRequest servletRequest
+    ) {
+        log.info("REST request to close decision: {}", id);
+        String ipAddress = getClientIp(servletRequest);
+        String userAgent = servletRequest.getHeader(HttpHeaders.USER_AGENT);
+
+        DecisionResponse response = decisionService.closeDecision(id, ipAddress, userAgent);
+        return ResponseEntity.ok(response);
+    }
 
     @DeleteMapping("/{id}")
     @Operation(summary = "Delete a decision", description = "Deletes a decision and associated entities (requires creator/owner)", security = @SecurityRequirement(name = "bearerAuth"))

@@ -34,6 +34,7 @@ import com.decisionhub.service.interfaces.decision.DecisionService;
 import com.decisionhub.validator.decision.DecisionValidator;
 import com.decisionhub.validator.decision.DecisionModificationValidator;
 import com.decisionhub.event.DecisionPublishedEvent;
+import com.decisionhub.event.DecisionClosedEvent;
 import org.springframework.context.ApplicationEventPublisher;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -366,5 +367,39 @@ public class DecisionServiceImpl implements DecisionService {
     private Long getCurrentUserIdOrThrow() {
         return authenticationFacade.getCurrentUserId()
                 .orElseThrow(() -> new UnauthorizedActionException("User is not authenticated"));
+    }
+    @Override
+    @Transactional
+    public DecisionResponse closeDecision(Long id, String ipAddress, String userAgent) {
+        log.info("Attempting to close decision with ID: {}", id);
+
+        Long currentUserId = getCurrentUserIdOrThrow();
+        User currentUser = userRepository.findById(currentUserId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with ID: " + currentUserId));
+
+        Decision decision = decisionRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Decision not found with ID: " + id));
+
+        if (!decisionAuthorizationService.canActivateDecision(id, currentUserId)) {
+            throw new UnauthorizedActionException("Not authorized to close this decision");
+        }
+
+        if (decision.getStatus() != DecisionStatus.ACTIVE) {
+            throw new BadRequestException("Only active decisions can be closed");
+        }
+
+        String oldValueJson = String.format("{\"status\":\"%s\"}", decision.getStatus());
+
+        decision.setStatus(DecisionStatus.CLOSED);
+        decision.setUpdatedAt(LocalDateTime.now());
+        Decision closedDecision = decisionRepository.saveAndFlush(decision);
+
+        String newValueJson = String.format("{\"status\":\"%s\"}", closedDecision.getStatus());
+        auditService.log(currentUser, "DECISION_CLOSED", "decisions", id, oldValueJson, newValueJson, ipAddress, userAgent);
+
+        eventPublisher.publishEvent(new DecisionClosedEvent(this, id));
+
+        log.info("Decision with ID '{}' closed successfully", id);
+        return decisionMapper.toResponse(closedDecision);
     }
 }

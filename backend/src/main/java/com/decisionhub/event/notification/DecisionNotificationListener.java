@@ -7,6 +7,7 @@ import com.decisionhub.enums.community.MembershipStatus;
 import com.decisionhub.enums.notification.NotificationType;
 import com.decisionhub.enums.notification.ReferenceType;
 import com.decisionhub.event.DecisionPublishedEvent;
+import com.decisionhub.event.DecisionClosedEvent;
 import com.decisionhub.repository.community.CommunityMemberRepository;
 import com.decisionhub.repository.community.CommunityRepository;
 import com.decisionhub.repository.decision.DecisionRepository;
@@ -71,6 +72,43 @@ public class DecisionNotificationListener {
                         actionUrl
                 );
             }
+        }
+    }
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public void handleDecisionClosed(DecisionClosedEvent event) {
+        log.info("Handling DecisionClosedEvent for decision ID: {}", event.getDecisionId());
+
+        Decision decision = decisionRepository.findById(event.getDecisionId()).orElse(null);
+        if (decision == null) {
+            log.warn("Decision not found with ID: {}", event.getDecisionId());
+            return;
+        }
+
+        Community community = decision.getCommunity();
+        if (community == null) {
+            log.info("Decision is public/not bound to a community. Skipping member notification.");
+            return;
+        }
+
+        List<CommunityMember> members = communityMemberRepository.findByCommunityAndStatus(community, MembershipStatus.APPROVED);
+        Long closerId = decision.getCreator().getId(); // adjust if closer should be tracked separately
+
+        String title = "Poll Closed";
+        String message = String.format("Voting has ended for the decision '%s'.", decision.getTitle());
+        String actionUrl = "/decisions/" + decision.getId();
+
+        for (CommunityMember member : members) {
+            Long recipientId = member.getUser().getId();
+            notificationService.createNotification(
+                    recipientId,
+                    title,
+                    message,
+                    NotificationType.POLL_CLOSED,
+                    ReferenceType.DECISION,
+                    decision.getId(),
+                    actionUrl
+            );
         }
     }
 }
