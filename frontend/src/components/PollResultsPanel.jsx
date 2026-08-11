@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import axios from "axios";
 import { getRanking } from "../services/voteService";
 
 // Confirmed from the real API response: { decisionId, decisionTitle, options: [...], status }
@@ -132,7 +133,6 @@ function RatingResults({ decisionId, pollOpen, refreshTick }) {
   );
 }
 
-import axios from "axios";
 
 function VoteCountResults({ decisionId, pollOpen }) {
   const [distribution, setDistribution] = useState([]);
