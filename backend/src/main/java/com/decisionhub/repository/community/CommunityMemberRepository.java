@@ -4,7 +4,8 @@ import java.util.List;
 import java.util.Optional;
 
 import org.springframework.data.jpa.repository.JpaRepository;
-
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import com.decisionhub.entity.authentication.User;
 import com.decisionhub.entity.community.Community;
 import com.decisionhub.entity.community.CommunityMember;
@@ -50,4 +51,16 @@ public interface CommunityMemberRepository
             Community community,
             User user
     );
+
+    long countByCommunityIdAndStatus(
+        Long communityId,
+        MembershipStatus status
+);
+
+@Query("""
+SELECT COUNT(DISTINCT v.user.id)
+FROM Vote v
+WHERE v.poll.decision.id = :decisionId
+""")
+Long countParticipants(@Param("decisionId") Long decisionId);
 }
