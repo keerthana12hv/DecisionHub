@@ -10,7 +10,7 @@ export const analyticsService = {
   },
 
   getVoteStatistics: async (decisionId) => {
-    const res = await api.get(`/api/analytics/decisions/${decisionId}/vote-statistics`);
+    const res = await api.get(`/api/analytics/decisions/${decisionId}/votes`);
     return res.data;
   },
 
