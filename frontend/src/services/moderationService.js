@@ -128,3 +128,11 @@ export const unpinDecision = async (decisionId) => {
   );
   return res.data;
 };
+export const closeDecision = async (decisionId) => {
+  const res = await axios.put(
+    `${API}/decisions/${decisionId}/close`,
+    {},
+    headers()
+  );
+  return res.data;
+};
