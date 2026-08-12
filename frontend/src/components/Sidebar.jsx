@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import {
   FaHome,
   FaPlusCircle,
@@ -12,18 +13,46 @@ import {
   FaCommentDots
 } from "react-icons/fa";
 import { Link, useLocation } from "react-router-dom";
+import axios from "axios";
 import { useAuth } from "../context/AuthContext";
 import "../styles/Sidebar.css";
 
 function Sidebar() {
   const location = useLocation();
   const { user, logout } = useAuth();
+  const [isModerator, setIsModerator] = useState(false);
   
   const isActive = (path) => {
     return location.pathname === path ? "active-link" : "";
   };
 
   const isAdmin = user?.role === "ADMIN";
+
+  useEffect(() => {
+    if (user && user.role === "MODERATOR") {
+      const token = localStorage.getItem("token") ||
+                    localStorage.getItem("authToken") ||
+                    localStorage.getItem("jwt");
+      if (token) {
+        axios.get("http://localhost:8080/api/communities/moderating", {
+          headers: { Authorization: `Bearer ${token}` }
+        })
+        .then(res => {
+          if (res.data && res.data.length > 0) {
+            setIsModerator(true);
+          } else {
+            setIsModerator(false);
+          }
+        })
+        .catch(err => {
+          console.error("Failed to fetch moderating communities:", err);
+          setIsModerator(false);
+        });
+      }
+    } else {
+      setIsModerator(false);
+    }
+  }, [user]);
 
   return (
     <div className="sidebar glass-panel">
@@ -54,7 +83,7 @@ function Sidebar() {
               <FaCog /> <span>Manage Decisions</span>
             </Link>
           </li>
-             {user?.role === "MODERATOR" && (
+             {isModerator && (
       <li className={isActive("/moderator-dashboard")}>
         <Link to="/moderator-dashboard">
           <FaUserShield /> <span>Moderator</span>
