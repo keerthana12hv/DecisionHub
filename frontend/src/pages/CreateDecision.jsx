@@ -221,7 +221,7 @@ function CreateDecision() {
     }
   };
 
-  if (user?.role === "ADMIN") return null;
+  if (!user) return null;
 
   return (
     <div className="dashboard">

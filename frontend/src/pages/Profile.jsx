@@ -3,6 +3,7 @@ import Sidebar from "../components/Sidebar";
 import Navbar from "../components/Navbar";
 import { useAuth } from "../context/AuthContext";
 import { useToast } from "../components/Toast";
+import api from "../services/api";
 import { FaUser, FaEnvelope, FaPhone, FaUserShield, FaAward, FaCalendarAlt, FaEdit, FaTimes, FaCamera } from "react-icons/fa";
 import "../styles/Profile.css";
 
@@ -18,26 +19,31 @@ function Profile() {
   const [userDecisions, setUserDecisions] = useState([]);
   const [joinedComms, setJoinedComms] = useState([]);
 
+  const isAdmin = user?.role === "ADMIN";
+
   useEffect(() => {
-    if (user) {
-      setEditName(user.username);
-      setEditPhone(user.phone || "");
-      setEditPhoto(user.photo || "");
+    if (!user) return;
 
-      // Load Decisions & Communities to show statistics dynamically
-      const decisions = JSON.parse(localStorage.getItem("decisionhub-decisions") || "[]");
-      const communities = JSON.parse(localStorage.getItem("decisionhub-communities") || "[]");
+    setEditName(user.username);
+    setEditPhone(user.phone || "");
+    setEditPhoto(user.photo || "");
 
-      setJoinedComms(communities.filter(c => c.joined));
+    const loadProfileData = async () => {
+      try {
+        const communityResponse = await api.get("/api/communities/my");
+        setJoinedComms(communityResponse.data || []);
 
-      if (user.role === "ADMIN") {
-        setUserDecisions(decisions); // Show all as admin created
-      } else {
-        // Show voted decisions
-        setUserDecisions(decisions.filter(d => d.userVoteOptionId !== null));
+        const decisionsResponse = await api.get(`/api/decisions${isAdmin ? "?mine=true" : ""}`);
+        setUserDecisions(decisionsResponse.data || []);
+      } catch (error) {
+        console.error("Failed to load profile data:", error);
+        setJoinedComms([]);
+        setUserDecisions([]);
       }
-    }
-  }, [user]);
+    };
+
+    loadProfileData();
+  }, [user, isAdmin]);
 
   const handleSaveProfile = (e) => {
     e.preventDefault();
@@ -59,8 +65,6 @@ function Profile() {
   };
 
   if (!user) return null;
-
-  const isAdmin = user.role === "ADMIN";
 
   // Avatar Options presets
   const avatars = [

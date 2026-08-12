@@ -128,11 +128,48 @@ export const unpinDecision = async (decisionId) => {
   );
   return res.data;
 };
+
+export const reportComment = async (commentId, reason) => {
+  const res = await axios.post(
+    `${API}/comments/${commentId}/report`,
+    { reason },
+    headers()
+  );
+  return res.data;
+};
+
 export const closeDecision = async (decisionId) => {
   const res = await axios.put(
     `${API}/decisions/${decisionId}/close`,
     {},
     headers()
   );
+  return res.data;
+};
+
+// ─── COMMENT MODERATION (moderators only) ───────────────────────────────────
+export const pinComment = async (commentId) => {
+  const res = await axios.put(`${API}/moderation/comments/${commentId}/pin`, {}, headers());
+  return res.data;
+};
+
+export const unpinComment = async (commentId) => {
+  const res = await axios.put(`${API}/moderation/comments/${commentId}/unpin`, {}, headers());
+  return res.data;
+};
+
+export const modDeleteComment = async (commentId) => {
+  const res = await axios.delete(`${API}/moderation/comments/${commentId}`, headers());
+  return res.data;
+};
+
+// ─── Report management (moderator) ───────────────────────────────────────────
+export const getReportedComments = async () => {
+  const res = await axios.get(`${API}/moderation/reports`, headers());
+  return res.data;
+};
+
+export const deleteReport = async (reportId) => {
+  const res = await axios.delete(`${API}/moderation/reports/${reportId}`, headers());
   return res.data;
 };

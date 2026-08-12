@@ -5,6 +5,8 @@ import com.decisionhub.enums.community.MembershipStatus;
 import com.decisionhub.repository.community.CommunityMemberRepository;
 import com.decisionhub.repository.decision.DecisionRepository;
 import com.decisionhub.repository.discussion.CommentRepository;
+import com.decisionhub.repository.authentication.UserRepository;
+import com.decisionhub.enums.authentication.PlatformRole;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -22,6 +24,7 @@ public class DecisionAuthorizationServiceImpl implements DecisionAuthorizationSe
     private final DecisionRepository decisionRepository;
     private final CommunityMemberRepository communityMemberRepository;
     private final CommentRepository commentRepository;
+    private final UserRepository userRepository;
 
     @Override
     @Transactional(readOnly = true)
@@ -49,6 +52,14 @@ public class DecisionAuthorizationServiceImpl implements DecisionAuthorizationSe
         }
 
         Decision decision = decisionOpt.get();
+
+        // Platform admins can view any decision
+        if (userId != null) {
+            boolean isAdmin = userRepository.findById(userId)
+                    .map(u -> u.getRole() == PlatformRole.ADMIN)
+                    .orElse(false);
+            if (isAdmin) return true;
+        }
 
         // 1. PUBLIC visibility -> All authenticated users can view
         if (decision.getVisibility() == com.decisionhub.enums.decision.DecisionVisibility.PUBLIC) {

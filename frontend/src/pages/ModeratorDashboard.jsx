@@ -3,6 +3,7 @@ import { FaShieldAlt, FaUsers, FaEye, FaTag, FaChevronDown, FaChevronUp } from "
 import Sidebar from "../components/Sidebar";
 import Navbar from "../components/Navbar";
 import ModeratorPanel from "../components/ModeratorPanel";
+import ReportedComments from "../components/moderator/ReportedComments";
 import { getModeratingCommunities } from "../services/moderationService";
 import { useToast } from "../components/Toast";
 import "../styles/ModeratorPanel.css";
@@ -133,6 +134,16 @@ export default function ModeratorDashboard() {
                   ))}
                 </div>
               )}
+            </section>
+
+            {/* Section: Reported Comments */}
+            <section className="mod-reports-section" style={{ marginTop: 24 }}>
+              <h2 className="mod-section-heading">
+                <FaEye /> Reported Comments
+              </h2>
+              <div style={{ padding: 12, background: "rgba(255,255,255,0.02)", borderRadius: 8 }}>
+                <ReportedComments />
+              </div>
             </section>
           </div>
         </div>
