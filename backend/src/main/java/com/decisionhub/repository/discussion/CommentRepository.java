@@ -12,25 +12,39 @@ import java.util.Optional;
 @Repository
 public interface CommentRepository extends JpaRepository<Comment, Long> {
 
-    Optional<Comment> findFirstByDecisionIdAndPinnedTrueAndDeletedAtIsNull(Long decisionId);
+    Optional<Comment> findFirstByDecisionIdAndPinnedTrueAndDeletedAtIsNull(
+            Long decisionId
+    );
 
     List<Comment> findByDecisionId(Long decisionId);
 
     List<Comment> findByDecisionIdAndDeletedAtIsNull(Long decisionId);
 
     /**
-     * Retrieves all top-level comments belonging to a Decision,
-     * ordered by creation time.
+     * Retrieves all non-deleted top-level comments belonging
+     * to a Decision, ordered by creation time.
      */
-    List<Comment> findByDecisionIdAndParentCommentIsNullOrderByCreatedAtAsc(
+    List<Comment> findByDecisionIdAndParentCommentIsNullAndDeletedAtIsNullOrderByCreatedAtAsc(
             Long decisionId
     );
 
     /**
      * Retrieves all direct replies of a parent comment,
-     * ordered by creation time.
+     * including deleted replies.
+     *
+     * Used internally when recursively soft-deleting
+     * an entire comment subtree.
      */
     List<Comment> findByParentCommentIdOrderByCreatedAtAsc(
+            Long parentCommentId
+    );
+
+    /**
+     * Retrieves only non-deleted direct replies of a parent comment.
+     *
+     * Used for normal discussion retrieval.
+     */
+    List<Comment> findByParentCommentIdAndDeletedAtIsNullOrderByCreatedAtAsc(
             Long parentCommentId
     );
 

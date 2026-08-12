@@ -894,7 +894,7 @@ class CommentServiceImplTest {
         );
 
         when(commentRepository
-                .findByDecisionIdAndParentCommentIsNullOrderByCreatedAtAsc(10L))
+                .findByDecisionIdAndParentCommentIsNullAndDeletedAtIsNullOrderByCreatedAtAsc(10L))
                 .thenReturn(comments);
 
         when(commentMapper.toResponse(any(Comment.class)))
@@ -906,7 +906,7 @@ class CommentServiceImplTest {
         assertEquals(2, result.size());
 
         verify(commentRepository)
-                .findByDecisionIdAndParentCommentIsNullOrderByCreatedAtAsc(10L);
+                .findByDecisionIdAndParentCommentIsNullAndDeletedAtIsNullOrderByCreatedAtAsc(10L);
 
         verify(commentMapper, times(2))
                 .toResponse(any(Comment.class));
@@ -929,7 +929,7 @@ class CommentServiceImplTest {
         );
 
         verify(commentRepository, never())
-                .findByDecisionIdAndParentCommentIsNullOrderByCreatedAtAsc(anyLong());
+                .findByDecisionIdAndParentCommentIsNullAndDeletedAtIsNullOrderByCreatedAtAsc(anyLong());
     }
 
     // =========================================================
@@ -958,7 +958,7 @@ class CommentServiceImplTest {
         );
 
         when(commentRepository
-                .findByParentCommentIdOrderByCreatedAtAsc(100L))
+                .findByParentCommentIdAndDeletedAtIsNullOrderByCreatedAtAsc(100L))
                 .thenReturn(replies);
 
         when(commentMapper.toResponse(any(Comment.class)))
