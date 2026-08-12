@@ -275,12 +275,12 @@ export default function DecisionDetail() {
               </div>
               <h2>{decision.title}</h2>
 
-              {isModerator && (
+              {isModerator || isCreator ? (
                 <DecisionModerationControls
                   decision={decision}
                   onUpdate={(updated) => setDecision(updated)}
                 />
-              )}
+              ) : null}
 
               {/* Tabs — "Edit Board" shown to the decision's creator OR the
                   community moderator of the community it belongs to.

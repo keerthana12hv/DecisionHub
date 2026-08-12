@@ -380,7 +380,7 @@ public class DecisionServiceImpl implements DecisionService {
         Decision decision = decisionRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Decision not found with ID: " + id));
 
-        if (!decisionAuthorizationService.canActivateDecision(id, currentUserId)) {
+        if (!decisionAuthorizationService.canCloseDecision(id, currentUserId)) {
             throw new UnauthorizedActionException("Not authorized to close this decision");
         }
 
