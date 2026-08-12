@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Sidebar from "../components/Sidebar";
 import Navbar from "../components/Navbar";
 import { useToast } from "../components/Toast";
+import { useAuth } from "../context/AuthContext";
 import { FaFileDownload, FaChartBar, FaShieldAlt, FaVoteYea } from "react-icons/fa";
 import { DecisionAnalyticsView } from "../components/analytics/DecisionAnalyticsView";
 import { CommunityAnalyticsView } from "../components/analytics/CommunityAnalyticsView";
@@ -10,10 +11,33 @@ import "../styles/Analytics.css";
 
 function Analytics() {
   const { addToast } = useToast();
+  const { user } = useAuth();
+  const userRole = user?.role || "USER";
+
   const [downloading, setDownloading] = useState(null);
   const [activeTab, setActiveTab] = useState("decision"); // 'decision' | 'community' | 'admin'
   const [decisionId, setDecisionId] = useState(5);
   const [communityId, setCommunityId] = useState(1);
+
+  useEffect(() => {
+    if (user) {
+      if (user.role === "ADMIN") {
+        setActiveTab("admin");
+      } else {
+        setActiveTab("decision");
+      }
+    }
+  }, [user]);
+
+  const isTabAllowed = (tabName) => {
+    if (userRole === "ADMIN") {
+      return tabName === "admin";
+    }
+    if (userRole === "MODERATOR") {
+      return tabName === "decision" || tabName === "community";
+    }
+    return tabName === "decision";
+  };
 
   const handleExport = (format) => {
     setDownloading(format);
@@ -80,50 +104,56 @@ function Analytics() {
             }}
           >
             <div style={{ display: "flex", gap: "8px" }}>
-              <button
-                className={`btn-secondary ${activeTab === "decision" ? "active-tab" : ""}`}
-                onClick={() => setActiveTab("decision")}
-                style={{
-                  background: activeTab === "decision" ? "#8b5cf6" : "transparent",
-                  color: "#fff",
-                  borderColor: activeTab === "decision" ? "#8b5cf6" : "rgba(255,255,255,0.1)",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "6px"
-                }}
-              >
-                <FaVoteYea /> User Decision Analytics
-              </button>
+              {isTabAllowed("decision") && (
+                <button
+                  className={`btn-secondary ${activeTab === "decision" ? "active-tab" : ""}`}
+                  onClick={() => setActiveTab("decision")}
+                  style={{
+                    background: activeTab === "decision" ? "#8b5cf6" : "transparent",
+                    color: "#fff",
+                    borderColor: activeTab === "decision" ? "#8b5cf6" : "rgba(255,255,255,0.1)",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "6px"
+                  }}
+                >
+                  <FaVoteYea /> User Decision Analytics
+                </button>
+              )}
 
-              <button
-                className={`btn-secondary ${activeTab === "community" ? "active-tab" : ""}`}
-                onClick={() => setActiveTab("community")}
-                style={{
-                  background: activeTab === "community" ? "#3b82f6" : "transparent",
-                  color: "#fff",
-                  borderColor: activeTab === "community" ? "#3b82f6" : "rgba(255,255,255,0.1)",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "6px"
-                }}
-              >
-                <FaShieldAlt /> Moderator Community Analytics
-              </button>
+              {isTabAllowed("community") && (
+                <button
+                  className={`btn-secondary ${activeTab === "community" ? "active-tab" : ""}`}
+                  onClick={() => setActiveTab("community")}
+                  style={{
+                    background: activeTab === "community" ? "#3b82f6" : "transparent",
+                    color: "#fff",
+                    borderColor: activeTab === "community" ? "#3b82f6" : "rgba(255,255,255,0.1)",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "6px"
+                  }}
+                >
+                  <FaShieldAlt /> Moderator Community Analytics
+                </button>
+              )}
 
-              <button
-                className={`btn-secondary ${activeTab === "admin" ? "active-tab" : ""}`}
-                onClick={() => setActiveTab("admin")}
-                style={{
-                  background: activeTab === "admin" ? "#f59e0b" : "transparent",
-                  color: "#fff",
-                  borderColor: activeTab === "admin" ? "#f59e0b" : "rgba(255,255,255,0.1)",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "6px"
-                }}
-              >
-                <FaChartBar /> Admin Platform Analytics
-              </button>
+              {isTabAllowed("admin") && (
+                <button
+                  className={`btn-secondary ${activeTab === "admin" ? "active-tab" : ""}`}
+                  onClick={() => setActiveTab("admin")}
+                  style={{
+                    background: activeTab === "admin" ? "#f59e0b" : "transparent",
+                    color: "#fff",
+                    borderColor: activeTab === "admin" ? "#f59e0b" : "rgba(255,255,255,0.1)",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "6px"
+                  }}
+                >
+                  <FaChartBar /> Admin Platform Analytics
+                </button>
+              )}
             </div>
 
             {/* Live ID inputs for testing endpoints */}
@@ -173,9 +203,9 @@ function Analytics() {
           </div>
 
           {/* Active Tab View */}
-          {activeTab === "decision" && <DecisionAnalyticsView decisionId={decisionId} />}
-          {activeTab === "community" && <CommunityAnalyticsView communityId={communityId} />}
-          {activeTab === "admin" && <AdminAnalyticsView />}
+          {activeTab === "decision" && isTabAllowed("decision") && <DecisionAnalyticsView decisionId={decisionId} />}
+          {activeTab === "community" && isTabAllowed("community") && <CommunityAnalyticsView communityId={communityId} />}
+          {activeTab === "admin" && isTabAllowed("admin") && <AdminAnalyticsView />}
 
         </div>
       </div>
