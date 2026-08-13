@@ -70,16 +70,21 @@ const Discussion = () => {
 
   const updateCommentInTree = (list, commentId, changes) =>
     list.map((c) => (c.id === commentId ? { ...c, ...changes } : c));
+  const removeCommentFromTree = (list, commentId) =>
+  list
+    .filter((c) => c.id !== commentId)
+    .map((c) => ({
+      ...c,
+      replies: c.replies ? removeCommentFromTree(c.replies, commentId) : c.replies,
+    }));
 
   const handleCommentUpdated = (commentId, changes) => {
     setComments((prev) => updateCommentInTree(prev, commentId, changes));
   };
 
   const handleCommentDeleted = (commentId) => {
-    setComments((prev) =>
-      updateCommentInTree(prev, commentId, { deleted: true, content: "[deleted]" })
-    );
-  };
+  setComments((prev) => removeCommentFromTree(prev, commentId));
+};
 
   if (loading)
     return (

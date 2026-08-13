@@ -52,11 +52,9 @@ function CommentSection({ decisionId, decisionStatus }) {
     );
   };
 
-  const handleCommentDeleted = (commentId) => {
-    setComments((prev) =>
-      prev.map((c) => (c.id === commentId ? { ...c, deleted: true } : c))
-    );
-  };
+ const handleCommentDeleted = (commentId) => {
+  setComments((prev) => prev.filter((c) => c.id !== commentId));
+};
 
   return (
     <div className="comment-section">

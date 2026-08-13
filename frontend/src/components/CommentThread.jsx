@@ -124,11 +124,10 @@ function CommentThread({ comment, decisionId, decisionStatus, onCommentUpdated, 
     );
   };
 
-  const handleChildDeleted = (childId) => {
-    setReplies((prev) =>
-      prev.map((r) => (r.id === childId ? { ...r, deleted: true } : r))
-    );
-  };
+ 
+ const handleChildDeleted = (childId) => {
+  setReplies((prev) => prev.filter((r) => r.id !== childId));
+};
 
   return (
     <div className="comment-thread" style={{ marginLeft: comment.depth * 20 }}>
