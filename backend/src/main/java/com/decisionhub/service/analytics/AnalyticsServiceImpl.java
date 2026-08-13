@@ -623,7 +623,7 @@ public PlatformOverviewResponse getPlatformOverview() {
 
     long totalUsers = userRepository.count();
 
-    long totalCommunities = communityRepository.count();
+    long totalCommunities = communityRepository.countByDeletedAtIsNull();
 
     long totalDecisions = decisionRepository.count();
 
@@ -672,15 +672,15 @@ public UserAnalyticsResponse getUserAnalytics() {
 @Override
 public CommunityAnalyticsResponse getCommunityAnalytics() {
 
-    long totalCommunities = communityRepository.count();
+    long totalCommunities = communityRepository.countByDeletedAtIsNull();
 
     long publicCommunities =
-            communityRepository.countByVisibility(
+            communityRepository.countByVisibilityAndDeletedAtIsNull(
                     CommunityVisibility.PUBLIC
             );
 
     long privateCommunities =
-            communityRepository.countByVisibility(
+            communityRepository.countByVisibilityAndDeletedAtIsNull(
                     CommunityVisibility.PRIVATE
             );
 
