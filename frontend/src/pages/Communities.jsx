@@ -4,7 +4,7 @@ import Sidebar from "../components/Sidebar";
 import Navbar from "../components/Navbar";
 import { useAuth } from "../context/AuthContext";
 import { useToast } from "../components/Toast";
-import { FaUsers, FaArrowRight, FaTimes, FaPlusCircle } from "react-icons/fa";
+import { FaUsers, FaArrowRight, FaTimes, FaPlusCircle, FaChevronDown } from "react-icons/fa";
 import "../styles/Communities.css";
 import {
   getCommunities,
@@ -12,6 +12,7 @@ import {
   joinCommunity,
   leaveCommunity,
 } from "../services/communityService";
+import { analyticsService } from "../services/analyticsService";
 
 function Communities() {
   const { user } = useAuth();
@@ -21,6 +22,12 @@ function Communities() {
   const [communities, setCommunities] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [expandedCommunityId, setExpandedCommunityId] = useState(null);
+  const [moderationData, setModerationData] = useState({});
+
+  const handleToggleExpand = (communityId) => {
+    setExpandedCommunityId(prev => (prev === communityId ? null : communityId));
+  };
 
   // Form states for creating community
   const [newName, setNewName] = useState("");
@@ -35,7 +42,7 @@ function Communities() {
     // so "Request Pending" flips to "Joined" without a manual refresh.
     const intervalId = setInterval(() => loadCommunities(true), 8000);
     return () => clearInterval(intervalId);
-  }, []);
+  }, [user]);
 
   // silent=true skips the loading spinner for background refreshes so the
   // grid doesn't flash/reset every poll.
@@ -44,6 +51,24 @@ function Communities() {
     try {
       const data = await getCommunities();
       setCommunities(data);
+
+      if (user?.role === "ADMIN") {
+        const modPromises = data.map(async (community) => {
+          try {
+            const modInfo = await analyticsService.getCommunityModeration(community.id);
+            return { id: community.id, info: modInfo };
+          } catch (err) {
+            console.error(`Failed to load moderation info for community ${community.id}:`, err);
+            return { id: community.id, info: { reportedComments: 0 } };
+          }
+        });
+        const results = await Promise.all(modPromises);
+        const modMap = {};
+        results.forEach((res) => {
+          modMap[res.id] = res.info;
+        });
+        setModerationData(modMap);
+      }
     } catch (error) {
       console.error(error);
       if (!silent) addToast("Failed to load communities", "error");
@@ -85,8 +110,8 @@ function Communities() {
       console.error(error);
       addToast(
         error.response?.data?.message ||
-          error.response?.data?.error ||
-          "Failed to update community",
+        error.response?.data?.error ||
+        "Failed to update community",
         "error"
       );
     }
@@ -145,20 +170,246 @@ function Communities() {
           <div className="community-page">
             <div className="community-header-sec">
               <div>
-                <h1>Communities & Channels</h1>
-                <p>Assemble with like-minded colleagues, coordinate objectives, and pin decisions.</p>
+                <h1>{user?.role === "ADMIN" ? "Community Management" : "Communities & Channels"}</h1>
+                <p>
+                  {user?.role === "ADMIN"
+                    ? "Monitor community activity, check reported comments, and view workspaces."
+                    : "Assemble with like-minded colleagues, coordinate objectives, and pin decisions."}
+                </p>
               </div>
-              <button className="btn-primary" onClick={() => setShowCreateModal(true)}>
-                <FaPlusCircle /> Create Community
-              </button>
+              {user?.role !== "ADMIN" && (
+                <button className="btn-primary" onClick={() => setShowCreateModal(true)}>
+                  <FaPlusCircle /> Create Community
+                </button>
+              )}
             </div>
 
             {loading ? (
               <p>Loading communities...</p>
             ) : communities.length === 0 ? (
               <p className="empty-community-decisions">
-                No communities yet. Be the first to create one.
+                {user?.role === "ADMIN"
+                  ? "No communities found on the platform."
+                  : "No communities yet. Be the first to create one."}
               </p>
+            ) : user?.role === "ADMIN" ? (
+              <div className="decision-table-wrapper glass-panel admin-table-container">
+                <table className="decision-table-element admin-communities-table">
+                  <thead>
+                    <tr>
+                      <th style={{ width: "30%", textAlign: "left", padding: "1.25rem 1rem" }}>
+                        Community
+                      </th>
+
+                      <th style={{ width: "17%", textAlign: "center", padding: "1.25rem 1rem" }}>
+                        Moderator
+                      </th>
+
+                      <th style={{ width: "12%", textAlign: "center", padding: "1.25rem 1rem" }}>
+                        Members
+                      </th>
+
+                      <th style={{ width: "17%", textAlign: "center", padding: "1.25rem 1rem" }}>
+                        Reported Comments
+                      </th>
+
+                      <th style={{ width: "12%", textAlign: "center", padding: "1.25rem 1rem" }}>
+                        Status
+                      </th>
+
+                      <th style={{ width: "12%", textAlign: "left", padding: "1.25rem 1rem" }}>
+                        Action
+                      </th>
+                    </tr>
+                  </thead>
+
+                  <tbody>
+                    {communities.map((community) => {
+                      const isExpanded = expandedCommunityId === community.id;
+                      const reportedCount =
+                        moderationData[community.id]?.reportedComments ?? 0;
+
+                      return (
+                        <tr
+                          key={community.id}
+                          className="admin-community-row-group"
+                          style={{ borderBottom: "1px solid var(--border-glass)" }}
+                        >
+                          <td colSpan="6" style={{ padding: 0 }}>
+                            <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                              <tbody>
+                                <tr className="admin-community-row">
+
+                                  {/* Community - KEEP AS IT IS */}
+                                  <td
+                                    className="decision-title-col"
+                                    style={{
+                                      width: "30%",
+                                      padding: "1.25rem 1rem",
+                                      borderBottom: "none",
+                                      textAlign: "center"
+                                    }}
+                                  >
+                                    <span className="title-text">
+                                      {community.name}
+                                    </span>
+
+                                    <span
+                                      className={`desc-preview ${!community.description ? "empty-desc" : ""
+                                        }`}
+                                    >
+                                      {community.description || "No description available"}
+                                    </span>
+                                  </td>
+
+                                  {/* Moderator - CENTERED */}
+                                  <td
+                                    style={{
+                                      width: "17%",
+                                      padding: "1.25rem 1rem",
+                                      borderBottom: "none",
+                                      textAlign: "left"
+                                    }}
+                                  >
+                                    {community.ownerUsername || "—"}
+                                  </td>
+
+                                  {/* Members - CENTERED */}
+                                  <td
+                                    style={{
+                                      width: "12%",
+                                      padding: "1.25rem 1rem",
+                                      borderBottom: "none",
+                                      textAlign: "left"
+                                    }}
+                                  >
+                                    {community.memberCount}
+                                  </td>
+
+                                  {/* Reported Comments - CENTERED */}
+                                  <td
+                                    style={{
+                                      width: "14%",
+                                      padding: "1.25rem 1rem",
+                                      borderBottom: "none",
+                                      textAlign: "center"
+                                    }}
+                                  >
+                                    {reportedCount}
+                                  </td>
+
+                                  {/* Status - CENTERED */}
+                                  <td
+                                    style={{
+                                      width: "15%",
+                                      padding: "1.25rem 1rem",
+                                      borderBottom: "none",
+                                      textAlign: "center"
+                                    }}
+                                  >
+                                    <span className="status-badge active">
+                                      Active
+                                    </span>
+                                  </td>
+
+                                  {/* Action - KEEP POSITION */}
+                                  <td
+                                    style={{
+                                      width: "12%",
+                                      padding: "1.25rem 1rem",
+                                      borderBottom: "none",
+                                      textAlign: "left"
+                                    }}
+                                  >
+                                    <button
+                                      className="action-row-btn-icon dropdown-toggle-btn"
+                                      onClick={() => handleToggleExpand(community.id)}
+                                      title={isExpanded ? "Collapse" : "Expand"}
+                                    >
+                                      <FaChevronDown
+                                        style={{
+                                          transform: isExpanded
+                                            ? "rotate(180deg)"
+                                            : "rotate(0deg)",
+                                          transition: "transform 0.2s"
+                                        }}
+                                      />
+                                    </button>
+                                  </td>
+
+                                </tr>
+
+                                {isExpanded && (
+                                  <tr className="admin-community-details-row">
+                                    <td
+                                      colSpan="6"
+                                      style={{
+                                        padding: "0 1.75rem 1.25rem",
+                                        borderBottom: "none"
+                                      }}
+                                    >
+                                      <div className="community-expanded-details glass-panel animate-fade-in">
+
+                                        <div className="details-grid">
+
+                                          <div className="details-item">
+                                            <span className="details-label">
+                                              Visibility:
+                                            </span>
+                                            <span className="details-value">
+                                              {community.visibility}
+                                            </span>
+                                          </div>
+
+                                          <div className="details-item">
+                                            <span className="details-label">
+                                              Category:
+                                            </span>
+                                            <span
+                                              className="category-tag"
+                                              style={{ width: "fit-content" }}
+                                            >
+                                              {community.categoryName}
+                                            </span>
+                                          </div>
+
+                                          <div className="details-item">
+                                            <span className="details-label">
+                                              Slug:
+                                            </span>
+                                            <span className="details-value">
+                                              /{community.slug}
+                                            </span>
+                                          </div>
+
+                                        </div>
+
+                                        <div className="details-actions">
+                                          <button
+                                            className="btn-secondary"
+                                            onClick={() =>
+                                              navigate(`/communities/${community.id}`)
+                                            }
+                                          >
+                                            <FaArrowRight /> View Workspace
+                                          </button>
+                                        </div>
+
+                                      </div>
+                                    </td>
+                                  </tr>
+                                )}
+
+                              </tbody>
+                            </table>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+
             ) : (
               <div className="community-grid">
                 {communities.map((community) => (
@@ -196,10 +447,10 @@ function Communities() {
                             {community.isMember
                               ? "Leave"
                               : community.requestPending
-                              ? "Request Pending"
-                              : community.visibility === "PRIVATE"
-                              ? "Request to Join"
-                              : "Join"}
+                                ? "Request Pending"
+                                : community.visibility === "PRIVATE"
+                                  ? "Request to Join"
+                                  : "Join"}
                           </button>
                         )}
                       </div>

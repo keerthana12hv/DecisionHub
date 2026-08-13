@@ -6,6 +6,8 @@ import Sidebar from "../components/Sidebar";
 import Navbar from "../components/Navbar";
 import ModeratorPanel from "../components/ModeratorPanel";
 import { FaThumbtack, FaLock, FaArrowRight } from "react-icons/fa";
+import { useAuth } from "../context/AuthContext";
+import AdminCommunityWorkspace from "./AdminCommunityWorkspace";
 
 const API = "http://localhost:8080/api";
 const token = () =>
@@ -15,7 +17,13 @@ const token = () =>
 const headers = () => ({ headers: { Authorization: `Bearer ${token()}` } });
 
 export default function CommunityDetail() {
+  const { user } = useAuth();
   const { id: communityId } = useParams();
+
+  if (user?.role === "ADMIN") {
+    return <AdminCommunityWorkspace />;
+  }
+
   const navigate = useNavigate();
   const [community, setCommunity] = useState(null);
   const [decisions, setDecisions] = useState([]);

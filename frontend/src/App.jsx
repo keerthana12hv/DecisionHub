@@ -21,6 +21,8 @@ import NotFound from "./pages/NotFound";
 import ModeratorDashboard from "./pages/ModeratorDashboard";
 import FeedbackPage from "./pages/FeedbackPage";
 import FeedbackDashboard from "./pages/FeedbackDashboard";
+import AdminCommunityDecisions from "./pages/AdminCommunityDecisions";
+import AdminDecisionDiscussion from "./pages/AdminDecisionDiscussion";
 
 // ─── Protected Route (any logged-in user) ────────────────────────────────────
 function PrivateRoute({ children }) {
@@ -83,6 +85,22 @@ function AppRoutes() {
         element={
           <AdminRoute>
             <FeedbackDashboard />
+          </AdminRoute>
+        }
+      />
+      <Route
+        path="/admin/communities/:id/decisions"
+        element={
+          <AdminRoute>
+            <AdminCommunityDecisions />
+          </AdminRoute>
+        }
+      />
+      <Route
+        path="/admin/decisions/:id/discuss"
+        element={
+          <AdminRoute>
+            <AdminDecisionDiscussion />
           </AdminRoute>
         }
       />

@@ -94,12 +94,14 @@ function Dashboard() {
                 Collaborate with your team, cast votes on key initiatives,
                 and analyze polling trends from a single dashboard workspace.
               </p>
-              <button
-                className="btn-primary banner-btn"
-                onClick={() => navigate("/create-decision")}
-              >
-                <FaPlus /> Create Decision
-              </button>
+              {user.role !== "ADMIN" && (
+                <button
+                  className="btn-primary banner-btn"
+                  onClick={() => navigate("/create-decision")}
+                >
+                  <FaPlus /> Create Decision
+                </button>
+              )}
             </div>
             <div className="welcome-image">
               {user.photo ? (

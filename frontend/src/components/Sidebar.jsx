@@ -69,8 +69,8 @@ function Sidebar() {
             </Link>
           </li>
 
-          {/* Admin Only Route */}
-          {isAdmin && (
+          {/* Create Decision - Hidden for Admin */}
+          {!isAdmin && (
             <li className={isActive("/create-decision")}>
               <Link to="/create-decision">
                 <FaPlusCircle /> <span>Create Decision</span>
@@ -78,11 +78,14 @@ function Sidebar() {
             </li>
           )}
 
-          <li className={isActive("/decisions")}>
-            <Link to="/decisions">
-              <FaCog /> <span>Manage Decisions</span>
-            </Link>
-          </li>
+          {/* Manage Decisions - Hidden for Admin */}
+          {!isAdmin && (
+            <li className={isActive("/decisions")}>
+              <Link to="/decisions">
+                <FaCog /> <span>Manage Decisions</span>
+              </Link>
+            </li>
+          )}
              {isModerator && (
       <li className={isActive("/moderator-dashboard")}>
         <Link to="/moderator-dashboard">
