@@ -16,6 +16,8 @@ import com.decisionhub.dto.response.analytics.CommunityModerationAnalyticsRespon
 import com.decisionhub.entity.community.Community;
 import com.decisionhub.entity.decision.Decision;
 import com.decisionhub.entity.voting.Poll;
+import com.decisionhub.entity.authentication.User;
+import com.decisionhub.dto.response.authentication.UserResponse;
 import com.decisionhub.enums.authentication.UserStatus;
 import com.decisionhub.enums.community.CommunityVisibility;
 import com.decisionhub.enums.community.MembershipStatus;
@@ -765,5 +767,20 @@ public AdminFeedbackAnalyticsResponse getAdminFeedbackAnalytics() {
             decisionFeedbackRepository.countByRating(2),
             decisionFeedbackRepository.countByRating(1)
     );
+}
+
+@Override
+public List<UserResponse> getAdminUsersList() {
+    List<UserResponse> responses = new ArrayList<>();
+    for (User user : userRepository.findAll()) {
+        responses.add(new UserResponse(
+                user.getId(),
+                user.getUsername(),
+                user.getEmail(),
+                user.getRole(),
+                user.getStatus()
+        ));
+    }
+    return responses;
 }
 }

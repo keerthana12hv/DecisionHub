@@ -149,8 +149,13 @@ export const analyticsService = {
     return res.data;
   },
 
+  getAdminUsersList: async () => {
+    const res = await api.get("/api/analytics/admin/users-list");
+    return res.data;
+  },
+
   fetchAllAdminAnalytics: async () => {
-    const [dashboard, users, communities, decisions, discussion, feedback] = 
+    const [dashboard, users, communities, decisions, discussion, feedback, usersList] = 
       await Promise.allSettled([
         analyticsService.getAdminDashboard(),
         analyticsService.getAdminUsers(),
@@ -158,6 +163,7 @@ export const analyticsService = {
         analyticsService.getAdminDecisions(),
         analyticsService.getAdminDiscussion(),
         analyticsService.getAdminFeedback(),
+        analyticsService.getAdminUsersList(),
       ]);
 
     return {
@@ -167,6 +173,7 @@ export const analyticsService = {
       decisions: decisions.status === "fulfilled" ? decisions.value : null,
       discussion: discussion.status === "fulfilled" ? discussion.value : null,
       feedback: feedback.status === "fulfilled" ? feedback.value : null,
+      usersList: usersList.status === "fulfilled" ? usersList.value : [],
     };
   }
 };

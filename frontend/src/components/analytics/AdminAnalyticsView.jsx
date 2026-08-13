@@ -44,14 +44,16 @@ export function AdminAnalyticsView() {
     );
   }
 
-  const { dashboard, users, communities, decisions, discussion } = data || {};
+  const { dashboard, users, communities, decisions, discussion, usersList } = data || {};
 
-  // Default seeded users for the User List overlay, compliant with Milestone checklist
+  // Default seeded users for fallback
   const seededUsers = [
     { username: "SystemAdmin", email: "admin@gmail.com", role: "ADMIN", status: "ACTIVE" },
     { username: "Dheetshi", email: "dheetshi@gmail.com", role: "USER", status: "ACTIVE" },
     { username: "Kavya", email: "kavya@gmail.com", role: "MODERATOR", status: "ACTIVE" }
   ];
+
+  const displayUsers = (usersList && usersList.length > 0) ? usersList : seededUsers;
 
   return (
     <div className="analytics-tab-content space-y-6">
@@ -307,7 +309,7 @@ export function AdminAnalyticsView() {
                   </tr>
                 </thead>
                 <tbody>
-                  {seededUsers.map((u, idx) => (
+                  {displayUsers.map((u, idx) => (
                     <tr key={idx} style={{ borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
                       <td style={{ padding: "12px 5px", fontSize: "14px", fontWeight: "bold" }}>{u.username}</td>
                       <td style={{ padding: "12px 5px", fontSize: "14px", color: "#cbd5e1" }}>{u.email}</td>

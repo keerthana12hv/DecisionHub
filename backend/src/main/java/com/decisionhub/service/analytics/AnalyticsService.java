@@ -21,7 +21,11 @@ import com.decisionhub.dto.response.analytics.CommunityDiscussionStatisticsRespo
 import com.decisionhub.dto.response.analytics.CommunityModerationAnalyticsResponse;
 import com.decisionhub.dto.response.analytics.AdminFeedbackAnalyticsResponse;
 
+import com.decisionhub.dto.response.authentication.UserResponse;
+
 public interface AnalyticsService {
+
+    List<UserResponse> getAdminUsersList();
 
 DecisionOverviewResponse getDecisionOverview(Long decisionId);
 
