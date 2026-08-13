@@ -13,7 +13,7 @@ import java.util.List;
  * - Creating comments
  * - Replying to comments
  * - Editing comments
- * - Soft deleting comments
+ * - Soft deleting comments and their reply subtrees
  * - Retrieving discussion threads
  */
 public interface CommentService {
@@ -55,14 +55,16 @@ public interface CommentService {
     );
 
     /**
-     * Soft deletes a comment.
+     * Soft deletes a comment and its entire reply subtree.
      *
-     * Replies remain visible.
+     * The records are preserved in the database.
+     * Deleted comments and their replies are excluded
+     * from normal discussion retrieval.
      */
     void deleteComment(Long commentId);
 
     /**
-     * Returns all top-level comments
+     * Returns all non-deleted top-level comments
      * belonging to a Decision.
      *
      * Replies are loaded separately.
@@ -72,8 +74,8 @@ public interface CommentService {
     );
 
     /**
-     * Returns the immediate replies
-     * of a parent comment.
+     * Returns the immediate non-deleted replies
+     * of a non-deleted parent comment.
      */
     List<CommentResponse> getReplies(
             Long parentCommentId
@@ -81,6 +83,9 @@ public interface CommentService {
 
     /**
      * Returns a single comment.
+     *
+     * This method remains separate from the normal
+     * discussion listing.
      */
     CommentResponse getComment(
             Long commentId
