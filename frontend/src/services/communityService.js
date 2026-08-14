@@ -13,6 +13,11 @@ export const getCommunities = async () => {
   return res.data;
 };
 
+export const getCategories = async () => {
+  const res = await axios.get(`${API}/categories`, headers());
+  return res.data;
+};
+
 export const createCommunity = async (data) => {
   const res = await axios.post(`${API}/communities`, data, headers());
   return res.data;

@@ -4,6 +4,13 @@ import Navbar from "../components/Navbar";
 import { useToast } from "../components/Toast";
 import { FaBell, FaCheckDouble, FaTrash, FaCheck, FaInfoCircle } from "react-icons/fa";
 import "../styles/NotificationsPage.css";
+import {
+  getNotifications,
+  markAsRead as apiMarkAsRead,
+  markAllAsRead as apiMarkAllAsRead,
+  deleteNotification as apiDeleteNotification,
+  clearAllNotifications as apiClearAllNotifications
+} from "../services/notificationService";
 
 function NotificationsPage() {
   const { addToast } = useToast();
@@ -11,37 +18,60 @@ function NotificationsPage() {
   const [filter, setFilter] = useState("all"); // "all", "unread"
 
   useEffect(() => {
-    const storedNotifs = localStorage.getItem("decisionhub-notifications");
-    if (storedNotifs) {
-      setNotifications(JSON.parse(storedNotifs));
-    }
+    loadNotifications();
   }, []);
 
-  const persistNotifs = (nextNotifs) => {
-    setNotifications(nextNotifs);
-    localStorage.setItem("decisionhub-notifications", JSON.stringify(nextNotifs));
+  const loadNotifications = async () => {
+    try {
+      const data = await getNotifications();
+      setNotifications(data);
+    } catch (err) {
+      console.error("Failed to load notifications:", err);
+    }
   };
 
-  const markAllAsRead = () => {
-    const updated = notifications.map((n) => ({ ...n, unread: false }));
-    persistNotifs(updated);
-    addToast("All notifications marked as read.", "success");
+  const markAllAsRead = async () => {
+    try {
+      await apiMarkAllAsRead();
+      setNotifications((prev) => prev.map((n) => ({ ...n, unread: false })));
+      addToast("All notifications marked as read.", "success");
+    } catch (err) {
+      console.error(err);
+      addToast("Failed to mark all as read.", "error");
+    }
   };
 
-  const markAsRead = (id) => {
-    const updated = notifications.map((n) => n.id === id ? { ...n, unread: false } : n);
-    persistNotifs(updated);
+  const markAsRead = async (id) => {
+    try {
+      await apiMarkAsRead(id);
+      setNotifications((prev) =>
+        prev.map((n) => (n.id === id ? { ...n, unread: false } : n))
+      );
+    } catch (err) {
+      console.error(err);
+    }
   };
 
-  const deleteNotification = (id) => {
-    const updated = notifications.filter((n) => n.id !== id);
-    persistNotifs(updated);
-    addToast("Notification deleted.", "success");
+  const deleteNotification = async (id) => {
+    try {
+      await apiDeleteNotification(id);
+      setNotifications((prev) => prev.filter((n) => n.id !== id));
+      addToast("Notification deleted.", "success");
+    } catch (err) {
+      console.error(err);
+      addToast("Failed to delete notification.", "error");
+    }
   };
 
-  const clearAll = () => {
-    persistNotifs([]);
-    addToast("All notifications deleted.", "info");
+  const clearAll = async () => {
+    try {
+      await apiClearAllNotifications();
+      setNotifications([]);
+      addToast("All notifications deleted.", "info");
+    } catch (err) {
+      console.error(err);
+      addToast("Failed to delete all notifications.", "error");
+    }
   };
 
   const filteredNotifs = filter === "all"

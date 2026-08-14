@@ -4,6 +4,12 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { useToast } from "../components/Toast";
 import "../styles/Navbar.css";
+import {
+  getNotifications,
+  markAsRead as apiMarkAsRead,
+  markAllAsRead as apiMarkAllAsRead,
+  deleteNotification as apiDeleteNotification
+} from "../services/notificationService";
 
 function Navbar() {
   const { user, logout } = useAuth();
@@ -18,25 +24,22 @@ function Navbar() {
   const notifRef = useRef(null);
   const profileRef = useRef(null);
 
-  // Initialize notifications from localStorage
+  // Initialize notifications from backend
   useEffect(() => {
-    const storedNotifs = localStorage.getItem("decisionhub-notifications");
-    if (storedNotifs) {
-      setNotifications(JSON.parse(storedNotifs));
-    } else {
-      const defaultNotifs = [
-        { id: 1, text: "New vote cast on 'MBA vs Job' decision.", unread: true, time: "5 mins ago" },
-        { id: 2, text: "Your community 'Career Community' has 5 new members.", unread: true, time: "2 hours ago" },
-        { id: 3, text: "'React vs Angular' poll has been closed.", unread: false, time: "1 day ago" }
-      ];
-      setNotifications(defaultNotifs);
-      localStorage.setItem("decisionhub-notifications", JSON.stringify(defaultNotifs));
+    if (user) {
+      loadNotifications();
+      const interval = setInterval(loadNotifications, 15000); // Poll every 15 seconds
+      return () => clearInterval(interval);
     }
-  }, []);
+  }, [user]);
 
-  const persistNotifs = (nextNotifs) => {
-    setNotifications(nextNotifs);
-    localStorage.setItem("decisionhub-notifications", JSON.stringify(nextNotifs));
+  const loadNotifications = async () => {
+    try {
+      const data = await getNotifications();
+      setNotifications(data);
+    } catch (err) {
+      console.error("Failed to load notifications:", err);
+    }
   };
 
   // Close dropdowns on click outside
@@ -60,21 +63,37 @@ function Navbar() {
     }
   };
 
-  const markAllAsRead = () => {
-    const updated = notifications.map((n) => ({ ...n, unread: false }));
-    persistNotifs(updated);
-    addToast("All notifications marked as read.", "success");
+  const markAllAsRead = async () => {
+    try {
+      await apiMarkAllAsRead();
+      setNotifications((prev) => prev.map((n) => ({ ...n, unread: false })));
+      addToast("All notifications marked as read.", "success");
+    } catch (err) {
+      console.error(err);
+      addToast("Failed to mark all as read.", "error");
+    }
   };
 
-  const markAsRead = (id) => {
-    const updated = notifications.map((n) => n.id === id ? { ...n, unread: false } : n);
-    persistNotifs(updated);
+  const markAsRead = async (id) => {
+    try {
+      await apiMarkAsRead(id);
+      setNotifications((prev) =>
+        prev.map((n) => (n.id === id ? { ...n, unread: false } : n))
+      );
+    } catch (err) {
+      console.error(err);
+    }
   };
 
-  const deleteNotification = (id) => {
-    const updated = notifications.filter((n) => n.id !== id);
-    persistNotifs(updated);
-    addToast("Notification deleted.", "info");
+  const deleteNotification = async (id) => {
+    try {
+      await apiDeleteNotification(id);
+      setNotifications((prev) => prev.filter((n) => n.id !== id));
+      addToast("Notification deleted.", "info");
+    } catch (err) {
+      console.error(err);
+      addToast("Failed to delete notification.", "error");
+    }
   };
 
   const handleLogout = () => {

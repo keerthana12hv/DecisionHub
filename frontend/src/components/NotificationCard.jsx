@@ -10,16 +10,26 @@ import {
 } from "react-icons/fa";
 import "../styles/NotificationCard.css";
 
+import { getNotifications } from "../services/notificationService";
+
 function NotificationCard() {
   const [notifications, setNotifications] = useState([]);
   const navigate = useNavigate();
 
   useEffect(() => {
-    const stored = localStorage.getItem("decisionhub-notifications");
-    if (stored) {
-      setNotifications(JSON.parse(stored).slice(0, 3)); // show first 3
-    }
+    loadNotifications();
+    const interval = setInterval(loadNotifications, 15000); // Poll every 15s
+    return () => clearInterval(interval);
   }, []);
+
+  const loadNotifications = async () => {
+    try {
+      const data = await getNotifications();
+      setNotifications(data.slice(0, 3)); // show first 3
+    } catch (err) {
+      console.error("Failed to load notifications:", err);
+    }
+  };
 
   const getIcon = (text) => {
     const txt = text.toLowerCase();

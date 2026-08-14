@@ -7,6 +7,7 @@ import { FaUsers, FaUserPlus, FaArrowRight, FaTimes, FaGlobe, FaChevronRight, Fa
 import "../styles/Communities.css";
 import {
   getCommunities,
+  getCategories,
   createCommunity,
   joinCommunity,
   leaveCommunity,
@@ -20,30 +21,51 @@ function Communities() {
   const { addToast } = useToast();
 
   const [communities, setCommunities] = useState([]);
+  const [categories, setCategories] = useState([]);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [activeCommDetail, setActiveCommDetail] = useState(null); // holds community object for view mode
 
   // Form states for creating community
   const [newName, setNewName] = useState("");
-  const [newCategory, setNewCategory] = useState("");
+  const [selectedCategoryId, setSelectedCategoryId] = useState("");
   const [newBanner, setNewBanner] = useState("");
 
   // Feed post state
   const [feedInput, setFeedInput] = useState("");
 
- useEffect(() => {
-   loadCommunities();
- }, []);
+  useEffect(() => {
+    loadCommunities();
+    loadCategories();
+  }, []);
 
- const loadCommunities = async () => {
-   try {
-     const data = await getCommunities();
-     setCommunities(data);
-   } catch (error) {
-     console.error(error);
-     addToast("Failed to load communities", "error");
-   }
- };
+  const loadCategories = async () => {
+    try {
+      const data = await getCategories();
+      setCategories(data);
+    } catch (error) {
+      console.error(error);
+      addToast("Failed to load categories", "error");
+    }
+  };
+
+  const loadCommunities = async () => {
+    try {
+      const data = await getCommunities();
+      const mapped = data.map((c) => ({
+        ...c,
+        category: c.categoryName,
+        members: c.memberCount,
+        joined: c.isMember,
+        banner: c.banner || "https://images.unsplash.com/photo-1522071820081-009f0129c71c?auto=format&fit=crop&w=800&q=80",
+        admins: c.ownerUsername ? [c.ownerUsername] : ["admin"],
+        feed: c.feed || []
+      }));
+      setCommunities(mapped);
+    } catch (error) {
+      console.error(error);
+      addToast("Failed to load communities", "error");
+    }
+  };
 
   const persistCommunities = (nextComms) => {
     setCommunities(nextComms);
@@ -98,52 +120,42 @@ const handleJoinToggle = async (community) => {
     );
   }
 };
- const handleCreateCommunity = async (e) => {
-   e.preventDefault();
-console.log("handleCreateCommunity called");
-   if (!newName || !newCategory) {
-     addToast("Please fill in required fields.", "error");
-     return;
+  const handleCreateCommunity = async (e) => {
+    e.preventDefault();
+    console.log("handleCreateCommunity called");
+    if (!newName || !selectedCategoryId) {
+      addToast("Please fill in required fields.", "error");
+      return;
+    }
 
-   }
+    try {
+      await createCommunity({
+        name: newName,
+        slug: newName.toLowerCase().replace(/\s+/g, "-"),
+        description: "",
+        categoryId: Number(selectedCategoryId),
+        visibility: "PUBLIC",
+      });
 
-   try {
-     const categoryMap = {
-       Technology: 1,
-       Education: 2,
-       Career: 3,
-       Business: 4,
-       Travel: 5,
-       Others: 6,
-     };
+      addToast("Community created successfully!", "success");
 
-     await createCommunity({
-       name: newName,
-       slug: newName.toLowerCase().replace(/\s+/g, "-"),
-       description: "",
-       categoryId: categoryMap[newCategory],
-       visibility: "PUBLIC",
-     });
+      // Reload communities from backend
+      await loadCommunities();
 
-     addToast("Community created successfully!", "success");
+      // Reset form
+      setNewName("");
+      setSelectedCategoryId("");
+      setNewBanner("");
+      setShowCreateModal(false);
 
-     // Reload communities from backend
-     await loadCommunities();
-
-     // Reset form
-     setNewName("");
-     setNewCategory("");
-     setNewBanner("");
-     setShowCreateModal(false);
-
-   } catch (error) {
-     console.error(error);
-     addToast(
-       error.response?.data?.message || "Failed to create community",
-       "error"
-     );
-   }
- };
+    } catch (error) {
+      console.error(error);
+      addToast(
+        error.response?.data?.message || "Failed to create community",
+        "error"
+      );
+    }
+  };
 
   // Add post inside community feed
   const handlePostFeed = (e) => {
@@ -346,14 +358,13 @@ console.log("handleCreateCommunity called");
 
               <div className="form-group">
                 <label>Category</label>
-                <select value={newCategory} onChange={(e) => setNewCategory(e.target.value)} required>
+                <select value={selectedCategoryId} onChange={(e) => setSelectedCategoryId(e.target.value)} required>
                   <option value="">Select Category</option>
-                  <option>Education</option>
-                  <option>Career</option>
-                  <option>Technology</option>
-                  <option>Business</option>
-                  <option>Travel</option>
-                  <option>Others</option>
+                  {categories.map((cat) => (
+                    <option key={cat.id} value={cat.id}>
+                      {cat.name}
+                    </option>
+                  ))}
                 </select>
               </div>
 
