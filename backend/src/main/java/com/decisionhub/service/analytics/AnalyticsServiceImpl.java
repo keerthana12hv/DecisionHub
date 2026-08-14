@@ -45,6 +45,11 @@ import com.decisionhub.dto.response.analytics.AdminDecisionStatisticsResponse;
 import com.decisionhub.dto.response.analytics.AdminFeedbackAnalyticsResponse;
 import com.decisionhub.dto.response.analytics.CommunityActivityResponse;
 import com.decisionhub.dto.response.analytics.CommunityAnalyticsResponse;
+import com.decisionhub.dto.response.analytics.UserPlatformOverviewResponse;
+import com.decisionhub.dto.response.analytics.UserDecisionStatisticsResponse;
+import com.decisionhub.dto.response.authentication.UserResponse;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 @Service
 @RequiredArgsConstructor
@@ -765,5 +770,54 @@ public AdminFeedbackAnalyticsResponse getAdminFeedbackAnalytics() {
             decisionFeedbackRepository.countByRating(2),
             decisionFeedbackRepository.countByRating(1)
     );
+}
+
+@Override
+public UserPlatformOverviewResponse getUserPlatformOverview() {
+    long totalVotes = voteRepository.count();
+    long activeDecisions = decisionRepository.countByStatus(DecisionStatus.ACTIVE);
+    long totalUsers = userRepository.count();
+
+    double participationRate = 0.0;
+    if (totalUsers > 0) {
+        participationRate = (double) totalVotes / totalUsers;
+    }
+
+    String mostPopularDecision = decisionRepository.findMostActiveDecision();
+    if (mostPopularDecision == null) {
+        mostPopularDecision = "N/A";
+    }
+
+    return new UserPlatformOverviewResponse(
+            totalVotes,
+            activeDecisions,
+            Math.round(participationRate * 100.0) / 100.0,
+            mostPopularDecision
+    );
+}
+
+@Override
+public UserDecisionStatisticsResponse getUserDecisionStatistics() {
+    long activeDecisions = decisionRepository.countByStatus(DecisionStatus.ACTIVE);
+    long closedDecisions = decisionRepository.countByStatus(DecisionStatus.CLOSED);
+    long totalDecisions = activeDecisions + closedDecisions;
+
+    return new UserDecisionStatisticsResponse(
+            totalDecisions,
+            activeDecisions,
+            closedDecisions
+    );
+}
+
+@Override
+public Page<UserResponse> getAllUsers(Pageable pageable) {
+    return userRepository.findAll(pageable)
+            .map(u -> new UserResponse(
+                    u.getId(),
+                    u.getUsername(),
+                    u.getEmail(),
+                    u.getRole(),
+                    u.getStatus()
+            ));
 }
 }
