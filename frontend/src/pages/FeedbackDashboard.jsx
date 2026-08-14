@@ -12,8 +12,7 @@ import "../styles/DecisionList.css";
 
 export default function FeedbackDashboard() {
   const { addToast } = useToast();
-  const [activeTab, setActiveTab] = useState("decision-feedback");
-  const [decisionFeedbacks, setDecisionFeedbacks] = useState([]);
+  const [activeTab, setActiveTab] = useState("support-tickets");
   const [supportTickets, setSupportTickets] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -21,29 +20,22 @@ export default function FeedbackDashboard() {
   // Detail Modal State
   const [ticketDetailsModalOpen, setTicketDetailsModalOpen] = useState(false);
   const [selectedTicket, setSelectedTicket] = useState(null);
+  const [selectedStatus, setSelectedStatus] = useState("");
   const [updatingStatus, setUpdatingStatus] = useState(false);
 
   const loadData = async () => {
     setLoading(true);
     setError(null);
     try {
-      const [dfRes, supportRes] = await Promise.all([
-        api.get("/api/admin/decision-feedback"),
-        api.get("/api/admin/support"),
-      ]);
-
-      const sortedDf = (dfRes.data || []).sort(
-        (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-      );
-      const sortedSupport = (supportRes.data || []).sort(
+      const res = await api.get("/api/admin/support");
+      const sortedSupport = (res.data || []).sort(
         (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
       );
 
-      setDecisionFeedbacks(sortedDf);
       setSupportTickets(sortedSupport);
     } catch (err) {
       console.error("Failed to load admin dashboard data:", err);
-      setError("Failed to fetch feedback/support lists from backend servers.");
+      setError("Failed to fetch support tickets from backend servers.");
     } finally {
       setLoading(false);
     }
@@ -61,6 +53,7 @@ export default function FeedbackDashboard() {
     try {
       const res = await api.get(`/api/admin/support/${ticket.id}`);
       setSelectedTicket(res.data);
+      setSelectedStatus(res.data.status || "OPEN");
       setTicketDetailsModalOpen(true);
     } catch (err) {
       addToast("Failed to retrieve ticket details.", "error");
@@ -75,6 +68,7 @@ export default function FeedbackDashboard() {
       });
       addToast(`Ticket status updated to ${newStatus} successfully!`, "success");
       setSelectedTicket(res.data);
+      setSelectedStatus(res.data.status || newStatus);
       setSupportTickets((prev) =>
         prev.map((t) => (t.id === ticketId ? res.data : t))
       );
@@ -85,6 +79,7 @@ export default function FeedbackDashboard() {
         err.message ||
         "Failed to update ticket status.";
       addToast(errMsg, "error");
+      setSelectedStatus(selectedTicket?.status || "OPEN");
     } finally {
       setUpdatingStatus(false);
     }
@@ -106,7 +101,7 @@ export default function FeedbackDashboard() {
           <div className="feedback-dashboard-header">
             <div className="feedback-dashboard-title">
               <h1>Feedback Dashboard</h1>
-              <p>Review submitted user decision feedbacks and manage support tickets.</p>
+              <p>Review submitted user feedback and manage support tickets.</p>
             </div>
             <div>
               <button
@@ -121,12 +116,6 @@ export default function FeedbackDashboard() {
 
           {/* Admin Tabs */}
           <div className="feedback-tabs">
-            <button
-              className={`feedback-tab-btn ${activeTab === "decision-feedback" ? "active" : ""}`}
-              onClick={() => setActiveTab("decision-feedback")}
-            >
-              Decision Feedback
-            </button>
             <button
               className={`feedback-tab-btn ${activeTab === "support-tickets" ? "active" : ""}`}
               onClick={() => setActiveTab("support-tickets")}
@@ -148,35 +137,6 @@ export default function FeedbackDashboard() {
                 <FaRedo /> Retry Loading
               </button>
             </div>
-          ) : activeTab === "decision-feedback" ? (
-            decisionFeedbacks.length === 0 ? (
-              <EmptyState message="No decision feedback has been submitted yet." />
-            ) : (
-              <div className="decision-table-wrapper glass-panel animate-fade-in">
-                <table className="decision-table-element">
-                  <thead>
-                    <tr>
-                      <th>Decision ID</th>
-                      <th>Rating</th>
-                      <th>Comment</th>
-                      <th>Submitted Date</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {decisionFeedbacks.map((df) => (
-                      <tr key={df.id}>
-                        <td style={{ fontWeight: 600 }}>#{df.decisionId}</td>
-                        <td>
-                          <StarRating rating={df.rating} readOnly={true} />
-                        </td>
-                        <td style={{ whiteSpace: "pre-wrap" }}>{df.comment || "—"}</td>
-                        <td>{new Date(df.createdAt).toLocaleString()}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )
           ) : supportTickets.length === 0 ? (
             <EmptyState message="No support tickets have been submitted yet." />
           ) : (
@@ -302,16 +262,28 @@ export default function FeedbackDashboard() {
               {selectedTicket.type === "BUG_REPORT" && (
                 <div className="feedback-form-group" style={{ marginTop: "0.5rem" }}>
                   <label htmlFor="status-select">Update Status</label>
-                  <select
-                    id="status-select"
-                    value={selectedTicket.status || ""}
-                    onChange={(e) => handleStatusChange(selectedTicket.id, e.target.value)}
-                    disabled={updatingStatus}
-                  >
-                    <option value="OPEN">OPEN</option>
-                    <option value="IN_PROGRESS">IN_PROGRESS</option>
-                    <option value="RESOLVED">RESOLVED</option>
-                  </select>
+                  <div style={{ display: "flex", gap: "0.75rem", alignItems: "center" }}>
+                    <select
+                      id="status-select"
+                      value={selectedStatus}
+                      onChange={(e) => setSelectedStatus(e.target.value)}
+                      disabled={updatingStatus}
+                      style={{ flex: 1 }}
+                    >
+                      <option value="OPEN">OPEN</option>
+                      <option value="IN_PROGRESS">IN_PROGRESS</option>
+                      <option value="RESOLVED">RESOLVED</option>
+                    </select>
+                    <button
+                      type="button"
+                      className="btn-primary"
+                      onClick={() => handleStatusChange(selectedTicket.id, selectedStatus)}
+                      disabled={updatingStatus || selectedStatus === selectedTicket.status}
+                      style={{ whiteSpace: "nowrap" }}
+                    >
+                      {updatingStatus ? "Saving..." : "Save"}
+                    </button>
+                  </div>
                 </div>
               )}
 
