@@ -6,6 +6,9 @@ import com.decisionhub.dto.response.discussion.CommentResponse;
 import com.decisionhub.entity.authentication.User;
 import com.decisionhub.entity.decision.Decision;
 import com.decisionhub.entity.discussion.Comment;
+import com.decisionhub.event.CommentCreatedEvent;
+import com.decisionhub.event.CommentRemovedEvent;
+import com.decisionhub.event.ReplyCreatedEvent;
 import com.decisionhub.exception.ResourceNotFoundException;
 import com.decisionhub.exception.UnauthorizedActionException;
 import com.decisionhub.mapper.discussion.CommentMapper;
@@ -17,25 +20,21 @@ import com.decisionhub.security.decision.DecisionAuthorizationService;
 import com.decisionhub.service.interfaces.discussion.CommentService;
 import com.decisionhub.validator.decision.DecisionModificationValidator;
 import com.decisionhub.validator.discussion.CommentValidator;
-import com.decisionhub.event.CommentCreatedEvent;
-import com.decisionhub.event.ReplyCreatedEvent;
-import com.decisionhub.event.CommentRemovedEvent;
-import org.springframework.context.ApplicationEventPublisher;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
 @RequiredArgsConstructor
 @Slf4j
 public class CommentServiceImpl implements CommentService {
-
-    private static final String DELETED_COMMENT_TEXT = "[deleted]";
 
     private final CommentRepository commentRepository;
     private final DecisionRepository decisionRepository;
@@ -57,6 +56,7 @@ public class CommentServiceImpl implements CommentService {
             Long decisionId,
             CreateCommentRequest request
     ) {
+
         log.info(
                 "Creating comment for decision ID: {}",
                 decisionId
@@ -110,6 +110,7 @@ public class CommentServiceImpl implements CommentService {
         return commentMapper.toResponse(savedComment);
     }
 
+
     @Override
     @Transactional
     public CommentResponse replyToComment(
@@ -117,6 +118,7 @@ public class CommentServiceImpl implements CommentService {
             Long parentCommentId,
             CreateCommentRequest request
     ) {
+
         log.info(
                 "Creating reply for parent comment ID: {} on decision ID: {}",
                 parentCommentId,
@@ -151,10 +153,12 @@ public class CommentServiceImpl implements CommentService {
                 decisionId
         );
 
+        // Deleted comments cannot receive replies.
         commentValidator.validateReplyAllowed(
                 parentComment
         );
 
+        // Enforce maximum reply depth.
         commentValidator.validateReplyDepth(
                 parentComment
         );
@@ -189,12 +193,14 @@ public class CommentServiceImpl implements CommentService {
         return commentMapper.toResponse(savedReply);
     }
 
+
     @Override
     @Transactional
     public CommentResponse updateComment(
             Long commentId,
             UpdateCommentRequest request
     ) {
+
         log.info(
                 "Updating comment ID: {}",
                 commentId
@@ -234,9 +240,11 @@ public class CommentServiceImpl implements CommentService {
         return commentMapper.toResponse(updatedComment);
     }
 
+
     @Override
     @Transactional
     public void deleteComment(Long commentId) {
+
         log.info(
                 "Deleting comment ID: {}",
                 commentId
@@ -261,36 +269,105 @@ public class CommentServiceImpl implements CommentService {
             return;
         }
 
-        // Soft delete.
-        comment.setDeletedAt(java.time.LocalDateTime.now());
+        /*
+         * Soft-delete the entire comment subtree.
+         *
+         * The records are intentionally preserved in the database.
+         * Only their deletedAt values are updated.
+         */
+        LocalDateTime deletedAt = LocalDateTime.now();
 
-        Comment savedComment = commentRepository.save(comment);
+        softDeleteCommentTree(
+                comment,
+                deletedAt
+        );
 
         log.info(
-                "Comment soft deleted successfully with ID: {}",
+                "Comment subtree soft deleted successfully with root ID: {}",
                 commentId
         );
 
-        String contentSnippet = savedComment.getContent() != null ? 
-                savedComment.getContent().substring(0, Math.min(30, savedComment.getContent().length())) : "";
+        /*
+         * Keep the existing notification integration.
+         *
+         * Only the original/root deletion generates the
+         * CommentRemovedEvent. Descendants are part of the
+         * same deleted discussion branch.
+         */
+        String contentSnippet = comment.getContent() != null
+                ? comment.getContent().substring(
+                        0,
+                        Math.min(
+                                30,
+                                comment.getContent().length()
+                        )
+                )
+                : "";
 
         if (eventPublisher != null) {
             eventPublisher.publishEvent(new CommentRemovedEvent(
                     this,
-                    savedComment.getId(),
-                    savedComment.getDecision().getId(),
-                    savedComment.getDecision().getTitle(),
+                    comment.getId(),
+                    comment.getDecision().getId(),
+                    comment.getDecision().getTitle(),
                     currentUserId,
                     contentSnippet
             ));
         }
     }
 
+
+    /**
+     * Soft-deletes a comment and every descendant reply.
+     *
+     * The comments remain in the database. This preserves
+     * historical data and existing relationships while making
+     * the complete discussion branch invisible to normal
+     * discussion retrieval APIs.
+     */
+    private void softDeleteCommentTree(
+            Comment comment,
+            LocalDateTime deletedAt
+    ) {
+
+        /*
+         * Mark the current comment as deleted.
+         */
+        if (comment.getDeletedAt() == null) {
+            comment.setDeletedAt(deletedAt);
+            commentRepository.save(comment);
+        }
+
+        /*
+         * Retrieve ALL direct children, including already deleted
+         * children. This is intentional because we need to traverse
+         * the complete subtree.
+         */
+        List<Comment> replies =
+                commentRepository
+                        .findByParentCommentIdOrderByCreatedAtAsc(
+                                comment.getId()
+                        );
+
+        /*
+         * Recursively soft-delete every descendant.
+         */
+        for (Comment reply : replies) {
+
+            softDeleteCommentTree(
+                    reply,
+                    deletedAt
+            );
+        }
+    }
+
+
     @Override
     @Transactional(readOnly = true)
     public List<CommentResponse> getCommentsByDecision(
             Long decisionId
     ) {
+
         log.info(
                 "Retrieving top-level comments for decision ID: {}",
                 decisionId
@@ -310,28 +387,43 @@ public class CommentServiceImpl implements CommentService {
             );
         }
 
-        List<Comment> comments = commentRepository.findByDecisionIdAndParentCommentIsNullOrderByCreatedAtAsc(decisionId);
-        for (Comment c : comments) {
-            log.info("Inspecting comment ID: {}, content: {}, deletedAt: {}, repliesSize: {}",
-                     c.getId(), c.getContent(), c.getDeletedAt(), c.getReplies() != null ? c.getReplies().size() : 0);
-        }
-        return comments.stream()
-                .filter(c -> c.getDeletedAt() == null || (c.getReplies() != null && !c.getReplies().isEmpty()))
+        /*
+         * Only retrieve non-deleted top-level comments.
+         *
+         * Deleted comments are therefore never passed to the mapper
+         * and will never appear as "[deleted]" in the normal
+         * discussion listing.
+         */
+        return commentRepository
+                .findByDecisionIdAndParentCommentIsNullAndDeletedAtIsNullOrderByCreatedAtAsc(
+                        decisionId
+                )
+                .stream()
                 .map(commentMapper::toResponse)
                 .toList();
     }
+
 
     @Override
     @Transactional(readOnly = true)
     public List<CommentResponse> getReplies(
             Long parentCommentId
     ) {
+
         log.info(
                 "Retrieving replies for parent comment ID: {}",
                 parentCommentId
         );
 
         Comment parentComment = getCommentOrThrow(parentCommentId);
+
+        /*
+         * If the parent itself is deleted, the entire discussion
+         * branch is considered invisible.
+         */
+        if (parentComment.getDeletedAt() != null) {
+            return List.of();
+        }
 
         Long currentUserId = authenticationFacade
                 .getCurrentUserId()
@@ -347,18 +439,25 @@ public class CommentServiceImpl implements CommentService {
             );
         }
 
+        /*
+         * Only return non-deleted direct replies.
+         */
         return commentRepository
-                .findByParentCommentIdOrderByCreatedAtAsc(parentCommentId)
+                .findByParentCommentIdAndDeletedAtIsNullOrderByCreatedAtAsc(
+                        parentCommentId
+                )
                 .stream()
                 .map(commentMapper::toResponse)
                 .toList();
     }
+
 
     @Override
     @Transactional(readOnly = true)
     public CommentResponse getComment(
             Long commentId
     ) {
+
         log.info(
                 "Retrieving comment ID: {}",
                 commentId
@@ -383,13 +482,16 @@ public class CommentServiceImpl implements CommentService {
         return commentMapper.toResponse(comment);
     }
 
+
     private Long getCurrentUserIdOrThrow() {
 
-        return authenticationFacade.getCurrentUserId()
+        return authenticationFacade
+                .getCurrentUserId()
                 .orElseThrow(() -> new UnauthorizedActionException(
                         "User is not authenticated"
                 ));
     }
+
 
     private User getCurrentUserOrThrow() {
 
@@ -401,6 +503,7 @@ public class CommentServiceImpl implements CommentService {
                 ));
     }
 
+
     private Decision getDecisionOrThrow(Long decisionId) {
 
         return decisionRepository.findById(decisionId)
@@ -408,6 +511,7 @@ public class CommentServiceImpl implements CommentService {
                         "Decision not found with ID: " + decisionId
                 ));
     }
+
 
     private Comment getCommentOrThrow(Long commentId) {
 
