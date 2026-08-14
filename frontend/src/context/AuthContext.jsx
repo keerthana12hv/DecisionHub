@@ -16,6 +16,25 @@ export const AuthProvider = ({ children }) => {
     setLoading(false);
   }, []);
 
+  const refreshProfile = async () => {
+    try {
+      const t = localStorage.getItem("token") || localStorage.getItem("authToken") || localStorage.getItem("jwt");
+      if (t) {
+        const res = await fetch("http://localhost:8080/api/auth/profile", {
+          headers: { Authorization: `Bearer ${t}` }
+        });
+        if (res.ok) {
+          const freshUser = await res.json();
+          localStorage.setItem("decisionhub-session", JSON.stringify(freshUser));
+          setUser(freshUser);
+          return freshUser;
+        }
+      }
+    } catch (err) {
+      console.error("Failed to refresh user profile:", err);
+    }
+  };
+
   const logout = () => {
     localStorage.removeItem("token");
     localStorage.removeItem("decisionhub-session");
@@ -28,6 +47,7 @@ export const AuthProvider = ({ children }) => {
         user,
         setUser,
         logout,
+        refreshProfile,
         loading,
       }}
     >
