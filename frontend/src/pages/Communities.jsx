@@ -15,7 +15,7 @@ import {
 import { analyticsService } from "../services/analyticsService";
 
 function Communities() {
-  const { user } = useAuth();
+  const { user, refreshProfile } = useAuth();
   const navigate = useNavigate();
   const { addToast } = useToast();
 
@@ -147,6 +147,7 @@ function Communities() {
 
       // Reload communities from backend so the new one shows real data, not a guess
       await loadCommunities();
+      await refreshProfile();
 
       setNewName("");
       setNewCategory("");
