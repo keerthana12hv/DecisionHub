@@ -77,14 +77,13 @@ public DecisionOverviewResponse getDecisionOverview(Long decisionId) {
                     new ResourceNotFoundException("Decision not found"));
 
     Poll poll = pollRepository.findByDecisionId(decisionId)
-            .orElseThrow(() ->
-                    new ResourceNotFoundException("Poll not found"));
+            .orElse(null);
 
     return new DecisionOverviewResponse(
             decision.getTitle(),
             decision.getStatus().name(),
-            poll.getStatus().name(),
-            poll.getEndTime(),
+            poll != null ? poll.getStatus().name() : "DRAFT",
+            poll != null ? poll.getEndTime() : null,
             decision.getDeadline()
     );
 }
@@ -97,24 +96,28 @@ public VoteStatisticsResponse getVoteStatistics(Long decisionId) {
                     new ResourceNotFoundException("Decision not found"));
 
     Poll poll = pollRepository.findByDecisionId(decisionId)
-            .orElseThrow(() ->
-                    new ResourceNotFoundException("Poll not found"));
+            .orElse(null);
+
+    Long numberOfOptions =
+            decisionOptionRepository.countByDecisionId(decisionId);
+
+    if (poll == null) {
+        return new VoteStatisticsResponse(0L, 0L, 0.0, numberOfOptions);
+    }
 
     Long totalVotes = voteRepository.countByPollId(poll.getId());
 
     Long totalParticipants;
 
-if (decision.getCommunity() != null) {
-    totalParticipants = voteRepository.countParticipants(
-            decisionId,
-            decision.getCommunity().getId(),
-            MembershipStatus.APPROVED
-    );
-} else {
-    totalParticipants = voteRepository.countDistinctByPollId(poll.getId());
-}
-    Long numberOfOptions =
-            decisionOptionRepository.countByDecisionId(decisionId);
+    if (decision.getCommunity() != null) {
+        totalParticipants = voteRepository.countParticipants(
+                decisionId,
+                decision.getCommunity().getId(),
+                MembershipStatus.APPROVED
+        );
+    } else {
+        totalParticipants = voteRepository.countDistinctByPollId(poll.getId());
+    }
 
     Long eligibleUsers = 0L;
 
@@ -154,9 +157,14 @@ if (decision.getCommunity() != null) {
 @Override
 public List<VoteDistributionResponse> getVoteDistribution(Long decisionId) {
 
-    Long pollId = pollRepository.findByDecisionId(decisionId)
-            .orElseThrow()
-            .getId();
+    Poll poll = pollRepository.findByDecisionId(decisionId)
+            .orElse(null);
+
+    if (poll == null) {
+        return new ArrayList<>();
+    }
+
+    Long pollId = poll.getId();
 
     List<Object[]> result = voteRepository.getVoteDistribution(decisionId);
 
@@ -316,12 +324,16 @@ public DiscussionStatisticsResponse getDiscussionStatistics(Long decisionId) {
 @Override
 public List<RankingResponse> getFinalRanking(Long decisionId) {
 
-    List<Object[]> result = voteRepository.getVoteDistribution(decisionId);
+    Poll poll = pollRepository.findByDecisionId(decisionId)
+            .orElse(null);
 
-    Long pollId = pollRepository.findByDecisionId(decisionId)
-            .orElseThrow(() ->
-                    new ResourceNotFoundException("Poll not found"))
-            .getId();
+    if (poll == null) {
+        return new ArrayList<>();
+    }
+
+    Long pollId = poll.getId();
+
+    List<Object[]> result = voteRepository.getVoteDistribution(decisionId);
 
     long totalVotes = voteRepository.countByPollId(pollId);
 
@@ -498,13 +510,25 @@ public DecisionFeedbackAnalyticsResponse getDecisionFeedback(Long decisionId) {
             .orElseThrow(() ->
                     new ResourceNotFoundException("Decision not found"));
 
-    DecisionFeedback feedback = decisionFeedbackRepository
-            .findByDecision(decision)
-            .orElseThrow(() ->
-                    new ResourceNotFoundException("Feedback not found"));
-
     Long feedbackCount =
             decisionFeedbackRepository.countByDecisionId(decisionId);
+
+    if (feedbackCount == null || feedbackCount == 0L) {
+        return new DecisionFeedbackAnalyticsResponse(
+                0.0,
+                0L,
+                0L,
+                0L,
+                0L,
+                0L,
+                0L
+        );
+    }
+
+    Double averageRating = decisionFeedbackRepository.getAverageRatingByDecisionId(decisionId);
+    if (averageRating == null) {
+        averageRating = 0.0;
+    }
 
     Long fiveStar =
             decisionFeedbackRepository.countByDecisionIdAndRating(decisionId, 5);
@@ -522,7 +546,7 @@ public DecisionFeedbackAnalyticsResponse getDecisionFeedback(Long decisionId) {
             decisionFeedbackRepository.countByDecisionIdAndRating(decisionId, 1);
 
     return new DecisionFeedbackAnalyticsResponse(
-            feedback.getRating().doubleValue(),
+            averageRating,
             feedbackCount,
             fiveStar,
             fourStar,
