@@ -560,6 +560,12 @@
   border: 1px solid rgba(245, 158, 11, 0.3);
 }
 
+.results-majority-tag.is-tie {
+  color: #3b82f6;
+  background: rgba(59, 130, 246, 0.1);
+  border: 1px solid rgba(59, 130, 246, 0.3);
+}
+
 .results-lanes {
   display: flex;
   flex-direction: column;

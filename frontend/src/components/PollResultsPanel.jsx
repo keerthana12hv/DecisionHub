@@ -31,6 +31,7 @@ function ResultsCard({ items, unit, emptyLabel }) {
   const leaderPercent = (leader.value / total) * 100;
   const margin = runnerUp ? leader.value - runnerUp.value : leader.value;
   const isMajority = leaderPercent >= 50;
+  const isTie = runnerUp && leader.value === runnerUp.value;
 
   const formatValue = (v) => (Number.isInteger(v) ? v : v.toFixed(1));
 
@@ -40,13 +41,19 @@ function ResultsCard({ items, unit, emptyLabel }) {
         <span className="results-headline-figure">{Math.round(leaderPercent)}%</span>
         <div className="results-headline-copy">
           <p className="results-headline-lead">
-            <strong>{leader.label}</strong> is ahead
-            {runnerUp && (
-              <> &mdash; +{formatValue(margin)} {unit} over {runnerUp.label}</>
+            {isTie ? (
+              <><strong>Tied</strong> &mdash; <strong>{leader.label}</strong> and <strong>{runnerUp.label}</strong> are tied with {formatValue(leader.value)} {unit} each</>
+            ) : (
+              <>
+                <strong>{leader.label}</strong> is ahead
+                {runnerUp && (
+                  <> &mdash; +{formatValue(margin)} {unit} over {runnerUp.label}</>
+                )}
+              </>
             )}
           </p>
-          <span className={`results-majority-tag ${isMajority ? "is-majority" : "is-plurality"}`}>
-            {isMajority ? "Clear majority" : "Leading plurality"}
+          <span className={`results-majority-tag ${isTie ? "is-tie" : isMajority ? "is-majority" : "is-plurality"}`}>
+            {isTie ? "Tie / No clear majority" : isMajority ? "Clear majority" : "Leading plurality"}
           </span>
         </div>
       </div>
@@ -54,8 +61,9 @@ function ResultsCard({ items, unit, emptyLabel }) {
       <div className="results-lanes">
         {sorted.map((item, i) => {
           const percent = (item.value / total) * 100;
+          const isLeaderLane = i === 0 || (isTie && item.value === leader.value);
           return (
-            <div className={`results-lane ${i === 0 ? "is-leader" : ""}`} key={item.key}>
+            <div className={`results-lane ${isLeaderLane ? "is-leader" : ""}`} key={item.key}>
               <span className="results-rank">{String(i + 1).padStart(2, "0")}</span>
               <div className="results-lane-main">
                 <div className="results-lane-label">
