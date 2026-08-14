@@ -23,6 +23,7 @@ import FeedbackPage from "./pages/FeedbackPage";
 import FeedbackDashboard from "./pages/FeedbackDashboard";
 import AdminCommunityDecisions from "./pages/AdminCommunityDecisions";
 import AdminDecisionDiscussion from "./pages/AdminDecisionDiscussion";
+import AdminDecisions from "./pages/AdminDecisions";
 
 // ─── Protected Route (any logged-in user) ────────────────────────────────────
 function PrivateRoute({ children }) {
@@ -93,6 +94,14 @@ function AppRoutes() {
         element={
           <AdminRoute>
             <AdminCommunityDecisions />
+          </AdminRoute>
+        }
+      />
+      <Route
+        path="/admin/decisions"
+        element={
+          <AdminRoute>
+            <AdminDecisions />
           </AdminRoute>
         }
       />

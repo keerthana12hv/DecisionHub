@@ -230,6 +230,17 @@ public class CommunityModerationServiceImpl implements CommunityModerationServic
         Decision decision = decisionRepository.findById(decisionId)
                 .orElseThrow(() -> new ResourceNotFoundException("Decision not found with ID: " + decisionId));
 
+        Long currentUserId = authenticationFacade.getCurrentUserId()
+                .orElseThrow(() -> new UnauthorizedActionException("User must be authenticated"));
+
+        User currentUser = userRepository.findById(currentUserId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
+        // Platform Admin has universal access (including public decisions with no community)
+        if (currentUser.getRole() == PlatformRole.ADMIN) {
+            return decision;
+        }
+
         Community community = decision.getCommunity();
         if (community == null) {
             throw new BadRequestException("Decision does not belong to any community");
@@ -237,17 +248,6 @@ public class CommunityModerationServiceImpl implements CommunityModerationServic
 
         if (community.getDeletedAt() != null) {
             throw new ResourceNotFoundException("Community not found");
-        }
-
-        Long currentUserId = authenticationFacade.getCurrentUserId()
-                .orElseThrow(() -> new UnauthorizedActionException("User must be authenticated"));
-
-        User currentUser = userRepository.findById(currentUserId)
-                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
-
-        // Platform Admin has universal access
-        if (currentUser.getRole() == PlatformRole.ADMIN) {
-            return decision;
         }
 
         // Community Owner has access

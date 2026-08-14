@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
-import { FaComments, FaReply, FaTrash, FaEdit } from "react-icons/fa";
+import { FaComments, FaReply, FaTrash, FaEdit, FaExclamationTriangle } from "react-icons/fa";
 import { useAuth } from "../context/AuthContext";
 import api from "../services/api";
 import {
@@ -180,18 +180,20 @@ const Discussion = () => {
             No comments yet. Be the first to share!
           </div>
         ) : (
-          comments.map((comment) => (
-            <CommentNode
-              key={comment.id}
-              comment={comment}
-              decisionId={decisionId}
-              isDecisionActive={isDecisionActive}
-              decisionLocked={decisionLocked}
-              currentUser={user}
-              onCommentUpdated={handleCommentUpdated}
-              onCommentDeleted={handleCommentDeleted}
-            />
-          ))
+          [...comments]
+            .sort((a, b) => (a.pinned && !b.pinned ? -1 : !a.pinned && b.pinned ? 1 : 0))
+            .map((comment) => (
+              <CommentNode
+                key={comment.id}
+                comment={comment}
+                decisionId={decisionId}
+                isDecisionActive={isDecisionActive}
+                decisionLocked={decisionLocked}
+                currentUser={user}
+                onCommentUpdated={handleCommentUpdated}
+                onCommentDeleted={handleCommentDeleted}
+              />
+            ))
         )}
       </div>
     </div>
@@ -221,6 +223,7 @@ function CommentNode({
 
   const [isEditing, setIsEditing] = useState(false);
   const [editText, setEditText] = useState(comment.content);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   const isAuthor = currentUser?.id === comment.userId;
   const isModOrAdmin =
@@ -266,9 +269,28 @@ function CommentNode({
   };
 
   const handleDelete = () => {
-    deleteComment(comment.id).then(() => {
-      onCommentDeleted(comment.id);
-    });
+    setShowDeleteConfirm(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    setShowDeleteConfirm(false);
+    if (isModOrAdmin) {
+      try {
+        await modDeleteComment(comment.id);
+        onCommentDeleted(comment.id);
+        addToast("Comment removed.", "success");
+      } catch (err) {
+        addToast("Failed to remove comment.", "error");
+      }
+    } else {
+      try {
+        await deleteComment(comment.id);
+        onCommentDeleted(comment.id);
+        addToast("Comment deleted.", "success");
+      } catch (err) {
+        addToast("Failed to delete comment.", "error");
+      }
+    }
   };
 
   const handleChildUpdated = (childId, changes) => {
@@ -278,11 +300,7 @@ function CommentNode({
   };
 
   const handleChildDeleted = (childId) => {
-    setReplies((prev) =>
-      prev.map((r) =>
-        r.id === childId ? { ...r, deleted: true, content: "[deleted]" } : r
-      )
-    );
+    setReplies((prev) => prev.filter((r) => r.id !== childId));
   };
 
   return (
@@ -296,10 +314,10 @@ function CommentNode({
     >
       <div
         style={{
-          background: "rgba(255,255,255,0.05)",
+          background: comment.pinned ? "rgba(251, 191, 36, 0.05)" : "rgba(255,255,255,0.05)",
           borderRadius: "12px",
           padding: "16px",
-          border: "1px solid rgba(167, 139, 250, 0.15)",
+          border: comment.pinned ? "1px solid #FBBF24" : "1px solid rgba(167, 139, 250, 0.15)",
         }}
       >
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
@@ -311,14 +329,18 @@ function CommentNode({
               {comment.deleted ? "" : comment.username}
             </p>
           </div>
-          {canDelete && (
-            <button onClick={handleDelete} style={iconBtnStyle}>
-              <FaTrash size={14} />
-            </button>
-          )}
-          {comment.pinned && (
-            <span style={{ color: "#FBBF24", fontWeight: 700, marginLeft: 8 }}>Pinned</span>
-          )}
+          <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+            {comment.pinned && (
+              <span style={{ color: "#FBBF24", fontWeight: 700, fontSize: "0.85rem", display: "flex", alignItems: "center", gap: "4px" }}>
+                📌 Pinned
+              </span>
+            )}
+            {canDelete && (
+              <button onClick={handleDelete} style={iconBtnStyle}>
+                <FaTrash size={14} />
+              </button>
+            )}
+          </div>
         </div>
 
         {isEditing ? (
@@ -401,22 +423,43 @@ function CommentNode({
                 )}
 
                 <button
-                  onClick={async () => {
-                    if (!confirm("Remove this comment?")) return;
-                    try {
-                      await modDeleteComment(comment.id);
-                      onCommentDeleted(comment.id);
-                      addToast("Comment removed.", "success");
-                    } catch (err) {
-                      addToast("Failed to remove comment.", "error");
-                    }
-                  }}
+                  onClick={() => setShowDeleteConfirm(true)}
                   style={linkBtnStyle}
                 >
                   Remove
                 </button>
               </>
             )}
+          </div>
+        )}
+
+        {showDeleteConfirm && (
+          <div className="delete-overlay">
+            <div className="delete-modal glass-panel animate-pop-in" style={{ padding: "2rem", width: "400px", display: "flex", flexDirection: "column", gap: "1.5rem", textAlign: "center" }}>
+              <div className="delete-warning-icon" style={{ margin: "0 auto" }}>
+                <FaExclamationTriangle />
+              </div>
+              <h2 style={{ margin: 0 }}>Delete Comment?</h2>
+              <p style={{ margin: 0, color: "var(--text-secondary)", fontSize: "0.9rem" }}>
+                Are you sure you want to delete this comment? This action will remove the comment from the discussion.
+              </p>
+              <div className="delete-buttons" style={{ display: "flex", gap: "10px", width: "100%" }}>
+                <button
+                  className="btn-secondary"
+                  style={{ flex: 1 }}
+                  onClick={() => setShowDeleteConfirm(false)}
+                >
+                  Cancel
+                </button>
+                <button
+                  className="btn-primary confirm-delete-btn"
+                  style={{ flex: 1, background: "var(--danger, #EF4444)" }}
+                  onClick={handleConfirmDelete}
+                >
+                  Delete
+                </button>
+              </div>
+            </div>
           </div>
         )}
 

@@ -96,6 +96,14 @@ public class DecisionAuthorizationServiceImpl implements DecisionAuthorizationSe
     @Override
     @Transactional(readOnly = true)
     public boolean canDeleteDecision(Long decisionId, Long userId) {
+        if (userId != null) {
+            boolean isAdmin = userRepository.findById(userId)
+                    .map(u -> u.getRole() == PlatformRole.ADMIN)
+                    .orElse(false);
+            if (isAdmin) {
+                return true;
+            }
+        }
         return isOwner(decisionId, userId);
     }
 
