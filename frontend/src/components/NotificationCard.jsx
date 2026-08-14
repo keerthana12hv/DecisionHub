@@ -9,6 +9,8 @@ import {
 import { useNotifications } from "../context/NotificationsContext";
 import "../styles/NotificationCard.css";
 
+import { getNotifications } from "../services/notificationService";
+
 function NotificationCard() {
   const { notifications, markAsRead } = useNotifications();
   const navigate = useNavigate();

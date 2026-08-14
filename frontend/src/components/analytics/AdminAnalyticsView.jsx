@@ -17,7 +17,19 @@ export function AdminAnalyticsView() {
   const navigate = useNavigate();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
+
+  // Paginated users directory states
   const [showUsersModal, setShowUsersModal] = useState(false);
+  const [usersPage, setUsersPage] = useState({
+    content: [],
+    number: 0,
+    totalPages: 0,
+    totalElements: 0,
+    first: true,
+    last: true
+  });
+  const [modalLoading, setModalLoading] = useState(false);
+  const [modalError, setModalError] = useState(null);
 
   const loadData = async () => {
     setLoading(true);
@@ -31,9 +43,29 @@ export function AdminAnalyticsView() {
     }
   };
 
+  const loadUsersList = async (page = 0) => {
+    setModalLoading(true);
+    setModalError(null);
+    try {
+      const res = await analyticsService.getAdminUsersList(page, 5);
+      setUsersPage(res);
+    } catch (err) {
+      console.error("Error fetching registered users list:", err);
+      setModalError("Failed to fetch registered users list.");
+    } finally {
+      setModalLoading(false);
+    }
+  };
+
   useEffect(() => {
     loadData();
   }, []);
+
+  useEffect(() => {
+    if (showUsersModal) {
+      loadUsersList(0);
+    }
+  }, [showUsersModal]);
 
   if (loading) {
     return (
@@ -44,16 +76,9 @@ export function AdminAnalyticsView() {
     );
   }
 
-  const { dashboard, users, communities, decisions, discussion, usersList } = data || {};
+  const { dashboard, users, communities, decisions, discussion } = data || {};
 
-  // Default seeded users for fallback
-  const seededUsers = [
-    { username: "SystemAdmin", email: "admin@gmail.com", role: "ADMIN", status: "ACTIVE" },
-    { username: "Dheetshi", email: "dheetshi@gmail.com", role: "USER", status: "ACTIVE" },
-    { username: "Kavya", email: "kavya@gmail.com", role: "MODERATOR", status: "ACTIVE" }
-  ];
-
-  const displayUsers = (usersList && usersList.length > 0) ? usersList : seededUsers;
+  const displayUsers = usersPage.content || [];
 
   return (
     <div className="analytics-tab-content space-y-6">
@@ -333,11 +358,40 @@ export function AdminAnalyticsView() {
               </table>
             </div>
 
-            <div style={{ marginTop: "20px", display: "flex", justifyContent: "flex-end" }}>
-              <button className="btn-secondary" onClick={() => setShowUsersModal(false)}>
-                Close
-              </button>
-            </div>
+            {modalLoading ? (
+              <div style={{ textAlign: "center", padding: "20px", color: "#94a3b8" }}>
+                <p>Loading users...</p>
+              </div>
+            ) : modalError ? (
+              <div style={{ color: "#ef4444", padding: "10px 0", textAlign: "center" }}>{modalError}</div>
+            ) : (
+              <div style={{ marginTop: "20px", display: "flex", justifyContent: "space-between", alignItems: "center", borderTop: "1px solid rgba(255,255,255,0.08)", paddingTop: "15px" }}>
+                <span style={{ fontSize: "12px", color: "#94a3b8" }}>
+                  Page {usersPage.number + 1} of {usersPage.totalPages} ({usersPage.totalElements} records)
+                </span>
+                <div style={{ display: "flex", gap: "8px" }}>
+                  <button 
+                    className="btn-secondary"
+                    disabled={usersPage.first || modalLoading}
+                    onClick={() => loadUsersList(usersPage.number - 1)}
+                    style={{ padding: "4px 10px", fontSize: "12px" }}
+                  >
+                    Previous
+                  </button>
+                  <button 
+                    className="btn-secondary"
+                    disabled={usersPage.last || modalLoading}
+                    onClick={() => loadUsersList(usersPage.number + 1)}
+                    style={{ padding: "4px 10px", fontSize: "12px" }}
+                  >
+                    Next
+                  </button>
+                  <button className="btn-secondary" onClick={() => setShowUsersModal(false)} style={{ padding: "4px 10px", fontSize: "12px", background: "rgba(255,255,255,0.05)" }}>
+                    Close
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}

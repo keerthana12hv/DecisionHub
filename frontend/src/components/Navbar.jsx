@@ -14,6 +14,12 @@ import { useAuth } from "../context/AuthContext";
 import { useToast } from "../components/Toast";
 import { useNotifications } from "../context/NotificationsContext";
 import "../styles/Navbar.css";
+import {
+  getNotifications,
+  markAsRead as apiMarkAsRead,
+  markAllAsRead as apiMarkAllAsRead,
+  deleteNotification as apiDeleteNotification
+} from "../services/notificationService";
 
 function Navbar() {
   const { user, logout } = useAuth();
