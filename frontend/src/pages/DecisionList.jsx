@@ -5,6 +5,7 @@ import Sidebar from "../components/Sidebar";
 import Navbar from "../components/Navbar";
 import DeleteModal from "../components/DeleteModal";
 import { useToast } from "../components/Toast";
+import { useAuth } from "../context/AuthContext";
 import {
   FaTrash,
   FaSearch,
@@ -27,8 +28,11 @@ const headers = () => ({ headers: { Authorization: `Bearer ${token()}` } });
 
 function DecisionList() {
   const { addToast } = useToast();
+  const { user } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+
+  const isAdmin = user?.role === "ADMIN";
 
   const [decisions, setDecisions] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -188,11 +192,13 @@ function DecisionList() {
                 </button>
               </div>
 
-              <Link to="/create-decision">
-                <button className="btn-primary create-decision-btn">
-                  <FaPlusCircle /> Create Decision
-                </button>
-              </Link>
+              {!isAdmin && (
+                <Link to="/create-decision">
+                  <button className="btn-primary create-decision-btn">
+                    <FaPlusCircle /> Create Decision
+                  </button>
+                </Link>
+              )}
             </div>
 
             <div className="decision-table-wrapper glass-panel">
