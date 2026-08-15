@@ -89,6 +89,12 @@
   border: 1px solid rgba(245, 158, 11, 0.25);
 }
 
+.badge-user {
+  background: var(--accent-purple-glow);
+  color: var(--accent-purple);
+  border: 1px solid rgba(139, 92, 246, 0.25);
+}
+
 .account-details-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -144,6 +150,48 @@
   font-size: 0.85rem;
   color: var(--text-secondary);
   margin: 0 0 1.5rem;
+}
+
+/* Edit Profile Modal styles */
+.edit-profile-modal {
+  width: 450px;
+  max-width: 90%;
+  padding: 2.25rem;
+}
+
+.profile-edit-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  margin-top: 1rem;
+}
+
+.profile-edit-form .form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.profile-edit-form .form-group label {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.profile-edit-form .form-group input {
+  padding: 0.75rem 1rem;
+  border-radius: var(--border-radius-sm);
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border-glass);
+  color: var(--text-primary);
+  font-size: 0.95rem;
+  transition: var(--transition-smooth);
+}
+
+.profile-edit-form .form-group input:focus {
+  outline: none;
+  border-color: var(--border-focus);
+  background: rgba(255, 255, 255, 0.06);
 }
 
 @media (max-width: 768px) {
