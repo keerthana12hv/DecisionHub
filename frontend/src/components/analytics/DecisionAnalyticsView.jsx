@@ -70,7 +70,7 @@ export function DecisionAnalyticsView({ decisionId = 5 }) {
             {overview?.title || `Decision #${decisionId} Overview`}
           </h2>
           <p style={{ fontSize: "12px", color: "#94a3b8", margin: 0 }}>
-            Status: <strong>{overview?.status || overview?.pollStatus || "CLOSED"}</strong> | Total Votes: <strong>{overview?.totalVotes ?? 0}</strong>
+            Status: <strong>{overview?.status || overview?.pollStatus || "CLOSED"}</strong> | Total Votes: <strong>{voteStats?.totalVotes ?? 0}</strong>
           </p>
         </div>
         <button className="btn-secondary" onClick={loadData} style={{ display: "flex", alignItems: "center", gap: "6px" }}>
