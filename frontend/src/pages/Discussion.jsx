@@ -380,7 +380,7 @@ function CommentNode({
                 <FaEdit /> Edit
               </button>
             )}
-            {!isAuthor && (
+            {!isAuthor && currentUser?.role !== "ADMIN" && (
               <button
                 onClick={() => setIsReporting(true)}
                 style={linkBtnStyle}
@@ -390,36 +390,40 @@ function CommentNode({
             )}
             {isModOrAdmin && (
               <>
-                {!comment.pinned ? (
-                  <button
-                    onClick={async () => {
-                      try {
-                        const res = await pinComment(comment.id);
-                        onCommentUpdated(comment.id, { pinned: res.pinned });
-                        addToast("Comment pinned.", "success");
-                      } catch (err) {
-                        addToast("Failed to pin comment.", "error");
-                      }
-                    }}
-                    style={linkBtnStyle}
-                  >
-                    Pin
-                  </button>
-                ) : (
-                  <button
-                    onClick={async () => {
-                      try {
-                        const res = await unpinComment(comment.id);
-                        onCommentUpdated(comment.id, { pinned: res.pinned });
-                        addToast("Comment unpinned.", "success");
-                      } catch (err) {
-                        addToast("Failed to unpin comment.", "error");
-                      }
-                    }}
-                    style={linkBtnStyle}
-                  >
-                    Unpin
-                  </button>
+                {currentUser?.role === "MODERATOR" && (
+                  <>
+                    {!comment.pinned ? (
+                      <button
+                        onClick={async () => {
+                          try {
+                            const res = await pinComment(comment.id);
+                            onCommentUpdated(comment.id, { pinned: res.pinned });
+                            addToast("Comment pinned.", "success");
+                          } catch (err) {
+                            addToast("Failed to pin comment.", "error");
+                          }
+                        }}
+                        style={linkBtnStyle}
+                      >
+                        Pin
+                      </button>
+                    ) : (
+                      <button
+                        onClick={async () => {
+                          try {
+                            const res = await unpinComment(comment.id);
+                            onCommentUpdated(comment.id, { pinned: res.pinned });
+                            addToast("Comment unpinned.", "success");
+                          } catch (err) {
+                            addToast("Failed to unpin comment.", "error");
+                          }
+                        }}
+                        style={linkBtnStyle}
+                      >
+                        Unpin
+                      </button>
+                    )}
+                  </>
                 )}
 
                 <button

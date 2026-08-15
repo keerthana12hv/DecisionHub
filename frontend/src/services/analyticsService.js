@@ -1,9 +1,8 @@
 import api from "./api";
 
+// Object Export (for components like AdminAnalyticsView, DecisionAnalyticsView, etc.)
 export const analyticsService = {
-  // -------------------------------------------------------------
-  // 1. DECISION ANALYTICS (USER)
-  // -------------------------------------------------------------
+  // 1. DECISION ANALYTICS (USER/MODERATOR)
   getDecisionOverview: async (decisionId) => {
     const res = await api.get(`/api/analytics/decisions/${decisionId}/overview`);
     return res.data;
@@ -62,9 +61,7 @@ export const analyticsService = {
     };
   },
 
-  // -------------------------------------------------------------
   // 2. COMMUNITY ANALYTICS (MODERATOR)
-  // -------------------------------------------------------------
   getCommunityOverview: async (communityId) => {
     const res = await api.get(`/api/analytics/communities/${communityId}/overview`);
     return res.data;
@@ -116,9 +113,7 @@ export const analyticsService = {
     };
   },
 
-  // -------------------------------------------------------------
   // 3. ADMIN ANALYTICS (PLATFORM ADMIN)
-  // -------------------------------------------------------------
   getAdminDashboard: async () => {
     const res = await api.get("/api/analytics/admin/dashboard");
     return res.data;
@@ -149,8 +144,8 @@ export const analyticsService = {
     return res.data;
   },
 
-  getAdminUsersList: async () => {
-    const res = await api.get("/api/analytics/admin/users-list");
+  getAdminUsersList: async (page = 0, size = 10) => {
+    const res = await api.get(`/api/analytics/admin/users-list?page=${page}&size=${size}`);
     return res.data;
   },
 
@@ -163,7 +158,7 @@ export const analyticsService = {
         analyticsService.getAdminDecisions(),
         analyticsService.getAdminDiscussion(),
         analyticsService.getAdminFeedback(),
-        analyticsService.getAdminUsersList(),
+        analyticsService.getAdminUsersList(0, 5),
       ]);
 
     return {
@@ -173,7 +168,43 @@ export const analyticsService = {
       decisions: decisions.status === "fulfilled" ? decisions.value : null,
       discussion: discussion.status === "fulfilled" ? discussion.value : null,
       feedback: feedback.status === "fulfilled" ? feedback.value : null,
-      usersList: usersList.status === "fulfilled" ? usersList.value : [],
+      usersList: usersList.status === "fulfilled" ? usersList.value : { content: [] },
     };
   }
+};
+
+// Named Exports (for Sriram's pages)
+export const getUserAnalyticsOverview = async () => {
+  const response = await api.get("/api/analytics/overview");
+  return response.data;
+};
+
+export const getUserDecisionStats = async () => {
+  const response = await api.get("/api/analytics/decisions/statistics");
+  return response.data;
+};
+
+export const getAdminPlatformOverview = async () => {
+  const response = await api.get("/api/analytics/admin/dashboard");
+  return response.data;
+};
+
+export const getAdminDecisionStats = async () => {
+  const response = await api.get("/api/analytics/admin/decisions");
+  return response.data;
+};
+
+export const getAdminUserStats = async () => {
+  const response = await api.get("/api/analytics/admin/users");
+  return response.data;
+};
+
+export const getAdminCommunityStats = async () => {
+  const response = await api.get("/api/analytics/admin/communities");
+  return response.data;
+};
+
+export const getAdminUsersList = async (page = 0, size = 10) => {
+  const response = await api.get(`/api/analytics/admin/users-list?page=${page}&size=${size}`);
+  return response.data;
 };

@@ -120,23 +120,38 @@ function Sidebar() {
             </Link>
           </li>
 
-          <li className={isActive("/profile")}>
-            <Link to="/profile">
-              <FaUser /> <span>My Profile</span>
-            </Link>
-          </li>
-
-          <li className={isActive(isAdmin ? "/feedback-dashboard" : "/feedback")}>
-            <Link to={isAdmin ? "/feedback-dashboard" : "/feedback"}>
-              <FaCommentDots /> <span>Help & Feedback</span>
-            </Link>
-          </li>
-
-          <li className={isActive("/settings")}>
-            <Link to="/settings">
-              <FaCog /> <span>Settings</span>
-            </Link>
-          </li>
+          {isAdmin ? (
+            <>
+              <li className={isActive("/account")}>
+                <Link to="/account">
+                  <FaUser /> <span>Account</span>
+                </Link>
+              </li>
+              <li className={isActive("/feedback-dashboard")}>
+                <Link to="/feedback-dashboard">
+                  <FaCommentDots /> <span>Help & Feedback</span>
+                </Link>
+              </li>
+            </>
+          ) : (
+            <>
+              <li className={isActive("/profile")}>
+                <Link to="/profile">
+                  <FaUser /> <span>My Profile</span>
+                </Link>
+              </li>
+              <li className={isActive("/feedback")}>
+                <Link to="/feedback">
+                  <FaCommentDots /> <span>Help & Feedback</span>
+                </Link>
+              </li>
+              <li className={isActive("/settings")}>
+                <Link to="/settings">
+                  <FaCog /> <span>Settings</span>
+                </Link>
+              </li>
+            </>
+          )}
         </ul>
       </nav>
 

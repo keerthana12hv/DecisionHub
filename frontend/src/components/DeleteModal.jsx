@@ -18,7 +18,7 @@ function DeleteModal({ decisionTitle, onCancel, onDelete }) {
             Cancel
           </button>
           <button className="btn-primary confirm-delete-btn" onClick={onDelete}>
-            Yes, Delete Poll
+            Delete
           </button>
         </div>
       </div>

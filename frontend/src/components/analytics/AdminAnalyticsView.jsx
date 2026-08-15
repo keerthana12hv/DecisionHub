@@ -17,7 +17,19 @@ export function AdminAnalyticsView() {
   const navigate = useNavigate();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
+
+  // Paginated users directory states
   const [showUsersModal, setShowUsersModal] = useState(false);
+  const [usersPage, setUsersPage] = useState({
+    content: [],
+    number: 0,
+    totalPages: 0,
+    totalElements: 0,
+    first: true,
+    last: true
+  });
+  const [modalLoading, setModalLoading] = useState(false);
+  const [modalError, setModalError] = useState(null);
 
   const loadData = async () => {
     setLoading(true);
@@ -27,13 +39,55 @@ export function AdminAnalyticsView() {
     } catch (err) {
       console.error("Error fetching admin platform analytics", err);
     } finally {
+      setData((prev) => ({ ...prev, loading: false }));
       setLoading(false);
+    }
+  };
+
+  const exportData = (format) => {
+    const { dashboard, users, communities, decisions, discussion } = data || {};
+    const csvContent = "data:text/csv;charset=utf-8," 
+      + "Metric,Value\n"
+      + `Total Users,${dashboard?.totalUsers ?? users?.totalUsers ?? 0}\n`
+      + `Total Communities,${dashboard?.totalCommunities ?? communities?.totalCommunities ?? 0}\n`
+      + `Total Decisions,${dashboard?.totalDecisions ?? decisions?.totalDecisions ?? 0}\n`
+      + `Total Votes,${dashboard?.totalVotes ?? 0}\n`
+      + `Total Comments,${dashboard?.totalComments ?? discussion?.totalComments ?? 0}\n`
+      + `Active Decisions,${decisions?.activeDecisions ?? 0}\n`
+      + `Closed Decisions,${decisions?.closedDecisions ?? 0}\n`;
+    
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", `platform_analytics_export.${format === "excel" ? "xls" : format === "pdf" ? "txt" : "csv"}`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const loadUsersList = async (page = 0) => {
+    setModalLoading(true);
+    setModalError(null);
+    try {
+      const res = await analyticsService.getAdminUsersList(page, 5);
+      setUsersPage(res);
+    } catch (err) {
+      console.error("Error fetching registered users list:", err);
+      setModalError("Failed to fetch registered users list.");
+    } finally {
+      setModalLoading(false);
     }
   };
 
   useEffect(() => {
     loadData();
   }, []);
+
+  useEffect(() => {
+    if (showUsersModal) {
+      loadUsersList(0);
+    }
+  }, [showUsersModal]);
 
   if (loading) {
     return (
@@ -44,21 +98,14 @@ export function AdminAnalyticsView() {
     );
   }
 
-  const { dashboard, users, communities, decisions, discussion, usersList } = data || {};
+  const { dashboard, users, communities, decisions, discussion } = data || {};
 
-  // Default seeded users for fallback
-  const seededUsers = [
-    { username: "SystemAdmin", email: "admin@gmail.com", role: "ADMIN", status: "ACTIVE" },
-    { username: "Dheetshi", email: "dheetshi@gmail.com", role: "USER", status: "ACTIVE" },
-    { username: "Kavya", email: "kavya@gmail.com", role: "MODERATOR", status: "ACTIVE" }
-  ];
-
-  const displayUsers = (usersList && usersList.length > 0) ? usersList : seededUsers;
+  const displayUsers = usersPage.content || [];
 
   return (
     <div className="analytics-tab-content space-y-6">
       {/* Admin Header */}
-      <div className="glass-card" style={{ padding: "20px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+      <div className="glass-card" style={{ padding: "20px", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "15px" }}>
         <div>
           <span style={{ fontSize: "12px", background: "rgba(245, 158, 11, 0.2)", color: "#fbbf24", padding: "3px 8px", borderRadius: "12px", fontWeight: "bold" }}>
             Admin Platform System Overview
@@ -70,9 +117,20 @@ export function AdminAnalyticsView() {
             Global platform overview, real-time statistics and engagement metrics
           </p>
         </div>
-        <button className="btn-secondary" onClick={loadData} style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-          <FaSync /> Refresh Platform Data
-        </button>
+        <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
+          <button className="btn-secondary" onClick={loadData} style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+            <FaSync /> Refresh Platform Data
+          </button>
+          <button className="btn-secondary" onClick={() => exportData("csv")} style={{ display: "flex", alignItems: "center", gap: "6px", background: "rgba(16, 185, 129, 0.1)", color: "#10b981", borderColor: "rgba(16, 185, 129, 0.3)" }}>
+            Export CSV
+          </button>
+          <button className="btn-secondary" onClick={() => exportData("excel")} style={{ display: "flex", alignItems: "center", gap: "6px", background: "rgba(59, 130, 246, 0.1)", color: "#3b82f6", borderColor: "rgba(59, 130, 246, 0.3)" }}>
+            Export Excel
+          </button>
+          <button className="btn-secondary" onClick={() => exportData("pdf")} style={{ display: "flex", alignItems: "center", gap: "6px", background: "rgba(239, 68, 68, 0.1)", color: "#ef4444", borderColor: "rgba(239, 68, 68, 0.3)" }}>
+            Export PDF
+          </button>
+        </div>
       </div>
 
       {/* Platform Overview Header */}
@@ -238,24 +296,6 @@ export function AdminAnalyticsView() {
             </div>
           </div>
         </div>
-
-        {/* Popular Categories */}
-        <div className="glass-card" style={{ padding: "20px" }}>
-          <h4 style={{ margin: "0 0 15px 0", color: "#fbbf24", display: "flex", alignItems: "center", gap: "8px" }}>
-            <FaComments /> Popular Categories
-          </h4>
-          <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", padding: "10px", background: "rgba(255,255,255,0.02)", borderRadius: "6px" }}>
-              <span style={{ color: "#94a3b8", fontSize: "13px" }}>Technology</span>
-              <strong style={{ color: "#fff" }}>Monitored</strong>
-            </div>
-            <div style={{ display: "flex", justifyContent: "space-between", padding: "10px", background: "rgba(255,255,255,0.02)", borderRadius: "6px" }}>
-              <span style={{ color: "#94a3b8", fontSize: "13px" }}>General</span>
-              <strong style={{ color: "#fff" }}>Monitored</strong>
-            </div>
-          </div>
-        </div>
-
       </div>
 
       {/* User List Overlay Modal */}
@@ -333,11 +373,40 @@ export function AdminAnalyticsView() {
               </table>
             </div>
 
-            <div style={{ marginTop: "20px", display: "flex", justifyContent: "flex-end" }}>
-              <button className="btn-secondary" onClick={() => setShowUsersModal(false)}>
-                Close
-              </button>
-            </div>
+            {modalLoading ? (
+              <div style={{ textAlign: "center", padding: "20px", color: "#94a3b8" }}>
+                <p>Loading users...</p>
+              </div>
+            ) : modalError ? (
+              <div style={{ color: "#ef4444", padding: "10px 0", textAlign: "center" }}>{modalError}</div>
+            ) : (
+              <div style={{ marginTop: "20px", display: "flex", justifyContent: "space-between", alignItems: "center", borderTop: "1px solid rgba(255,255,255,0.08)", paddingTop: "15px" }}>
+                <span style={{ fontSize: "12px", color: "#94a3b8" }}>
+                  Page {usersPage.number + 1} of {usersPage.totalPages} ({usersPage.totalElements} records)
+                </span>
+                <div style={{ display: "flex", gap: "8px" }}>
+                  <button 
+                    className="btn-secondary"
+                    disabled={usersPage.first || modalLoading}
+                    onClick={() => loadUsersList(usersPage.number - 1)}
+                    style={{ padding: "4px 10px", fontSize: "12px" }}
+                  >
+                    Previous
+                  </button>
+                  <button 
+                    className="btn-secondary"
+                    disabled={usersPage.last || modalLoading}
+                    onClick={() => loadUsersList(usersPage.number + 1)}
+                    style={{ padding: "4px 10px", fontSize: "12px" }}
+                  >
+                    Next
+                  </button>
+                  <button className="btn-secondary" onClick={() => setShowUsersModal(false)} style={{ padding: "4px 10px", fontSize: "12px", background: "rgba(255,255,255,0.05)" }}>
+                    Close
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}

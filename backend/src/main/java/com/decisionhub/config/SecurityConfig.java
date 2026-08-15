@@ -76,7 +76,8 @@ public class SecurityConfig {
                                 "/api/auth/reset-password",
                                 "/api/auth/oauth2/**",
                                 "/swagger-ui/**",
-                                "/v3/api-docs/**"
+                                "/v3/api-docs/**",
+                                "/error"
                         ).permitAll()
 
                         // 🔒 RESTRICTED: Only ADMINs can Create, Update, or Delete Categories
@@ -97,6 +98,10 @@ public class SecurityConfig {
 
                         // USER or ADMIN
                         .requestMatchers("/api/user/**").hasAnyRole("USER", "ADMIN")
+
+                        // 📊 ANALYTICS AUTHORIZATION
+                        .requestMatchers("/api/analytics/admin/**").hasRole("ADMIN")
+                        .requestMatchers("/api/analytics/**").authenticated()
 
                         // All other APIs require authentication
                         .anyRequest().authenticated()

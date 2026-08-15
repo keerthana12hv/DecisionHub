@@ -22,7 +22,9 @@ public record DecisionResponse(
         List<ComparisonFactorResponse> factors,
         LocalDateTime createdAt,
         boolean pinned,
-        boolean locked
+        boolean locked,
+        Long totalVotes,
+        Long totalComments
 ) {
 
     public DecisionResponse(
@@ -41,7 +43,7 @@ public record DecisionResponse(
             LocalDateTime createdAt
     ) {
         this(id, title, description, creator, categoryName, communityName, status, deadline,
-                votingType, votingEndTime, options, factors, createdAt, false, false);
+                votingType, votingEndTime, options, factors, createdAt, false, false, 0L, 0L);
     }
 
     public DecisionResponse(
@@ -62,7 +64,7 @@ public record DecisionResponse(
         this(id, title, description, creator, categoryName, communityName, status, deadline,
                 VotingType.RATING_BASED,
                 deadline != null ? deadline.minusHours(2) : null,
-                options, factors, createdAt, pinned, locked);
+                options, factors, createdAt, pinned, locked, 0L, 0L);
     }
 
     @Deprecated
@@ -82,6 +84,6 @@ public record DecisionResponse(
         this(id, title, description, creator, categoryName, communityName, status, deadline,
                 VotingType.RATING_BASED,
                 deadline != null ? deadline.minusHours(2) : null,
-                options, factors, createdAt, false, false);
+                options, factors, createdAt, false, false, 0L, 0L);
     }
 }
