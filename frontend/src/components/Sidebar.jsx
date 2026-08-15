@@ -82,7 +82,7 @@ function Sidebar() {
           {!isAdmin && (
             <li className={isActive("/decisions")}>
               <Link to="/decisions">
-                <FaCog /> <span>Manage Decisions</span>
+                <FaGavel /> <span>Decision</span>
               </Link>
             </li>
           )}

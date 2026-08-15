@@ -25,11 +25,49 @@
   margin: 0;
 }
 
-.decision-actions-header {
+.decision-search-row {
+  margin-bottom: 0.5rem;
+}
+
+.decision-search-row .table-search {
+  width: 320px;
+}
+
+.decision-tabs-row {
   display: flex;
+  justify-content: space-between;
   align-items: center;
-  gap: 0.75rem;
   flex-wrap: wrap;
+  gap: 1.5rem;
+  margin-bottom: 0.5rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.decision-tabs {
+  display: flex;
+  gap: 4px;
+}
+
+.decision-tab-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  font-family: var(--font-title);
+  font-weight: 600;
+  font-size: 0.9rem;
+  padding: 10px 16px;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  transition: color 0.15s ease, border-color 0.15s ease;
+}
+
+.decision-tab-btn:hover {
+  color: var(--text-primary);
+}
+
+.decision-tab-btn.active {
+  color: var(--accent-purple);
+  border-bottom-color: var(--accent-purple);
 }
 
 .table-search {
@@ -101,6 +139,10 @@
 }
 
 .decision-title-col {
+  vertical-align: middle;
+}
+
+.decision-title-container {
   display: flex;
   flex-direction: column;
   gap: 4px;
@@ -158,8 +200,13 @@
 
 .actions-col {
   text-align: right;
-  display: flex;
+  vertical-align: middle;
+}
+
+.actions-btn-group {
+  display: inline-flex;
   justify-content: flex-end;
+  align-items: center;
   gap: 0.5rem;
 }
 
@@ -293,15 +340,30 @@
     flex-direction: column;
     align-items: flex-start;
   }
-  .decision-actions-header {
-    width: 100%;
-    justify-content: space-between;
-  }
-  .table-search {
+  .decision-search-row .table-search {
     width: 100%;
   }
-  .filter {
+  .decision-tabs-row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 1rem;
+    width: 100%;
+  }
+  .decision-tabs {
+    display: flex;
+    overflow-x: auto;
+    width: 100%;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  }
+  .decision-tab-btn {
     flex: 1;
+    text-align: center;
+    padding: 10px 8px;
+    font-size: 0.85rem;
+    white-space: nowrap;
+  }
+  .create-decision-btn {
+    width: 100%;
   }
   .decision-table-element th:nth-child(2),
   .decision-table-element td:nth-child(2),

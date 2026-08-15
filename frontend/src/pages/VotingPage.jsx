@@ -32,7 +32,9 @@ const VotingPage = () => {
       setLoading(true);
       const res = await axios.get(`${API}/decisions`, headers());
       const votable = res.data.filter(
-        (d) => d.status === "ACTIVE" && d.votingType !== "RATING_BASED"
+        (d) => d.status === "ACTIVE" && 
+               d.votingType !== "RATING_BASED" && 
+               (!d.votingEndTime || new Date() < new Date(d.votingEndTime))
       );
       setPolls(votable);
 
