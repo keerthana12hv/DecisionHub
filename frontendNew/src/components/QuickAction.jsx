@@ -19,7 +19,7 @@ function QuickAction() {
       <h2 className="section-title">Quick Actions</h2>
 
       <div className="quick-grid">
-        {isAdmin && (
+        {!isAdmin && (
           <Link to="/create-decision" className="quick-card glass-card">
             <div className="quick-icon-wrapper purple">
               <FaPlusCircle className="quick-icon" />
@@ -29,13 +29,15 @@ function QuickAction() {
           </Link>
         )}
 
-        <Link to="/decisions" className="quick-card glass-card">
-          <div className="quick-icon-wrapper blue">
-            <FaVoteYea className="quick-icon" />
-          </div>
-          <h3>Vote Now</h3>
-          <p>Browse active decisions and cast your vote.</p>
-        </Link>
+        {!isAdmin && (
+          <Link to="/decisions" className="quick-card glass-card">
+            <div className="quick-icon-wrapper blue">
+              <FaVoteYea className="quick-icon" />
+            </div>
+            <h3>Vote Now</h3>
+            <p>Browse active decisions and cast your vote.</p>
+          </Link>
+        )}
 
         <Link to="/communities" className="quick-card glass-card">
           <div className="quick-icon-wrapper green">

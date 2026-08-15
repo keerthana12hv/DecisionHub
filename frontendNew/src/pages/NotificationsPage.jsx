@@ -17,6 +17,13 @@ import {
   FaCog
 } from "react-icons/fa";
 import "../styles/NotificationsPage.css";
+import {
+  getNotifications,
+  markAsRead as apiMarkAsRead,
+  markAllAsRead as apiMarkAllAsRead,
+  deleteNotification as apiDeleteNotification,
+  clearAllNotifications as apiClearAllNotifications
+} from "../services/notificationService";
 
 function NotificationsPage() {
   const { addToast } = useToast();

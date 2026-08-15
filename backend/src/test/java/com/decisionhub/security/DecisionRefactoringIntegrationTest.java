@@ -115,7 +115,7 @@ public class DecisionRefactoringIntegrationTest {
         DecisionResponse decision = objectMapper.readValue(createStr, DecisionResponse.class);
 
         // 2. Try publishing immediately -> should fail since it has no options (Rule 5 requires at least 2)
-        mockMvc.perform(post("/api/decisions/" + decision.id() + "/publish")
+        mockMvc.perform(put("/api/decisions/" + decision.id() + "/publish")
                 .header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
                 .andExpect(status().isBadRequest());
 
@@ -134,7 +134,7 @@ public class DecisionRefactoringIntegrationTest {
                 .andExpect(status().isCreated());
 
         // 4. Try publishing rating-based -> should fail because it has no comparison factors (Rule 6)
-        mockMvc.perform(post("/api/decisions/" + decision.id() + "/publish")
+        mockMvc.perform(put("/api/decisions/" + decision.id() + "/publish")
                 .header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
                 .andExpect(status().isBadRequest());
 
@@ -147,7 +147,7 @@ public class DecisionRefactoringIntegrationTest {
                 .andExpect(status().isCreated());
 
         // 6. Publish successfully
-        mockMvc.perform(post("/api/decisions/" + decision.id() + "/publish")
+        mockMvc.perform(put("/api/decisions/" + decision.id() + "/publish")
                 .header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("ACTIVE"));

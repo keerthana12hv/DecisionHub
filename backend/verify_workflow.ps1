@@ -169,7 +169,7 @@ Execute-Sql "SELECT id, name, description FROM comparison_factors WHERE decision
 # 7. PUBLISH DECISION
 Write-Host "`n[7] Publishing Decision..."
 try {
-    $publishResponse = Invoke-WebRequest -Uri "http://localhost:8080/api/decisions/$decisionId/publish" -Method Post -ContentType "application/json" -Headers $headers -UseBasicParsing
+    $publishResponse = Invoke-WebRequest -Uri "http://localhost:8080/api/decisions/$decisionId/publish" -Method Put -ContentType "application/json" -Headers $headers -UseBasicParsing
     Write-Host "HTTP Status: $($publishResponse.StatusCode)"
     Write-Host "Response Content: $($publishResponse.Content)"
 } catch {

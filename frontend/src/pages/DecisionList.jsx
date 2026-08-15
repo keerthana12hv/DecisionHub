@@ -5,6 +5,7 @@ import Sidebar from "../components/Sidebar";
 import Navbar from "../components/Navbar";
 import DeleteModal from "../components/DeleteModal";
 import { useToast } from "../components/Toast";
+import { useAuth } from "../context/AuthContext";
 import {
   FaTrash,
   FaSearch,
@@ -14,7 +15,8 @@ import {
   FaChevronRight,
   FaThumbtack,
   FaLock,
-  FaArrowRight
+  FaArrowRight,
+  FaComments
 } from "react-icons/fa";
 import "../styles/DecisionList.css";
 
@@ -27,8 +29,10 @@ const headers = () => ({ headers: { Authorization: `Bearer ${token()}` } });
 
 function DecisionList() {
   const { addToast } = useToast();
+  const { user } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const isAdmin = user?.role === "ADMIN";
 
   const [decisions, setDecisions] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -118,10 +122,11 @@ function DecisionList() {
     return matchesSearch && matchesCategory && matchesStatus;
   });
 
-  const totalPages = Math.ceil(filteredDecisions.length / itemsPerPage);
+  const sortedFilteredDecisions = [...filteredDecisions].sort((a, b) => (a.pinned && !b.pinned ? -1 : !a.pinned && b.pinned ? 1 : 0));
+  const totalPages = Math.ceil(sortedFilteredDecisions.length / itemsPerPage);
   const indexOfLastItem = currentPage * itemsPerPage;
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
-  const currentItems = filteredDecisions.slice(indexOfFirstItem, indexOfLastItem);
+  const currentItems = sortedFilteredDecisions.slice(indexOfFirstItem, indexOfLastItem);
 
   const paginate = (pageNumber) => {
     if (pageNumber >= 1 && pageNumber <= totalPages) {
@@ -182,18 +187,31 @@ function DecisionList() {
               ) : (
                 <table className="decision-table-element">
                   <thead>
-                    <tr>
-                      <th>Decision Title</th>
-                      <th>Category</th>
-                      <th>Community</th>
-                      <th>Status</th>
-                      <th style={{ textAlign: "right" }}>Actions</th>
-                    </tr>
+                    {isAdmin ? (
+                      <tr>
+                        <th>Decision Title</th>
+                        <th>Creator</th>
+                        <th>Community / Visibility</th>
+                        <th>Status</th>
+                        <th>Total Votes</th>
+                        <th>Total Comments</th>
+                        <th>Deadline</th>
+                        <th style={{ textAlign: "right" }}>Actions</th>
+                      </tr>
+                    ) : (
+                      <tr>
+                        <th>Decision Title</th>
+                        <th>Category</th>
+                        <th>Community</th>
+                        <th>Status</th>
+                        <th style={{ textAlign: "right" }}>Actions</th>
+                      </tr>
+                    )}
                   </thead>
                   <tbody>
                     {currentItems.length === 0 ? (
                       <tr>
-                        <td colSpan="5" className="empty-table">No matching decisions found.</td>
+                        <td colSpan={isAdmin ? 8 : 5} className="empty-table">No matching decisions found.</td>
                       </tr>
                     ) : (
                       currentItems.map((decision) => {
@@ -202,43 +220,71 @@ function DecisionList() {
                           <tr key={decision.id}>
                             <td className="decision-title-col">
                               <span className="title-text">
-                                {decision.pinned && <FaThumbtack title="Pinned" style={{ marginRight: 6, color: "#a5a0ff" }} />}
-                                {decision.locked && <FaLock title="Locked" style={{ marginRight: 6, color: "#f87171" }} />}
+                                {!isAdmin && decision.pinned && <FaThumbtack title="Pinned" style={{ marginRight: 6, color: "#a5a0ff" }} />}
+                                {!isAdmin && decision.locked && <FaLock title="Locked" style={{ marginRight: 6, color: "#f87171" }} />}
                                 {decision.title}
                               </span>
                               <span className="desc-preview">{decision.description}</span>
                             </td>
-                            <td>
-                              {decision.categoryName ? (
-                                <span className="category-tag">{decision.categoryName}</span>
-                              ) : (
-                                <span style={{ color: "var(--text-muted)", fontSize: "0.85rem" }}>—</span>
-                              )}
-                            </td>
-                            <td>{decision.communityName || "Public"}</td>
-                            <td>
-                              <span className={`status-badge ${decision.status.toLowerCase()}`}>
-                                {decision.status}
-                              </span>
-                            </td>
+                            {isAdmin ? (
+                              <>
+                                <td>{decision.creator?.username || decision.creator?.email || "—"}</td>
+                                <td>{decision.communityName || "Public"}</td>
+                                <td>
+                                  <span className={`status-badge ${decision.status.toLowerCase()}`}>
+                                    {decision.status}
+                                  </span>
+                                </td>
+                                <td>{decision.totalVotes ?? 0}</td>
+                                <td>{decision.totalComments ?? 0}</td>
+                                <td>{decision.deadline ? new Date(decision.deadline).toLocaleString() : "—"}</td>
+                              </>
+                            ) : (
+                              <>
+                                <td>
+                                  {decision.categoryName ? (
+                                    <span className="category-tag">{decision.categoryName}</span>
+                                  ) : (
+                                    <span style={{ color: "var(--text-muted)", fontSize: "0.85rem" }}>—</span>
+                                  )}
+                                </td>
+                                <td>{decision.communityName || "Public"}</td>
+                                <td>
+                                  <span className={`status-badge ${decision.status.toLowerCase()}`}>
+                                    {decision.status}
+                                  </span>
+                                </td>
+                              </>
+                            )}
                             <td className="actions-col">
                               <button
                                 className="action-row-btn-icon vote"
-                               onClick={() => navigate(`/decisions/${decision.id}`)}
+                                onClick={() => navigate(`/decisions/${decision.id}`)}
                                 title="View Decision"
                               >
                                 <FaArrowRight />
                               </button>
 
-                              <button
-                                className="action-row-btn-icon share"
-                                onClick={() => handleShare(decision.id)}
-                                title="Copy Share Link"
-                              >
-                                <FaCopy />
-                              </button>
+                              {isAdmin ? (
+                                <button
+                                  className="action-row-btn-icon discuss"
+                                  onClick={() => navigate(`/admin/decisions/${decision.id}/discuss`)}
+                                  title="View Discussion"
+                                  style={{ background: "rgba(16, 185, 129, 0.15)", color: "#10b981", border: "1px solid rgba(16,185,129,0.3)" }}
+                                >
+                                  <FaComments />
+                                </button>
+                              ) : (
+                                <button
+                                  className="action-row-btn-icon share"
+                                  onClick={() => handleShare(decision.id)}
+                                  title="Copy Share Link"
+                                >
+                                  <FaCopy />
+                                </button>
+                              )}
 
-                              {isCreator && (
+                              {(isCreator || isAdmin) && (
                                 <button
                                   className="action-row-btn-icon delete"
                                   onClick={() => {

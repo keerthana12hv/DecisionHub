@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import axios from "axios";
 import { getRanking } from "../services/voteService";
 
 // Confirmed from the real API response: { decisionId, decisionTitle, options: [...], status }
@@ -30,6 +31,7 @@ function ResultsCard({ items, unit, emptyLabel }) {
   const leaderPercent = (leader.value / total) * 100;
   const margin = runnerUp ? leader.value - runnerUp.value : leader.value;
   const isMajority = leaderPercent >= 50;
+  const isTie = runnerUp && leader.value === runnerUp.value;
 
   const formatValue = (v) => (Number.isInteger(v) ? v : v.toFixed(1));
 
@@ -39,13 +41,19 @@ function ResultsCard({ items, unit, emptyLabel }) {
         <span className="results-headline-figure">{Math.round(leaderPercent)}%</span>
         <div className="results-headline-copy">
           <p className="results-headline-lead">
-            <strong>{leader.label}</strong> is ahead
-            {runnerUp && (
-              <> &mdash; +{formatValue(margin)} {unit} over {runnerUp.label}</>
+            {isTie ? (
+              <><strong>Tied</strong> &mdash; <strong>{leader.label}</strong> and <strong>{runnerUp.label}</strong> are tied with {formatValue(leader.value)} {unit} each</>
+            ) : (
+              <>
+                <strong>{leader.label}</strong> is ahead
+                {runnerUp && (
+                  <> &mdash; +{formatValue(margin)} {unit} over {runnerUp.label}</>
+                )}
+              </>
             )}
           </p>
-          <span className={`results-majority-tag ${isMajority ? "is-majority" : "is-plurality"}`}>
-            {isMajority ? "Clear majority" : "Leading plurality"}
+          <span className={`results-majority-tag ${isTie ? "is-tie" : isMajority ? "is-majority" : "is-plurality"}`}>
+            {isTie ? "Tie / No clear majority" : isMajority ? "Clear majority" : "Leading plurality"}
           </span>
         </div>
       </div>
@@ -53,8 +61,9 @@ function ResultsCard({ items, unit, emptyLabel }) {
       <div className="results-lanes">
         {sorted.map((item, i) => {
           const percent = (item.value / total) * 100;
+          const isLeaderLane = i === 0 || (isTie && item.value === leader.value);
           return (
-            <div className={`results-lane ${i === 0 ? "is-leader" : ""}`} key={item.key}>
+            <div className={`results-lane ${isLeaderLane ? "is-leader" : ""}`} key={item.key}>
               <span className="results-rank">{String(i + 1).padStart(2, "0")}</span>
               <div className="results-lane-main">
                 <div className="results-lane-label">
@@ -132,14 +141,48 @@ function RatingResults({ decisionId, pollOpen, refreshTick }) {
   );
 }
 
-function VoteCountResults({ decision }) {
-  const options = decision.options || [];
-  const totalVotes = options.reduce((sum, opt) => sum + (opt.voteCount ?? 0), 0);
 
-  const items = options.map((opt) => ({
-    key: opt.id,
-    label: opt.title,
-    value: opt.voteCount ?? 0
+function VoteCountResults({ decisionId, pollOpen }) {
+  const [distribution, setDistribution] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  const fetchDistribution = async (silent = false) => {
+    if (!decisionId) return;
+    if (!silent) setLoading(true);
+    try {
+      const t = localStorage.getItem("token") || localStorage.getItem("authToken") || localStorage.getItem("jwt");
+      const res = await axios.get(`http://localhost:8080/api/analytics/decisions/${decisionId}/distribution`, {
+        headers: { Authorization: `Bearer ${t}` }
+      });
+      console.log("Analytics distribution response:", res.data);
+      setDistribution(Array.isArray(res.data) ? res.data : []);
+    } catch (err) {
+      console.error("Failed to fetch vote distribution:", err);
+      setDistribution([]);
+    } finally {
+      if (!silent) setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchDistribution();
+  }, [decisionId]);
+
+  useEffect(() => {
+    if (!pollOpen || !decisionId) return;
+    const intervalId = setInterval(() => fetchDistribution(true), 5000);
+    return () => clearInterval(intervalId);
+  }, [decisionId, pollOpen]);
+
+  if (loading) return <p className="poll-results-empty">Loading results...</p>;
+
+  const list = Array.isArray(distribution) ? distribution : [];
+  const totalVotes = list.reduce((sum, d) => sum + (d.voteCount ?? 0), 0);
+
+  const items = list.map((d) => ({
+    key: d.optionId,
+    label: d.optionName,
+    value: d.voteCount ?? 0
   }));
 
   return (
@@ -157,5 +200,5 @@ export default function PollResultsPanel({ decision, pollOpen, refreshTick }) {
       <RatingResults decisionId={decision.id} pollOpen={pollOpen} refreshTick={refreshTick} />
     );
   }
-  return <VoteCountResults decision={decision} />;
+  return <VoteCountResults decisionId={decision.id} pollOpen={pollOpen} />;
 }

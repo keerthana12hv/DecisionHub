@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import { useToast } from "../components/Toast";
 import api from "../services/api";
+import { reportComment } from "../services/moderationService";
 
 const MAX_DEPTH = 5;
 
@@ -19,6 +20,8 @@ function CommentThread({ comment, decisionId, decisionStatus, onCommentUpdated, 
 
   const [isEditing, setIsEditing] = useState(false);
   const [editText, setEditText] = useState(comment.content);
+  const [isReporting, setIsReporting] = useState(false);
+  const [reportReason, setReportReason] = useState("");
 
   const isDecisionActive = decisionStatus === "ACTIVE";
   const isAuthor = user?.id === comment.userId;
@@ -86,6 +89,22 @@ function CommentThread({ comment, decisionId, decisionStatus, onCommentUpdated, 
     }
   };
 
+  const handleReportSubmit = async (e) => {
+    e.preventDefault();
+    if (!reportReason.trim()) return;
+    try {
+      await reportComment(comment.id, reportReason);
+      setReportReason("");
+      setIsReporting(false);
+      addToast("Comment reported. A moderator will review it.", "success");
+    } catch (error) {
+      addToast(
+        error.response?.data?.error || "Failed to report comment.",
+        "error"
+      );
+    }
+  };
+
   const handleDelete = async () => {
     try {
       await api.delete(`/api/comments/${comment.id}`);
@@ -105,11 +124,10 @@ function CommentThread({ comment, decisionId, decisionStatus, onCommentUpdated, 
     );
   };
 
-  const handleChildDeleted = (childId) => {
-    setReplies((prev) =>
-      prev.map((r) => (r.id === childId ? { ...r, deleted: true } : r))
-    );
-  };
+ 
+ const handleChildDeleted = (childId) => {
+  setReplies((prev) => prev.filter((r) => r.id !== childId));
+};
 
   return (
     <div className="comment-thread" style={{ marginLeft: comment.depth * 20 }}>
@@ -145,7 +163,27 @@ function CommentThread({ comment, decisionId, decisionStatus, onCommentUpdated, 
               <button onClick={() => setIsEditing(true)}>Edit</button>
             )}
             {canDelete && <button onClick={handleDelete}>Delete</button>}
+            {!isAuthor && (
+              <button onClick={() => setIsReporting(true)}>
+                Report
+              </button>
+            )}
           </div>
+        )}
+
+        {isReporting && (
+          <form onSubmit={handleReportSubmit} className="comment-report-form">
+            <textarea
+              value={reportReason}
+              onChange={(e) => setReportReason(e.target.value)}
+              placeholder="Why is this comment inappropriate?"
+              required
+            />
+            <button type="submit">Submit Report</button>
+            <button type="button" onClick={() => setIsReporting(false)}>
+              Cancel
+            </button>
+          </form>
         )}
 
         {isReplying && (

@@ -1,6 +1,7 @@
 package com.decisionhub.repository.discussion;
 
 import com.decisionhub.entity.discussion.Comment;
+
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -17,8 +18,13 @@ public interface CommentRepository extends JpaRepository<Comment, Long> {
     );
 
     List<Comment> findByDecisionId(Long decisionId);
-
     List<Comment> findByDecisionIdAndDeletedAtIsNull(Long decisionId);
+
+    long countByDecisionId(Long decisionId);
+
+    long countByDecisionIdAndParentCommentIsNull(Long decisionId);
+
+    long countByDecisionIdAndParentCommentIsNotNull(Long decisionId);
 
     /**
      * Retrieves all non-deleted top-level comments belonging
@@ -59,14 +65,6 @@ public interface CommentRepository extends JpaRepository<Comment, Long> {
      */
     boolean existsByParentCommentId(Long parentCommentId);
 
-    // ============================================================
-    // ANALYTICS QUERIES
-    // ============================================================
-
-    long countByDecisionIdAndParentCommentIsNull(Long decisionId);
-
-    long countByDecisionIdAndParentCommentIsNotNull(Long decisionId);
-
     long countByDecisionCommunityIdAndParentCommentIsNull(Long communityId);
 
     long countByDecisionCommunityIdAndParentCommentIsNotNull(Long communityId);
@@ -85,7 +83,7 @@ public interface CommentRepository extends JpaRepository<Comment, Long> {
         WHERE c.decision.community.id = :communityId
         GROUP BY c.user.id, c.user.username
         ORDER BY COUNT(c) DESC
-    """)
+        """)
     List<Object[]> getMostActiveMembers(
             @Param("communityId") Long communityId
     );
@@ -94,13 +92,13 @@ public interface CommentRepository extends JpaRepository<Comment, Long> {
         SELECT COUNT(c)
         FROM Comment c
         WHERE c.parentComment IS NULL
-    """)
+        """)
     long countTopLevelComments();
 
     @Query("""
         SELECT COUNT(c)
         FROM Comment c
         WHERE c.parentComment IS NOT NULL
-    """)
+        """)
     long countReplies();
 }

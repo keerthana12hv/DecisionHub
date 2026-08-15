@@ -6,34 +6,34 @@
   --bg-card: rgba(25, 22, 53, 0.35);
   --border-glass: rgba(255, 255, 255, 0.06);
   --border-focus: #8b5cf6;
-  
+
   --text-primary: #f3f4f6;
   --text-secondary: #9ca3af;
   --text-muted: #6b7280;
-  
+
   --accent-purple: #8b5cf6;
   --accent-purple-glow: rgba(139, 92, 246, 0.25);
   --accent-blue: #3b82f6;
   --accent-blue-glow: rgba(59, 130, 246, 0.25);
-  
+
   --gradient-primary: linear-gradient(135deg, #8b5cf6 0%, #3b82f6 100%);
   --gradient-hover: linear-gradient(135deg, #a78bfa 0%, #60a5fa 100%);
   --gradient-card: linear-gradient(135deg, rgba(25, 22, 53, 0.5) 0%, rgba(12, 10, 29, 0.5) 100%);
   --gradient-glow: radial-gradient(circle at 50% 50%, rgba(139, 92, 246, 0.12) 0%, transparent 70%);
-  
+
   --success: #10b981;
   --success-glow: rgba(16, 185, 129, 0.15);
   --warning: #f59e0b;
   --warning-glow: rgba(245, 158, 11, 0.15);
   --danger: #ef4444;
   --danger-glow: rgba(239, 68, 68, 0.15);
-  
+
   --font-title: 'Outfit', 'Inter', sans-serif;
   --font-body: 'Inter', sans-serif;
-  
+
   --shadow-premium: 0 10px 30px 0 rgba(0, 0, 0, 0.45);
   --shadow-glow: 0 0 25px rgba(139, 92, 246, 0.15);
-  
+
   --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   --border-radius-sm: 6px;
   --border-radius-md: 12px;
@@ -47,28 +47,28 @@
   --bg-card: rgba(255, 255, 255, 0.7);
   --border-glass: rgba(0, 0, 0, 0.08);
   --border-focus: #6366f1;
-  
+
   --text-primary: #0f172a;
   --text-secondary: #475569;
   --text-muted: #64748b;
-  
+
   --accent-purple: #6366f1;
   --accent-purple-glow: rgba(99, 102, 241, 0.15);
   --accent-blue: #2563eb;
   --accent-blue-glow: rgba(37, 99, 235, 0.15);
-  
+
   --gradient-primary: linear-gradient(135deg, #6366f1 0%, #2563eb 100%);
   --gradient-hover: linear-gradient(135deg, #818cf8 0%, #3b82f6 100%);
   --gradient-card: linear-gradient(135deg, rgba(255, 255, 255, 0.85) 0%, rgba(241, 245, 249, 0.85) 100%);
   --gradient-glow: radial-gradient(circle at 50% 50%, rgba(99, 102, 241, 0.08) 0%, transparent 70%);
-  
+
   --success: #059669;
   --success-glow: rgba(5, 150, 105, 0.1);
   --warning: #d97706;
   --warning-glow: rgba(217, 119, 6, 0.1);
   --danger: #dc2626;
   --danger-glow: rgba(220, 38, 38, 0.1);
-  
+
   --shadow-premium: 0 10px 30px 0 rgba(0, 0, 0, 0.06);
   --shadow-glow: 0 0 20px rgba(99, 102, 241, 0.1);
 }
@@ -134,18 +134,39 @@ body,
 
 /* Animations */
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 @keyframes glow {
-  0%, 100% { box-shadow: 0 0 15px rgba(139, 92, 246, 0.1); }
-  50% { box-shadow: 0 0 25px rgba(139, 92, 246, 0.3); }
+
+  0%,
+  100% {
+    box-shadow: 0 0 15px rgba(139, 92, 246, 0.1);
+  }
+
+  50% {
+    box-shadow: 0 0 25px rgba(139, 92, 246, 0.3);
+  }
 }
 
 @keyframes popIn {
-  0% { transform: scale(0.9); opacity: 0; }
-  100% { transform: scale(1); opacity: 1; }
+  0% {
+    transform: scale(0.9);
+    opacity: 0;
+  }
+
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
 }
 
 .animate-fade-in {
@@ -161,7 +182,9 @@ body,
 }
 
 /* Form Styles */
-input, textarea, select {
+input,
+textarea,
+select {
   width: 100%;
   padding: 0.75rem 1rem;
   background: rgba(255, 255, 255, 0.05);
@@ -175,35 +198,17 @@ input, textarea, select {
   box-sizing: border-box;
 }
 
-/* The <select> box itself already inherited the dark input styling above,
-   but its <option> list did not — browsers render the opened dropdown list
-   using its own default (usually white/black) unless <option> is styled
-   explicitly. That's what was showing up as "still default white styling". */
-select {
-  appearance: none;
-  -webkit-appearance: none;
-  -moz-appearance: none;
-  padding-right: 2.5rem;
-  cursor: pointer;
-  background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%239ca3af' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
-  background-repeat: no-repeat;
-  background-position: right 0.85rem center;
-  background-size: 16px;
-}
-
-select option {
-  background: var(--bg-tertiary);
-  color: var(--text-primary);
-}
-
-select option:disabled {
-  color: var(--text-muted);
-}
-
-input:focus, textarea:focus, select:focus {
+input:focus,
+textarea:focus,
+select:focus {
   border-color: var(--border-focus);
   background: rgba(255, 255, 255, 0.08);
   box-shadow: 0 0 0 2px var(--accent-purple-glow);
+}
+
+select option {
+  background-color: #0f0d22;
+  color: #f3f4f6;
 }
 
 /* Button Styles */

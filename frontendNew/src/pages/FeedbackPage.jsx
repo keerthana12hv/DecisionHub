@@ -15,7 +15,7 @@ export default function FeedbackPage() {
   const { user } = useAuth();
   const { addToast } = useToast();
 
-  const [activeTab, setActiveTab] = useState("decision-feedback");
+  const [activeTab, setActiveTab] = useState("bug-report");
 
   // Support Tickets State
   const [tickets, setTickets] = useState([]);
@@ -23,15 +23,6 @@ export default function FeedbackPage() {
   const [ticketsError, setTicketsError] = useState("");
   const [selectedTicket, setSelectedTicket] = useState(null);
   const [showDetails, setShowDetails] = useState(false);
-
-  // Decision Feedback State
-  const [closedDecisions, setClosedDecisions] = useState([]);
-  const [selectedDecisionId, setSelectedDecisionId] = useState("");
-  const [decisionFeedback, setDecisionFeedback] = useState(null);
-  const [fetchingFeedback, setFetchingFeedback] = useState(false);
-  const [dfRating, setDfRating] = useState(0);
-  const [dfComment, setDfComment] = useState("");
-  const [submittingDF, setSubmittingDF] = useState(false);
 
   // Bug Report Form State
   const [bugSubject, setBugSubject] = useState("");
@@ -49,25 +40,8 @@ export default function FeedbackPage() {
   const [submittingGF, setSubmittingGF] = useState(false);
 
   useEffect(() => {
-    fetchClosedDecisions();
     loadTickets();
   }, []);
-
-  const fetchClosedDecisions = async () => {
-    try {
-      const res = await api.get("/api/decisions");
-      const closed = (res.data || []).filter(
-        (d) => d.status === "CLOSED" && String(d.creator?.id) === String(user?.id)
-      );
-      setClosedDecisions(closed);
-      if (closed.length > 0) {
-        setSelectedDecisionId(closed[0].id);
-        fetchDecisionFeedback(closed[0].id);
-      }
-    } catch (err) {
-      console.error("Failed to fetch decisions:", err);
-    }
-  };
 
   const loadTickets = async () => {
     setLoadingTickets(true);
@@ -82,65 +56,6 @@ export default function FeedbackPage() {
       setTicketsError("Failed to load your support tickets.");
     } finally {
       setLoadingTickets(false);
-    }
-  };
-
-  const fetchDecisionFeedback = async (decisionId) => {
-    setFetchingFeedback(true);
-    setDecisionFeedback(null);
-    try {
-      const res = await api.get(`/api/decisions/${decisionId}/feedback`);
-      setDecisionFeedback(res.data);
-    } catch (err) {
-      // Feedback does not exist yet (or 404), which is normal.
-      setDecisionFeedback(null);
-    } finally {
-      setFetchingFeedback(false);
-    }
-  };
-
-  const handleDecisionChange = (e) => {
-    const id = e.target.value;
-    setSelectedDecisionId(id);
-    if (id) {
-      fetchDecisionFeedback(id);
-    } else {
-      setDecisionFeedback(null);
-    }
-  };
-
-  const handleDecisionFeedbackSubmit = async (e) => {
-    e.preventDefault();
-    if (!selectedDecisionId) {
-      addToast("Please select a decision first.", "error");
-      return;
-    }
-    if (dfRating === 0) {
-      addToast("Please select a rating.", "error");
-      return;
-    }
-    setSubmittingDF(true);
-    try {
-      const res = await api.post(`/api/decisions/${selectedDecisionId}/feedback`, {
-        rating: dfRating,
-        comment: dfComment.trim(),
-      });
-      addToast("Feedback submitted successfully!", "success");
-      setDecisionFeedback(res.data);
-      setDfRating(0);
-      setDfComment("");
-    } catch (err) {
-      const errMsg =
-        err.response?.data?.error ||
-        err.response?.data?.message ||
-        err.message ||
-        "Failed to submit feedback.";
-      addToast(errMsg, "error");
-      if (errMsg.includes("already") || errMsg.includes("submitted")) {
-        fetchDecisionFeedback(selectedDecisionId);
-      }
-    } finally {
-      setSubmittingDF(false);
     }
   };
 
@@ -261,12 +176,6 @@ export default function FeedbackPage() {
           {/* Help Tabs */}
           <div className="feedback-tabs">
             <button
-              className={`feedback-tab-btn ${activeTab === "decision-feedback" ? "active" : ""}`}
-              onClick={() => setActiveTab("decision-feedback")}
-            >
-              Decision Feedback
-            </button>
-            <button
               className={`feedback-tab-btn ${activeTab === "bug-report" ? "active" : ""}`}
               onClick={() => setActiveTab("bug-report")}
             >
@@ -289,83 +198,6 @@ export default function FeedbackPage() {
           <div style={{ display: "flex", flexDirection: "column", gap: "2rem" }}>
             {/* Tab content */}
             <div className="tab-container-content">
-              {activeTab === "decision-feedback" && (
-                <div className="glass-panel" style={{ padding: "2rem" }}>
-                  <h2 style={{ fontSize: "1.25rem", marginBottom: "1rem" }}>Provide Decision Feedback</h2>
-                  {closedDecisions.length === 0 ? (
-                    <p style={{ color: "var(--text-secondary)" }}>
-                      You do not have any closed decisions to provide feedback on.
-                    </p>
-                  ) : (
-                    <div>
-                      <div className="feedback-form-group" style={{ marginBottom: "1.5rem" }}>
-                        <label htmlFor="decision-select">Choose Closed Decision</label>
-                        <select
-                          id="decision-select"
-                          value={selectedDecisionId}
-                          onChange={handleDecisionChange}
-                        >
-                          {closedDecisions.map((d) => (
-                            <option key={d.id} value={d.id}>
-                              {d.title} (ID: {d.id})
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-
-                      {fetchingFeedback ? (
-                        <p style={{ color: "var(--text-secondary)" }}>Checking feedback status...</p>
-                      ) : decisionFeedback ? (
-                        <div className="submitted-feedback-box" style={{ borderTop: "1px solid var(--border-glass)", paddingTop: "1rem" }}>
-                          <h3 style={{ fontSize: "1.1rem", marginBottom: "0.5rem" }}>Your Feedback</h3>
-                          <div style={{ marginBottom: "0.75rem" }}>
-                            <StarRating rating={decisionFeedback.rating} readOnly={true} />
-                          </div>
-                          {decisionFeedback.comment && (
-                            <div style={{ marginBottom: "0.75rem" }}>
-                              <span className="feedback-section-label">Comment</span>
-                              <p className="feedback-text">{decisionFeedback.comment}</p>
-                            </div>
-                          )}
-                          <div>
-                            <span className="feedback-section-label">Submitted On</span>
-                            <p className="feedback-text">
-                              {new Date(decisionFeedback.createdAt).toLocaleDateString()}
-                            </p>
-                          </div>
-                        </div>
-                      ) : (
-                        <form onSubmit={handleDecisionFeedbackSubmit} style={{ display: "flex", flexDirection: "column", gap: "1.25rem" }}>
-                          <div className="feedback-form-group">
-                            <label>Rate your experience <span className="required-asterisk">*</span></label>
-                            <StarRating rating={dfRating} onChange={setDfRating} />
-                          </div>
-                          <div className="feedback-form-group">
-                            <label htmlFor="df-comment">Comment (optional)</label>
-                            <textarea
-                              id="df-comment"
-                              placeholder="Describe your experience with this decision..."
-                              value={dfComment}
-                              onChange={(e) => setDfComment(e.target.value)}
-                              maxLength={1000}
-                              rows={4}
-                            />
-                          </div>
-                          <button
-                            type="submit"
-                            className="btn-primary"
-                            style={{ alignSelf: "flex-start", minWidth: "150px" }}
-                            disabled={submittingDF || dfRating === 0}
-                          >
-                            {submittingDF ? "Submitting..." : "Submit Feedback"}
-                          </button>
-                        </form>
-                      )}
-                    </div>
-                  )}
-                </div>
-              )}
-
               {activeTab === "bug-report" && (
                 <form onSubmit={handleBugSubmit} className="feedback-form-card glass-panel" style={{ margin: "0" }}>
                   <h2 style={{ fontSize: "1.25rem", marginBottom: "0.5rem" }}>Report a Bug</h2>

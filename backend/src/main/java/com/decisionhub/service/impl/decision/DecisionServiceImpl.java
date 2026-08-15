@@ -34,7 +34,7 @@ import com.decisionhub.service.interfaces.decision.DecisionService;
 import com.decisionhub.validator.decision.DecisionValidator;
 import com.decisionhub.validator.decision.DecisionModificationValidator;
 import com.decisionhub.event.DecisionPublishedEvent;
-import com.decisionhub.event.DecisionClosedEvent;
+import com.decisionhub.event.voting.DecisionClosedEvent;
 import org.springframework.context.ApplicationEventPublisher;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -139,7 +139,7 @@ public class DecisionServiceImpl implements DecisionService {
         auditService.log(currentUser, "DECISION_CREATED", "decisions", savedDecision.getId(), null, newValueJson, ipAddress, userAgent);
 
         log.info("Decision '{}' created successfully with ID '{}'", savedDecision.getTitle(), savedDecision.getId());
-        return decisionMapper.toResponse(savedDecision);
+        return enrichResponse(decisionMapper.toResponse(savedDecision), savedDecision);
     }
 
     @Override
@@ -155,7 +155,7 @@ public class DecisionServiceImpl implements DecisionService {
             throw new UnauthorizedActionException("Not authorized to view this decision");
         }
 
-        return decisionMapper.toResponse(decision);
+        return enrichResponse(decisionMapper.toResponse(decision), decision);
     }
 
     @Override
@@ -191,7 +191,7 @@ public class DecisionServiceImpl implements DecisionService {
                     // Filter by visibility/authorization (current user can view)
                     return decisionAuthorizationService.canViewDecision(decision.getId(), currentUserId);
                 })
-                .map(decisionMapper::toResponse)
+                .map(d -> enrichResponse(decisionMapper.toResponse(d), d))
                 .collect(Collectors.toList());
     }
 
@@ -258,7 +258,7 @@ public class DecisionServiceImpl implements DecisionService {
         auditService.log(currentUser, "DECISION_UPDATED", "decisions", id, oldValueJson, newValueJson, ipAddress, userAgent);
 
         log.info("Decision with ID '{}' updated successfully", id);
-        return decisionMapper.toResponse(updatedDecision);
+        return enrichResponse(decisionMapper.toResponse(updatedDecision), updatedDecision);
     }
 
 
@@ -274,7 +274,9 @@ public class DecisionServiceImpl implements DecisionService {
         Decision decision = decisionRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Decision not found with ID: " + id));
 
-        decisionModificationValidator.validateDecisionEditable(decision);
+        if (currentUser.getRole() != com.decisionhub.enums.authentication.PlatformRole.ADMIN) {
+            decisionModificationValidator.validateDecisionEditable(decision);
+        }
 
         // 1. Authorization
         if (!decisionAuthorizationService.canDeleteDecision(id, currentUserId)) {
@@ -361,7 +363,7 @@ public class DecisionServiceImpl implements DecisionService {
         eventPublisher.publishEvent(new DecisionPublishedEvent(this, id));
 
         log.info("Decision with ID '{}' published successfully", id);
-        return decisionMapper.toResponse(publishedDecision);
+        return enrichResponse(decisionMapper.toResponse(publishedDecision), publishedDecision);
     }
 
     private Long getCurrentUserIdOrThrow() {
@@ -400,6 +402,23 @@ public class DecisionServiceImpl implements DecisionService {
         eventPublisher.publishEvent(new DecisionClosedEvent(this, id));
 
         log.info("Decision with ID '{}' closed successfully", id);
-        return decisionMapper.toResponse(closedDecision);
+        return enrichResponse(decisionMapper.toResponse(closedDecision), closedDecision);
+    }
+
+    private DecisionResponse enrichResponse(DecisionResponse res, Decision d) {
+        if (res == null) return null;
+        Long totalVotes = 0L;
+        Poll poll = pollRepository.findByDecisionId(d.getId()).orElse(null);
+        if (poll != null) {
+            totalVotes = voteRepository.countByPollId(poll.getId());
+        }
+        Long totalComments = commentRepository.countByDecisionId(d.getId());
+        return new DecisionResponse(
+                res.id(), res.title(), res.description(), res.creator(),
+                res.categoryName(), res.communityName(), res.status(),
+                res.deadline(), res.votingType(), res.votingEndTime(),
+                res.options(), res.factors(), res.createdAt(),
+                res.pinned(), res.locked(), totalVotes, totalComments
+        );
     }
 }

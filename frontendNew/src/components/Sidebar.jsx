@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import {
   FaHome,
   FaPlusCircle,
@@ -8,22 +9,50 @@ import {
   FaCog,
   FaSignOutAlt,
   FaUserShield,
-  FaComments,
-  FaCommentDots
+  FaCommentDots,
+  FaGavel
 } from "react-icons/fa";
 import { Link, useLocation } from "react-router-dom";
+import axios from "axios";
 import { useAuth } from "../context/AuthContext";
 import "../styles/Sidebar.css";
 
 function Sidebar() {
   const location = useLocation();
   const { user, logout } = useAuth();
-  
+  const [isModerator, setIsModerator] = useState(false);
+
   const isActive = (path) => {
     return location.pathname === path ? "active-link" : "";
   };
 
   const isAdmin = user?.role === "ADMIN";
+
+  useEffect(() => {
+    if (user && user.role === "MODERATOR") {
+      const token = localStorage.getItem("token") ||
+        localStorage.getItem("authToken") ||
+        localStorage.getItem("jwt");
+      if (token) {
+        axios.get("http://localhost:8080/api/communities/moderating", {
+          headers: { Authorization: `Bearer ${token}` }
+        })
+          .then(res => {
+            if (res.data && res.data.length > 0) {
+              setIsModerator(true);
+            } else {
+              setIsModerator(false);
+            }
+          })
+          .catch(err => {
+            console.error("Failed to fetch moderating communities:", err);
+            setIsModerator(false);
+          });
+      }
+    } else {
+      setIsModerator(false);
+    }
+  }, [user]);
 
   return (
     <div className="sidebar glass-panel">
@@ -40,8 +69,8 @@ function Sidebar() {
             </Link>
           </li>
 
-          {/* Admin Only Route */}
-          {isAdmin && (
+          {/* Create Decision - Hidden for Admin */}
+          {!isAdmin && (
             <li className={isActive("/create-decision")}>
               <Link to="/create-decision">
                 <FaPlusCircle /> <span>Create Decision</span>
@@ -49,24 +78,35 @@ function Sidebar() {
             </li>
           )}
 
-          <li className={isActive("/decisions")}>
-            <Link to="/decisions">
-              <FaCog /> <span>Manage Decisions</span>
-            </Link>
-          </li>
-             {(user?.role === "MODERATOR" || user?.role === "ADMIN") && (
-      <li className={isActive("/moderator-dashboard")}>
-        <Link to="/moderator-dashboard">
-          <FaUserShield /> <span>Moderator</span>
-        </Link>
-      </li>
-    )}
+          {/* Manage Decisions - Hidden for Admin */}
+          {!isAdmin && (
+            <li className={isActive("/decisions")}>
+              <Link to="/decisions">
+                <FaCog /> <span>Manage Decisions</span>
+              </Link>
+            </li>
+          )}
+          {isModerator && (
+            <li className={isActive("/moderator-dashboard")}>
+              <Link to="/moderator-dashboard">
+                <FaUserShield /> <span>Moderator</span>
+              </Link>
+            </li>
+          )}
 
           <li className={isActive("/communities")}>
             <Link to="/communities">
               <FaUsers /> <span>Communities</span>
             </Link>
           </li>
+
+          {isAdmin && (
+            <li className={isActive("/admin/decisions")}>
+              <Link to="/admin/decisions">
+                <FaGavel /> <span>Public Decisions</span>
+              </Link>
+            </li>
+          )}
 
           <li className={isActive("/analytics")}>
             <Link to="/analytics">

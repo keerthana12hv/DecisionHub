@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
-import { FaComments, FaReply, FaTrash, FaEdit } from "react-icons/fa";
+import { FaComments, FaReply, FaTrash, FaEdit, FaExclamationTriangle } from "react-icons/fa";
 import { useAuth } from "../context/AuthContext";
 import api from "../services/api";
 import {
@@ -11,6 +11,8 @@ import {
   editComment,
   deleteComment,
 } from "../services/commentService";
+import { reportComment, pinComment, unpinComment, modDeleteComment } from "../services/moderationService";
+import { useToast } from "../components/Toast";
 
 const MAX_DEPTH = 5;
 
@@ -22,15 +24,23 @@ const Discussion = () => {
   const [newComment, setNewComment] = useState("");
   const [loading, setLoading] = useState(true);
   const [decisionStatus, setDecisionStatus] = useState(null);
+  const [decisionLocked, setDecisionLocked] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
 
-  const isDecisionActive = decisionStatus === "ACTIVE";
+  const isDecisionActive = decisionStatus === "ACTIVE" || decisionStatus === "DRAFT" || decisionStatus === "Draft";
+  const discussionOpen = isDecisionActive && !decisionLocked;
 
   useEffect(() => {
     api
       .get(`/api/decisions/${decisionId}`)
-      .then((res) => setDecisionStatus(res.data.status))
-      .catch(() => setDecisionStatus(null));
+      .then((res) => {
+        setDecisionStatus(res.data.status);
+        setDecisionLocked(!!res.data.locked);
+      })
+      .catch(() => {
+        setDecisionStatus(null);
+        setDecisionLocked(false);
+      });
 
     getComments(decisionId)
       .then((res) => {
@@ -60,16 +70,21 @@ const Discussion = () => {
 
   const updateCommentInTree = (list, commentId, changes) =>
     list.map((c) => (c.id === commentId ? { ...c, ...changes } : c));
+  const removeCommentFromTree = (list, commentId) =>
+  list
+    .filter((c) => c.id !== commentId)
+    .map((c) => ({
+      ...c,
+      replies: c.replies ? removeCommentFromTree(c.replies, commentId) : c.replies,
+    }));
 
   const handleCommentUpdated = (commentId, changes) => {
     setComments((prev) => updateCommentInTree(prev, commentId, changes));
   };
 
   const handleCommentDeleted = (commentId) => {
-    setComments((prev) =>
-      updateCommentInTree(prev, commentId, { deleted: true, content: "[deleted]" })
-    );
-  };
+  setComments((prev) => removeCommentFromTree(prev, commentId));
+};
 
   if (loading)
     return (
@@ -165,17 +180,20 @@ const Discussion = () => {
             No comments yet. Be the first to share!
           </div>
         ) : (
-          comments.map((comment) => (
-            <CommentNode
-              key={comment.id}
-              comment={comment}
-              decisionId={decisionId}
-              isDecisionActive={isDecisionActive}
-              currentUser={user}
-              onCommentUpdated={handleCommentUpdated}
-              onCommentDeleted={handleCommentDeleted}
-            />
-          ))
+          [...comments]
+            .sort((a, b) => (a.pinned && !b.pinned ? -1 : !a.pinned && b.pinned ? 1 : 0))
+            .map((comment) => (
+              <CommentNode
+                key={comment.id}
+                comment={comment}
+                decisionId={decisionId}
+                isDecisionActive={isDecisionActive}
+                decisionLocked={decisionLocked}
+                currentUser={user}
+                onCommentUpdated={handleCommentUpdated}
+                onCommentDeleted={handleCommentDeleted}
+              />
+            ))
         )}
       </div>
     </div>
@@ -186,10 +204,12 @@ function CommentNode({
   comment,
   decisionId,
   isDecisionActive,
+  decisionLocked,
   currentUser,
   onCommentUpdated,
   onCommentDeleted,
 }) {
+  const { addToast } = useToast();
   const [replies, setReplies] = useState([]);
   const [repliesLoaded, setRepliesLoaded] = useState(false);
   const [repliesVisible, setRepliesVisible] = useState(false);
@@ -198,8 +218,12 @@ function CommentNode({
   const [isReplying, setIsReplying] = useState(false);
   const [replyText, setReplyText] = useState("");
 
+  const [isReporting, setIsReporting] = useState(false);
+  const [reportReason, setReportReason] = useState("");
+
   const [isEditing, setIsEditing] = useState(false);
   const [editText, setEditText] = useState(comment.content);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   const isAuthor = currentUser?.id === comment.userId;
   const isModOrAdmin =
@@ -207,7 +231,7 @@ function CommentNode({
   const canEdit = isAuthor && comment.replyCount === 0 && !comment.deleted;
   const canDelete = (isAuthor || isModOrAdmin) && !comment.deleted;
   const canReply =
-    isDecisionActive && comment.depth < MAX_DEPTH - 1 && !comment.deleted;
+    isDecisionActive && !decisionLocked && comment.depth < MAX_DEPTH - 1 && !comment.deleted;
 
   const loadReplies = () => {
     if (repliesLoaded) {
@@ -245,9 +269,28 @@ function CommentNode({
   };
 
   const handleDelete = () => {
-    deleteComment(comment.id).then(() => {
-      onCommentDeleted(comment.id);
-    });
+    setShowDeleteConfirm(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    setShowDeleteConfirm(false);
+    if (isModOrAdmin) {
+      try {
+        await modDeleteComment(comment.id);
+        onCommentDeleted(comment.id);
+        addToast("Comment removed.", "success");
+      } catch (err) {
+        addToast("Failed to remove comment.", "error");
+      }
+    } else {
+      try {
+        await deleteComment(comment.id);
+        onCommentDeleted(comment.id);
+        addToast("Comment deleted.", "success");
+      } catch (err) {
+        addToast("Failed to delete comment.", "error");
+      }
+    }
   };
 
   const handleChildUpdated = (childId, changes) => {
@@ -257,11 +300,7 @@ function CommentNode({
   };
 
   const handleChildDeleted = (childId) => {
-    setReplies((prev) =>
-      prev.map((r) =>
-        r.id === childId ? { ...r, deleted: true, content: "[deleted]" } : r
-      )
-    );
+    setReplies((prev) => prev.filter((r) => r.id !== childId));
   };
 
   return (
@@ -275,10 +314,10 @@ function CommentNode({
     >
       <div
         style={{
-          background: "rgba(255,255,255,0.05)",
+          background: comment.pinned ? "rgba(251, 191, 36, 0.05)" : "rgba(255,255,255,0.05)",
           borderRadius: "12px",
           padding: "16px",
-          border: "1px solid rgba(167, 139, 250, 0.15)",
+          border: comment.pinned ? "1px solid #FBBF24" : "1px solid rgba(167, 139, 250, 0.15)",
         }}
       >
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
@@ -290,11 +329,18 @@ function CommentNode({
               {comment.deleted ? "" : comment.username}
             </p>
           </div>
-          {canDelete && (
-            <button onClick={handleDelete} style={iconBtnStyle}>
-              <FaTrash size={14} />
-            </button>
-          )}
+          <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+            {comment.pinned && (
+              <span style={{ color: "#FBBF24", fontWeight: 700, fontSize: "0.85rem", display: "flex", alignItems: "center", gap: "4px" }}>
+                📌 Pinned
+              </span>
+            )}
+            {canDelete && (
+              <button onClick={handleDelete} style={iconBtnStyle}>
+                <FaTrash size={14} />
+              </button>
+            )}
+          </div>
         </div>
 
         {isEditing ? (
@@ -334,6 +380,125 @@ function CommentNode({
                 <FaEdit /> Edit
               </button>
             )}
+            {!isAuthor && currentUser?.role !== "ADMIN" && (
+              <button
+                onClick={() => setIsReporting(true)}
+                style={linkBtnStyle}
+              >
+                Report
+              </button>
+            )}
+            {isModOrAdmin && (
+              <>
+                {currentUser?.role === "MODERATOR" && (
+                  <>
+                    {!comment.pinned ? (
+                      <button
+                        onClick={async () => {
+                          try {
+                            const res = await pinComment(comment.id);
+                            onCommentUpdated(comment.id, { pinned: res.pinned });
+                            addToast("Comment pinned.", "success");
+                          } catch (err) {
+                            addToast("Failed to pin comment.", "error");
+                          }
+                        }}
+                        style={linkBtnStyle}
+                      >
+                        Pin
+                      </button>
+                    ) : (
+                      <button
+                        onClick={async () => {
+                          try {
+                            const res = await unpinComment(comment.id);
+                            onCommentUpdated(comment.id, { pinned: res.pinned });
+                            addToast("Comment unpinned.", "success");
+                          } catch (err) {
+                            addToast("Failed to unpin comment.", "error");
+                          }
+                        }}
+                        style={linkBtnStyle}
+                      >
+                        Unpin
+                      </button>
+                    )}
+                  </>
+                )}
+
+                <button
+                  onClick={() => setShowDeleteConfirm(true)}
+                  style={linkBtnStyle}
+                >
+                  Remove
+                </button>
+              </>
+            )}
+          </div>
+        )}
+
+        {showDeleteConfirm && (
+          <div className="delete-overlay">
+            <div className="delete-modal glass-panel animate-pop-in" style={{ padding: "2rem", width: "400px", display: "flex", flexDirection: "column", gap: "1.5rem", textAlign: "center" }}>
+              <div className="delete-warning-icon" style={{ margin: "0 auto" }}>
+                <FaExclamationTriangle />
+              </div>
+              <h2 style={{ margin: 0 }}>Delete Comment?</h2>
+              <p style={{ margin: 0, color: "var(--text-secondary)", fontSize: "0.9rem" }}>
+                Are you sure you want to delete this comment? This action will remove the comment from the discussion.
+              </p>
+              <div className="delete-buttons" style={{ display: "flex", gap: "10px", width: "100%" }}>
+                <button
+                  className="btn-secondary"
+                  style={{ flex: 1 }}
+                  onClick={() => setShowDeleteConfirm(false)}
+                >
+                  Cancel
+                </button>
+                <button
+                  className="btn-primary confirm-delete-btn"
+                  style={{ flex: 1, background: "var(--danger, #EF4444)" }}
+                  onClick={handleConfirmDelete}
+                >
+                  Delete
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {isReporting && (
+          <div style={{ marginTop: "12px" }}>
+            <textarea
+              value={reportReason}
+              onChange={(e) => setReportReason(e.target.value)}
+              placeholder="Why is this comment inappropriate?"
+              style={textareaStyle}
+            />
+            <div style={{ display: "flex", gap: "8px", marginTop: "8px", justifyContent: "flex-end" }}>
+              <button onClick={() => setIsReporting(false)} style={secondaryBtnStyle}>
+                Cancel
+              </button>
+              <button
+                onClick={async () => {
+                  if (!reportReason.trim()) return;
+                  try {
+                    await reportComment(comment.id, reportReason);
+                    setReportReason("");
+                    setIsReporting(false);
+                    addToast("Comment reported. A moderator will review it.", "success");
+                  } catch (error) {
+                    addToast(
+                      error.response?.data?.error || "Failed to report comment.",
+                      "error"
+                    );
+                  }
+                }}
+                style={primaryBtnStyle}
+              >
+                Submit Report
+              </button>
+            </div>
           </div>
         )}
 
@@ -376,6 +541,7 @@ function CommentNode({
             comment={reply}
             decisionId={decisionId}
             isDecisionActive={isDecisionActive}
+            decisionLocked={decisionLocked}
             currentUser={currentUser}
             onCommentUpdated={handleChildUpdated}
             onCommentDeleted={handleChildDeleted}

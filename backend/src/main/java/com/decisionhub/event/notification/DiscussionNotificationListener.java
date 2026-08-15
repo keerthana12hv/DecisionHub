@@ -12,6 +12,7 @@ import com.decisionhub.service.interfaces.notification.NotificationService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
+import org.springframework.context.event.EventListener;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.event.TransactionPhase;
@@ -26,8 +27,7 @@ public class DiscussionNotificationListener {
     private final DecisionRepository decisionRepository;
     private final CommentRepository commentRepository;
 
-    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
-    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    @EventListener
     public void handleCommentCreated(CommentCreatedEvent event) {
         log.info("Handling CommentCreatedEvent for comment ID: {}", event.getCommentId());
 
@@ -59,8 +59,7 @@ public class DiscussionNotificationListener {
         );
     }
 
-    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
-    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    @EventListener
     public void handleReplyCreated(ReplyCreatedEvent event) {
         log.info("Handling ReplyCreatedEvent for reply ID: {}", event.getReplyId());
 
@@ -77,8 +76,8 @@ public class DiscussionNotificationListener {
         }
 
         String title = "New Reply";
-        String message = String.format("@%s replied to your comment on '%s'",
-                event.getReplierUsername(), event.getDecisionTitle());
+        String message = String.format("@%s replied to your comment on decision '%s'",
+            event.getReplierUsername(), event.getDecisionTitle());
         String actionUrl = "/decisions/" + event.getDecisionId();
 
         notificationService.createNotification(

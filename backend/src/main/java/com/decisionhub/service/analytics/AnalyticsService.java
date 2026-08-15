@@ -20,8 +20,17 @@ import com.decisionhub.dto.response.analytics.CommunityDecisionStatisticsRespons
 import com.decisionhub.dto.response.analytics.CommunityDiscussionStatisticsResponse;
 import com.decisionhub.dto.response.analytics.CommunityModerationAnalyticsResponse;
 import com.decisionhub.dto.response.analytics.AdminFeedbackAnalyticsResponse;
+import com.decisionhub.dto.response.analytics.UserPlatformOverviewResponse;
+import com.decisionhub.dto.response.analytics.UserDecisionStatisticsResponse;
+import com.decisionhub.dto.response.authentication.UserResponse;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 public interface AnalyticsService {
+
+    UserPlatformOverviewResponse getUserPlatformOverview();
+    UserDecisionStatisticsResponse getUserDecisionStatistics();
+    Page<UserResponse> getAllUsers(Pageable pageable);
 
 DecisionOverviewResponse getDecisionOverview(Long decisionId);
 

@@ -21,6 +21,9 @@ import NotFound from "./pages/NotFound";
 import ModeratorDashboard from "./pages/ModeratorDashboard";
 import FeedbackPage from "./pages/FeedbackPage";
 import FeedbackDashboard from "./pages/FeedbackDashboard";
+import AdminCommunityDecisions from "./pages/AdminCommunityDecisions";
+import AdminDecisionDiscussion from "./pages/AdminDecisionDiscussion";
+import AdminDecisions from "./pages/AdminDecisions";
 
 // ─── Protected Route (any logged-in user) ────────────────────────────────────
 function PrivateRoute({ children }) {
@@ -34,7 +37,7 @@ function ModeratorRoute({ children }) {
   const { user, loading } = useAuth();
   if (loading) return null;
   if (!user) return <Navigate to="/login" replace />;
-  if (user.role !== "MODERATOR" && user.role !== "ADMIN") {
+  if (user.role !== "MODERATOR") {
     return <Navigate to="/dashboard" replace />;
   }
   return children;
@@ -83,6 +86,30 @@ function AppRoutes() {
         element={
           <AdminRoute>
             <FeedbackDashboard />
+          </AdminRoute>
+        }
+      />
+      <Route
+        path="/admin/communities/:id/decisions"
+        element={
+          <AdminRoute>
+            <AdminCommunityDecisions />
+          </AdminRoute>
+        }
+      />
+      <Route
+        path="/admin/decisions"
+        element={
+          <AdminRoute>
+            <AdminDecisions />
+          </AdminRoute>
+        }
+      />
+      <Route
+        path="/admin/decisions/:id/discuss"
+        element={
+          <AdminRoute>
+            <AdminDecisionDiscussion />
           </AdminRoute>
         }
       />
