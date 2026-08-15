@@ -15,8 +15,6 @@ import DecisionList from "./pages/DecisionList";
 import Discussion from "./pages/Discussion";
 import Analytics from "./pages/Analytics";
 import NotificationsPage from "./pages/NotificationsPage";
-import Profile from "./pages/Profile";
-import Settings from "./pages/Settings";
 import Account from "./pages/Account";
 import NotFound from "./pages/NotFound";
 import ModeratorDashboard from "./pages/ModeratorDashboard";
@@ -79,8 +77,8 @@ function AppRoutes() {
       <Route path="/communities/:id"  element={<PrivateRoute><CommunityDetail /></PrivateRoute>} />
       <Route path="/analytics"        element={<PrivateRoute><Analytics /></PrivateRoute>} />
       <Route path="/notifications"    element={<PrivateRoute><NotificationsPage /></PrivateRoute>} />
-      <Route path="/profile"          element={<PrivateRoute><Profile /></PrivateRoute>} />
-      <Route path="/settings"         element={<PrivateRoute><Settings /></PrivateRoute>} />
+      <Route path="/profile"          element={<Navigate to="/account" replace />} />
+      <Route path="/settings"         element={<Navigate to="/account" replace />} />
       <Route path="/account"          element={<PrivateRoute><Account /></PrivateRoute>} />
       <Route path="/feedback"         element={<PrivateRoute><FeedbackPage /></PrivateRoute>} />
       <Route
