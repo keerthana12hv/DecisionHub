@@ -329,8 +329,8 @@
 }
 
 @media (max-width: 1024px) {
-  .decision-table-element th:nth-child(5),
-  .decision-table-element td:nth-child(5) {
+  .decision-table-element th:nth-child(6),
+  .decision-table-element td:nth-child(6) {
     display: none;
   }
 }
@@ -368,7 +368,9 @@
   .decision-table-element th:nth-child(2),
   .decision-table-element td:nth-child(2),
   .decision-table-element th:nth-child(4),
-  .decision-table-element td:nth-child(4) {
+  .decision-table-element td:nth-child(4),
+  .decision-table-element th:nth-child(5),
+  .decision-table-element td:nth-child(5) {
     display: none;
   }
 }
