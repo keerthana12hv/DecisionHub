@@ -31,10 +31,32 @@ export function DecisionAnalyticsView({ decisionId = 5 }) {
     );
   }
 
-  const { overview, voteStats, distribution, participation, discussion, ranking, feedback } = data || {};
+  const { overview, voteStats, distribution, participation, discussion, ranking } = data || {};
 
-  const isExpired = overview?.votingEndTime ? (new Date() >= new Date(overview.votingEndTime)) : false;
-  const displayPollStatus = (overview?.pollStatus === "OPEN" && !isExpired) ? "OPEN" : "CLOSED";
+  // Calculate ranking with ties
+  const getRankingWithTies = () => {
+    if (!ranking || ranking.length === 0) return [];
+    
+    // Sort by vote count descending
+    const sorted = [...ranking].sort((a, b) => b.voteCount - a.voteCount);
+    
+    let currentRank = 1;
+    let lastVotes = -1;
+    
+    return sorted.map((item, idx) => {
+      if (item.voteCount !== lastVotes) {
+        currentRank = idx + 1;
+        lastVotes = item.voteCount;
+      }
+      return {
+        ...item,
+        rank: currentRank
+      };
+    });
+  };
+
+  const rankedList = getRankingWithTies();
+  const isTieForFirst = rankedList.length > 1 && rankedList[0].voteCount === rankedList[1].voteCount;
 
   return (
     <div className="analytics-tab-content space-y-6">
@@ -48,7 +70,7 @@ export function DecisionAnalyticsView({ decisionId = 5 }) {
             {overview?.title || `Decision #${decisionId} Overview`}
           </h2>
           <p style={{ fontSize: "12px", color: "#94a3b8", margin: 0 }}>
-            Status: <strong>{displayPollStatus}</strong> | Total Votes: <strong>{overview?.totalVotes ?? 0}</strong>
+            Status: <strong>{overview?.status || overview?.pollStatus || "CLOSED"}</strong> | Total Votes: <strong>{voteStats?.totalVotes ?? 0}</strong>
           </p>
         </div>
         <button className="btn-secondary" onClick={loadData} style={{ display: "flex", alignItems: "center", gap: "6px" }}>
@@ -57,7 +79,7 @@ export function DecisionAnalyticsView({ decisionId = 5 }) {
       </div>
 
       {/* Metrics Row */}
-      <div className="stats-grid analytics-metrics">
+      <div className="stats-grid analytics-metrics" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: "20px" }}>
         <div className="glass-card metric-item animate-glow">
           <FaVoteYea className="metric-icon purple" />
           <div>
@@ -82,15 +104,6 @@ export function DecisionAnalyticsView({ decisionId = 5 }) {
             <p>Total Comments</p>
             <h2>{discussion?.totalComments ?? 0}</h2>
             <span className="trend-text">{discussion?.totalReplies ?? 0} Replies</span>
-          </div>
-        </div>
-
-        <div className="glass-card metric-item">
-          <FaStar className="metric-icon yellow" />
-          <div>
-            <p>Feedback Rating</p>
-            <h2>{feedback?.averageRating ? `${feedback.averageRating.toFixed(1)} / 5` : "N/A"}</h2>
-            <span className="trend-text">{feedback?.feedbackCount ?? 0} Feedback Reviews</span>
           </div>
         </div>
       </div>
@@ -124,7 +137,7 @@ export function DecisionAnalyticsView({ decisionId = 5 }) {
                 </div>
               ))
             ) : (
-              <p style={{ color: "#64748b", fontSize: "13px" }}>No distribution data available</p>
+              <p style={{ color: "#64748b", fontSize: "13px" }}>No votes yet</p>
             )}
           </div>
         </div>
@@ -135,8 +148,8 @@ export function DecisionAnalyticsView({ decisionId = 5 }) {
           <p className="chart-desc">Ranked results after voting closed</p>
 
           <div style={{ marginTop: "15px", display: "flex", flexDirection: "column", gap: "10px" }}>
-            {ranking && ranking.length > 0 ? (
-              ranking.map((item, idx) => (
+            {rankedList && rankedList.length > 0 ? (
+              rankedList.map((item, idx) => (
                 <div
                   key={item.optionId || idx}
                   style={{
@@ -155,8 +168,8 @@ export function DecisionAnalyticsView({ decisionId = 5 }) {
                         width: "24px",
                         height: "24px",
                         borderRadius: "50%",
-                        background: idx === 0 ? "#f59e0b" : "#334155",
-                        color: idx === 0 ? "#0f172a" : "#94a3b8",
+                        background: item.rank === 1 ? "#f59e0b" : "#334155",
+                        color: item.rank === 1 ? "#0f172a" : "#94a3b8",
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "center",
@@ -164,10 +177,10 @@ export function DecisionAnalyticsView({ decisionId = 5 }) {
                         fontWeight: "bold"
                       }}
                     >
-                      #{idx + 1}
+                      #{item.rank}
                     </span>
                     <span style={{ color: "#fff", fontWeight: "600", fontSize: "14px" }}>{item.optionName}</span>
-                    {idx === 0 && <FaTrophy style={{ color: "#f59e0b" }} />}
+                    {item.rank === 1 && !isTieForFirst && item.voteCount > 0 && <FaTrophy style={{ color: "#f59e0b" }} />}
                   </div>
                   <span style={{ color: "#c084fc", fontWeight: "bold", fontSize: "13px" }}>
                     {item.voteCount} votes ({item.percentage?.toFixed(1)}%)
@@ -181,41 +194,20 @@ export function DecisionAnalyticsView({ decisionId = 5 }) {
         </div>
       </div>
 
-      {/* Participation & Rating */}
-      <div className="charts-grid bottom-charts">
-        <div className="glass-card chart-container">
-          <h3>Participation Summary</h3>
-          <div style={{ padding: "15px", display: "flex", justifyContent: "space-around", alignItems: "center" }}>
-            <div style={{ textAlign: "center" }}>
-              <p style={{ fontSize: "12px", color: "#94a3b8", margin: 0 }}>Participation Rate</p>
-              <h2 style={{ fontSize: "32px", color: "#10b981", margin: "5px 0" }}>
-                {participation?.participationPercentage?.toFixed(1) ?? 0}%
-              </h2>
-            </div>
-            <div style={{ fontSize: "13px", color: "#cbd5e1" }}>
-              <p style={{ margin: "4px 0" }}>Eligible Users: <strong>{participation?.eligibleUsers ?? 0}</strong></p>
-              <p style={{ margin: "4px 0" }}>Voted: <strong style={{ color: "#10b981" }}>{participation?.usersVoted ?? 0}</strong></p>
-              <p style={{ margin: "4px 0" }}>Not Voted: <strong style={{ color: "#ef4444" }}>{participation?.usersNotVoted ?? 0}</strong></p>
-            </div>
+      {/* Participation Summary (Spans 100% width) */}
+      <div className="glass-card chart-container" style={{ width: "100%" }}>
+        <h3>Participation Summary</h3>
+        <div style={{ padding: "15px", display: "flex", justifyContent: "space-around", alignItems: "center" }}>
+          <div style={{ textAlign: "center" }}>
+            <p style={{ fontSize: "12px", color: "#94a3b8", margin: 0 }}>Participation Rate</p>
+            <h2 style={{ fontSize: "32px", color: "#10b981", margin: "5px 0" }}>
+              {participation?.participationPercentage?.toFixed(1) ?? 0}%
+            </h2>
           </div>
-        </div>
-
-        <div className="glass-card chart-container">
-          <h3>Feedback Rating Breakdown</h3>
-          <div style={{ padding: "15px", display: "flex", gap: "20px", alignItems: "center" }}>
-            <div style={{ textAlign: "center", minWidth: "90px" }}>
-              <h1 style={{ fontSize: "36px", color: "#f59e0b", margin: 0 }}>
-                {feedback?.averageRating ? feedback.averageRating.toFixed(1) : "0.0"}
-              </h1>
-              <span style={{ fontSize: "11px", color: "#94a3b8" }}>{feedback?.feedbackCount ?? 0} Reviews</span>
-            </div>
-            <div style={{ flex: 1, fontSize: "12px", color: "#cbd5e1", display: "flex", flexDirection: "column", gap: "4px" }}>
-              <div>5 Stars: {feedback?.fiveStar ?? 0}</div>
-              <div>4 Stars: {feedback?.fourStar ?? 0}</div>
-              <div>3 Stars: {feedback?.threeStar ?? 0}</div>
-              <div>2 Stars: {feedback?.twoStar ?? 0}</div>
-              <div>1 Star: {feedback?.oneStar ?? 0}</div>
-            </div>
+          <div style={{ fontSize: "13px", color: "#cbd5e1" }}>
+            <p style={{ margin: "4px 0" }}>Eligible Users: <strong>{participation?.eligibleUsers ?? 0}</strong></p>
+            <p style={{ margin: "4px 0" }}>Voted: <strong style={{ color: "#10b981" }}>{participation?.usersVoted ?? 0}</strong></p>
+            <p style={{ margin: "4px 0" }}>Not Voted: <strong style={{ color: "#ef4444" }}>{participation?.usersNotVoted ?? 0}</strong></p>
           </div>
         </div>
       </div>
