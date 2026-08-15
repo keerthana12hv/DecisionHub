@@ -351,4 +351,31 @@ class DecisionServiceTest {
 
         assertThrows(com.decisionhub.exception.DecisionLockedException.class, () -> decisionService.deleteDecision(1L, "127.0.0.1", "Mozilla"));
     }
+
+    @Test
+    void closeDecision_ClosesAssociatedPoll() {
+        decision.setStatus(DecisionStatus.ACTIVE);
+        when(authenticationFacade.getCurrentUserId()).thenReturn(Optional.of(1L));
+        when(userRepository.findById(1L)).thenReturn(Optional.of(user));
+        when(decisionRepository.findById(1L)).thenReturn(Optional.of(decision));
+        when(decisionAuthorizationService.canActivateDecision(1L, 1L)).thenReturn(true);
+        when(decisionRepository.saveAndFlush(decision)).thenReturn(decision);
+
+        com.decisionhub.entity.voting.Poll associatedPoll = new com.decisionhub.entity.voting.Poll();
+        associatedPoll.setId(10L);
+        associatedPoll.setStatus(com.decisionhub.enums.voting.PollStatus.OPEN);
+        when(pollRepository.findByDecisionId(1L)).thenReturn(Optional.of(associatedPoll));
+
+        DecisionResponse responseObj = new DecisionResponse(1L, "Test Title", "Description", null, null, null, DecisionStatus.CLOSED, null, com.decisionhub.enums.decision.VotingType.RATING_BASED, null, null, null, null, false, false, 0L, 0L);
+        when(decisionMapper.toResponse(decision)).thenReturn(responseObj);
+
+        DecisionResponse result = decisionService.closeDecision(1L, "127.0.0.1", "Mozilla");
+
+        assertNotNull(result);
+        assertEquals(DecisionStatus.CLOSED, decision.getStatus());
+        assertEquals(com.decisionhub.enums.voting.PollStatus.CLOSED, associatedPoll.getStatus());
+        verify(pollRepository).save(associatedPoll);
+        verify(eventPublisher).publishEvent(any(com.decisionhub.event.PollClosedEvent.class));
+        verify(eventPublisher).publishEvent(any(com.decisionhub.event.voting.DecisionClosedEvent.class));
+    }
 }
