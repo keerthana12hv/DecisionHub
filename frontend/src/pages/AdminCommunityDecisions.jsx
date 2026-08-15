@@ -40,7 +40,9 @@ export default function AdminCommunityDecisions() {
         decisionsData.map(async (d) => {
           try {
             const pollRes = await api.get(`/api/decisions/${d.id}/poll`);
-            pollStatusesMap[d.id] = pollRes.data?.status || "CLOSED";
+            const p = pollRes.data;
+            const isExpired = p?.endTime ? (new Date() >= new Date(p.endTime)) : false;
+            pollStatusesMap[d.id] = (p?.status === "OPEN" && !isExpired) ? "OPEN" : "CLOSED";
           } catch (err) {
             pollStatusesMap[d.id] = "—"; // for drafts/no active polls
           }
@@ -215,41 +217,6 @@ export default function AdminCommunityDecisions() {
                         </td>
                         <td style={{ textAlign: "right", whiteSpace: "nowrap" }}>
                           <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px", whiteSpace: "nowrap" }}>
-
-                            {/* Pin / Unpin */}
-                            <button
-                              onClick={() => handlePinToggle(decision)}
-                              disabled={actionLoading}
-                              className="btn-secondary"
-                              style={{
-                                padding: "6px 10px",
-                                fontSize: "0.8rem",
-                                display: "flex",
-                                alignItems: "center",
-                                gap: "4px",
-                                whiteSpace: "nowrap"
-                              }}
-                            >
-                              <FaThumbtack /> {decision.pinned ? "Unpin Decision" : "Pin Decision"}
-                            </button>
-
-                            {/* Lock / Unlock */}
-                            <button
-                              onClick={() => handleLockToggle(decision)}
-                              disabled={actionLoading}
-                              className="btn-secondary"
-                              style={{
-                                padding: "6px 10px",
-                                fontSize: "0.8rem",
-                                display: "flex",
-                                alignItems: "center",
-                                justifyContent: "center",
-                                gap: "4px",
-                                whiteSpace: "nowrap"
-                              }}
-                            >
-                              {decision.locked ? <FaUnlock /> : <FaLock />} {decision.locked ? "Unlock Discussion" : "Lock Discussion"}
-                            </button>
 
                             {/* View Discussion */}
                             <Link to={`/admin/decisions/${decision.id}/discuss`} state={{ communityId }} style={{ textDecoration: "none" }}>

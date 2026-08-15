@@ -35,8 +35,7 @@ function DecisionList() {
   const [currentUserId, setCurrentUserId] = useState(null);
 
   const [searchQuery, setSearchQuery] = useState("");
-  const [categoryFilter, setCategoryFilter] = useState("");
-  const [statusFilter, setStatusFilter] = useState("All");
+  const [activeTab, setActiveTab] = useState("All Decisions");
 
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 5;
@@ -106,16 +105,21 @@ function DecisionList() {
     }
   };
 
-  // Category options built from real data, not hardcoded
-  const categoryOptions = [...new Set(decisions.map((d) => d.categoryName).filter(Boolean))];
-
   const filteredDecisions = decisions.filter((d) => {
+    let matchesTab = true;
+    if (activeTab === "My Decisions") {
+      matchesTab = String(d.creator?.id) === String(currentUserId);
+    } else if (activeTab === "Public Decisions") {
+      matchesTab = !d.communityName;
+    } else if (activeTab === "Community Decisions") {
+      matchesTab = !!d.communityName;
+    }
+
     const matchesSearch =
       d.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       (d.description || "").toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesCategory = categoryFilter === "" || d.categoryName === categoryFilter;
-    const matchesStatus = statusFilter === "All" || d.status === statusFilter;
-    return matchesSearch && matchesCategory && matchesStatus;
+
+    return matchesTab && matchesSearch;
   });
 
   const sortedFilteredDecisions = [...filteredDecisions].sort((a, b) => (a.pinned && !b.pinned ? -1 : !a.pinned && b.pinned ? 1 : 0));
@@ -139,42 +143,56 @@ function DecisionList() {
           <div className="decision-page">
             <div className="decision-header">
               <div>
-                <h1>Decision Management</h1>
-                <p>Browse active polls, inspect outcomes, or create new ones.</p>
+                <h1>Manage Decisions</h1>
+                <p>View, manage and participate in your decisions</p>
+              </div>
+            </div>
+
+            <div className="decision-search-row">
+              <div className="search-box table-search">
+                <FaSearch />
+                <input
+                  type="text"
+                  placeholder="🔍 Search decisions..."
+                  value={searchQuery}
+                  onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }}
+                />
+              </div>
+            </div>
+
+            <div className="decision-tabs-row">
+              <div className="decision-tabs">
+                <button
+                  className={`decision-tab-btn ${activeTab === "All Decisions" ? "active" : ""}`}
+                  onClick={() => { setActiveTab("All Decisions"); setCurrentPage(1); }}
+                >
+                  All Decisions
+                </button>
+                <button
+                  className={`decision-tab-btn ${activeTab === "My Decisions" ? "active" : ""}`}
+                  onClick={() => { setActiveTab("My Decisions"); setCurrentPage(1); }}
+                >
+                  My Decisions
+                </button>
+                <button
+                  className={`decision-tab-btn ${activeTab === "Public Decisions" ? "active" : ""}`}
+                  onClick={() => { setActiveTab("Public Decisions"); setCurrentPage(1); }}
+                >
+                  Public Decisions
+                </button>
+                <button
+                  className={`decision-tab-btn ${activeTab === "Community Decisions" ? "active" : ""}`}
+                  onClick={() => { setActiveTab("Community Decisions"); setCurrentPage(1); }}
+                >
+                  Community Decisions
+                </button>
               </div>
 
-              <div className="decision-actions-header">
-                <div className="search-box table-search">
-                  <FaSearch />
-                  <input
-                    type="text"
-                    placeholder="Search decision details..."
-                    value={searchQuery}
-                    onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }}
-                  />
-                </div>
-
-                <select className="filter" value={categoryFilter} onChange={(e) => { setCategoryFilter(e.target.value); setCurrentPage(1); }}>
-                  <option value="">All Categories</option>
-                  {categoryOptions.map((cat) => (
-                    <option key={cat} value={cat}>{cat}</option>
-                  ))}
-                </select>
-
-                <select className="filter" value={statusFilter} onChange={(e) => { setStatusFilter(e.target.value); setCurrentPage(1); }}>
-                  <option value="All">All Statuses</option>
-                  <option value="DRAFT">Draft</option>
-                  <option value="ACTIVE">Active</option>
-                  <option value="CLOSED">Closed</option>
-                  <option value="ARCHIVED">Archived</option>
-                </select>
-
-                <Link to="/create-decision">
-                  <button className="btn-primary create-decision-btn">
-                    <FaPlusCircle /> Create Decision
-                  </button>
-                </Link>
-              </div>
+              <Link to="/create-decision">
+                <button className="btn-primary create-decision-btn">
+                  <FaPlusCircle /> Create Decision
+                </button>
+              </Link>
             </div>
 
             <div className="decision-table-wrapper glass-panel">
@@ -202,12 +220,14 @@ function DecisionList() {
                         return (
                           <tr key={decision.id}>
                             <td className="decision-title-col">
-                              <span className="title-text">
-                                {decision.pinned && <FaThumbtack title="Pinned" style={{ marginRight: 6, color: "#a5a0ff" }} />}
-                                {decision.locked && <FaLock title="Locked" style={{ marginRight: 6, color: "#f87171" }} />}
-                                {decision.title}
-                              </span>
-                              <span className="desc-preview">{decision.description}</span>
+                              <div className="decision-title-container">
+                                <span className="title-text">
+                                  {decision.pinned && <FaThumbtack title="Pinned" style={{ marginRight: 6, color: "#a5a0ff" }} />}
+                                  {decision.locked && <FaLock title="Locked" style={{ marginRight: 6, color: "#f87171" }} />}
+                                  {decision.title}
+                                </span>
+                                <span className="desc-preview">{decision.description}</span>
+                              </div>
                             </td>
                             <td>
                               {decision.categoryName ? (
@@ -223,34 +243,36 @@ function DecisionList() {
                               </span>
                             </td>
                             <td className="actions-col">
-                              <button
-                                className="action-row-btn-icon vote"
-                               onClick={() => navigate(`/decisions/${decision.id}`)}
-                                title="View Decision"
-                              >
-                                <FaArrowRight />
-                              </button>
-
-                              <button
-                                className="action-row-btn-icon share"
-                                onClick={() => handleShare(decision.id)}
-                                title="Copy Share Link"
-                              >
-                                <FaCopy />
-                              </button>
-
-                              {isCreator && (
+                              <div className="actions-btn-group">
                                 <button
-                                  className="action-row-btn-icon delete"
-                                  onClick={() => {
-                                    setSelectedDecision(decision);
-                                    setShowDelete(true);
-                                  }}
-                                  title="Delete"
+                                  className="action-row-btn-icon vote"
+                                  onClick={() => navigate(`/decisions/${decision.id}`)}
+                                  title="View Decision"
                                 >
-                                  <FaTrash />
+                                  <FaArrowRight />
                                 </button>
-                              )}
+
+                                <button
+                                  className="action-row-btn-icon share"
+                                  onClick={() => handleShare(decision.id)}
+                                  title="Copy Share Link"
+                                >
+                                  <FaCopy />
+                                </button>
+
+                                {isCreator && (
+                                  <button
+                                    className="action-row-btn-icon delete"
+                                    onClick={() => {
+                                      setSelectedDecision(decision);
+                                      setShowDelete(true);
+                                    }}
+                                    title="Delete"
+                                  >
+                                    <FaTrash />
+                                  </button>
+                                )}
+                              </div>
                             </td>
                           </tr>
                         );

@@ -21,5 +21,6 @@ public interface CommunityRepository extends JpaRepository<Community, Long> {
 
     // Returns only active (not soft-deleted) communities
     List<Community> findByDeletedAtIsNull();
-
+    long countByDeletedAtIsNull();
+    long countByVisibilityAndDeletedAtIsNull(CommunityVisibility visibility);
 }

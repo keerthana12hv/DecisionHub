@@ -33,6 +33,9 @@ export function DecisionAnalyticsView({ decisionId = 5 }) {
 
   const { overview, voteStats, distribution, participation, discussion, ranking, feedback } = data || {};
 
+  const isExpired = overview?.votingEndTime ? (new Date() >= new Date(overview.votingEndTime)) : false;
+  const displayPollStatus = (overview?.pollStatus === "OPEN" && !isExpired) ? "OPEN" : "CLOSED";
+
   return (
     <div className="analytics-tab-content space-y-6">
       {/* Decision Header */}
@@ -45,7 +48,7 @@ export function DecisionAnalyticsView({ decisionId = 5 }) {
             {overview?.title || `Decision #${decisionId} Overview`}
           </h2>
           <p style={{ fontSize: "12px", color: "#94a3b8", margin: 0 }}>
-            Status: <strong>{overview?.status || overview?.pollStatus || "CLOSED"}</strong> | Total Votes: <strong>{overview?.totalVotes ?? 0}</strong>
+            Status: <strong>{displayPollStatus}</strong> | Total Votes: <strong>{overview?.totalVotes ?? 0}</strong>
           </p>
         </div>
         <button className="btn-secondary" onClick={loadData} style={{ display: "flex", alignItems: "center", gap: "6px" }}>

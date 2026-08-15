@@ -215,7 +215,17 @@ function CreateDecision() {
       navigate(`/decisions/${decisionId}`);
     } catch (err) {
       console.error("Failed to create/publish decision:", err.response?.data || err.message);
-      addToast("Failed to create decision. Check console for details.", "error");
+      let errMsg = "Failed to create decision. Please try again.";
+      if (err.response?.data) {
+        if (typeof err.response.data === "object") {
+          errMsg = err.response.data.error || err.response.data.message || errMsg;
+        } else if (typeof err.response.data === "string") {
+          errMsg = err.response.data;
+        }
+      } else if (err.message) {
+        errMsg = err.message;
+      }
+      addToast(errMsg, "error");
     } finally {
       setSubmitting(false);
     }

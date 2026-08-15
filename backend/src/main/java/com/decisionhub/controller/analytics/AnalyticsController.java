@@ -205,4 +205,11 @@ getAdminFeedbackAnalytics() {
             analyticsService.getAdminFeedbackAnalytics()
     );
 }
+
+@GetMapping("/admin/users-list")
+public ResponseEntity<List<com.decisionhub.dto.response.authentication.UserResponse>> getAdminUsersList() {
+    return ResponseEntity.ok(
+            analyticsService.getAdminUsersList()
+    );
+}
 }
