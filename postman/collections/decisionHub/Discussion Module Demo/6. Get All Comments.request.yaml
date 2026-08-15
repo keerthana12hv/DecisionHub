@@ -1,0 +1,9 @@
+$kind: http-request
+name: 6. Get All Comments
+url: http://localhost:8080/api/decisions/{{decisionId}}/comments
+method: GET
+auth:
+  type: bearer
+  credentials:
+    token: "{{authToken}}"
+order: 5000

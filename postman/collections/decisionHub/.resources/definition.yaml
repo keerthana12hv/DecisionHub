@@ -11,3 +11,4 @@ variables:
   mongodbOptionId: ""
   performanceFactorId: ""
   scalabilityFactorId: ""
+  authToken: ""

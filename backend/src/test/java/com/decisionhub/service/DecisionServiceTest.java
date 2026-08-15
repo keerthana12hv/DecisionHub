@@ -65,10 +65,21 @@ class DecisionServiceTest {
     private AuthenticationFacade authenticationFacade;
     @Mock
     private AuditService auditService;
+    
+    // ✅ Added the missing mock
+    @Mock
+    private DecisionModificationValidator decisionModificationValidator;
+    
     @Spy
     private com.decisionhub.validator.decision.DecisionValidator decisionValidator = new com.decisionhub.validator.decision.DecisionValidator();
     @Mock
     private org.springframework.context.ApplicationEventPublisher eventPublisher;
+    @Mock
+    private com.decisionhub.repository.voting.PollRepository pollRepository;
+    @Mock
+    private com.decisionhub.repository.voting.VoteRepository voteRepository;
+    @Mock
+    private com.decisionhub.repository.discussion.CommentRepository commentRepository;
 
     @InjectMocks
     private DecisionServiceImpl decisionService;
@@ -215,6 +226,10 @@ class DecisionServiceTest {
         when(userRepository.findById(1L)).thenReturn(Optional.of(user));
         when(decisionRepository.findById(1L)).thenReturn(Optional.of(decision));
         when(decisionAuthorizationService.canEditDecision(1L, 1L)).thenReturn(true);
+        
+        // ✅ Added the stub to prevent the NullPointerException
+        doNothing().when(decisionModificationValidator).validateDecisionEditable(any(Decision.class));
+        
         when(decisionRepository.save(decision)).thenReturn(decision);
         when(decisionMapper.toResponse(decision)).thenReturn(response);
 
@@ -240,6 +255,10 @@ class DecisionServiceTest {
         when(userRepository.findById(1L)).thenReturn(Optional.of(user));
         when(decisionRepository.findById(1L)).thenReturn(Optional.of(decision));
         when(decisionAuthorizationService.canDeleteDecision(1L, 1L)).thenReturn(true);
+        
+        // ✅ Added the stub to prevent the NullPointerException
+        doNothing().when(decisionModificationValidator).validateDecisionEditable(any(Decision.class));
+        
         when(comparisonScoreRepository.findByOptionDecisionId(1L)).thenReturn(Collections.emptyList());
         when(comparisonFactorRepository.findByDecisionId(1L)).thenReturn(Collections.emptyList());
         when(decisionOptionRepository.findByDecisionId(1L)).thenReturn(Collections.emptyList());

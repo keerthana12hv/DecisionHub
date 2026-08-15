@@ -1,0 +1,1922 @@
+{
+    "info": {
+        "name": "DecisionHub_Moderation_Module",
+        "description": "Postman E2E collection for DecisionHub Moderation Module.",
+        "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+    },
+    "item": [
+        {
+            "name": "Positive Flow Suite",
+            "item": [
+                {
+                    "name": "Login Platform Admin",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/auth/login",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "auth",
+                                "login"
+                            ]
+                        },
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"email\": \"admin@gmail.com\",\n    \"password\": \"admin123\"\n}"
+                        }
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test(\"Status is 200\", () => { pm.response.to.have.status(200); });",
+                                    "var jsonData = pm.response.json();",
+                                    "pm.test(\"Token exists\", () => { pm.expect(jsonData.token).to.not.be.null; });",
+                                    "pm.environment.set(\"adminToken\", jsonData.token);",
+                                    "if (pm.response.code !== 200) { postman.setNextRequest(null); }"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "Login Owner",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/auth/login",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "auth",
+                                "login"
+                            ]
+                        },
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"email\": \"owner_user@gmail.com\",\n    \"password\": \"Password123\"\n}"
+                        }
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "if (pm.response.code !== 200) {",
+                                    "    postman.setNextRequest(\"Register Owner\");",
+                                    "} else {",
+                                    "    var jsonData = pm.response.json();",
+                                    "    pm.test(\"Token exists\", () => { pm.expect(jsonData.token).to.not.be.null; });",
+                                    "    pm.environment.set(\"ownerToken\", jsonData.token);",
+                                    "    postman.setNextRequest(\"Login Moderator\");",
+                                    "}"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "Register Owner",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/auth/register",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "auth",
+                                "register"
+                            ]
+                        },
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"username\": \"owner_user\",\n    \"email\": \"owner_user@gmail.com\",\n    \"password\": \"Password123\"\n}"
+                        }
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test(\"Status is 200 or 201\", () => { pm.expect(pm.response.code).to.be.oneOf([200, 201]); });",
+                                    "if (pm.response.code !== 200 && pm.response.code !== 201) {",
+                                    "    postman.setNextRequest(null);",
+                                    "} else {",
+                                    "    postman.setNextRequest(\"Login Owner Again\");",
+                                    "}"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "Login Owner Again",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/auth/login",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "auth",
+                                "login"
+                            ]
+                        },
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"email\": \"owner_user@gmail.com\",\n    \"password\": \"Password123\"\n}"
+                        }
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test(\"Status is 200\", () => { pm.response.to.have.status(200); });",
+                                    "var jsonData = pm.response.json();",
+                                    "pm.environment.set(\"ownerToken\", jsonData.token);",
+                                    "if (pm.response.code !== 200) { postman.setNextRequest(null); }"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "Login Moderator",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/auth/login",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "auth",
+                                "login"
+                            ]
+                        },
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"email\": \"moderator_user@gmail.com\",\n    \"password\": \"Password123\"\n}"
+                        }
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "if (pm.response.code !== 200) {",
+                                    "    postman.setNextRequest(\"Register Moderator\");",
+                                    "} else {",
+                                    "    var jsonData = pm.response.json();",
+                                    "    pm.test(\"Token exists\", () => { pm.expect(jsonData.token).to.not.be.null; });",
+                                    "    pm.environment.set(\"moderatorToken\", jsonData.token);",
+                                    "    postman.setNextRequest(\"Login Normal User\");",
+                                    "}"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "Register Moderator",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/auth/register",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "auth",
+                                "register"
+                            ]
+                        },
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"username\": \"moderator_user\",\n    \"email\": \"moderator_user@gmail.com\",\n    \"password\": \"Password123\"\n}"
+                        }
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test(\"Status is 200 or 201\", () => { pm.expect(pm.response.code).to.be.oneOf([200, 201]); });",
+                                    "if (pm.response.code !== 200 && pm.response.code !== 201) {",
+                                    "    postman.setNextRequest(null);",
+                                    "} else {",
+                                    "    postman.setNextRequest(\"Login Moderator Again\");",
+                                    "}"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "Login Moderator Again",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/auth/login",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "auth",
+                                "login"
+                            ]
+                        },
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"email\": \"moderator_user@gmail.com\",\n    \"password\": \"Password123\"\n}"
+                        }
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test(\"Status is 200\", () => { pm.response.to.have.status(200); });",
+                                    "var jsonData = pm.response.json();",
+                                    "pm.environment.set(\"moderatorToken\", jsonData.token);",
+                                    "if (pm.response.code !== 200) { postman.setNextRequest(null); }"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "Login Normal User",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/auth/login",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "auth",
+                                "login"
+                            ]
+                        },
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"email\": \"normal_user@gmail.com\",\n    \"password\": \"Password123\"\n}"
+                        }
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "if (pm.response.code !== 200) {",
+                                    "    postman.setNextRequest(\"Register Normal User\");",
+                                    "} else {",
+                                    "    var jsonData = pm.response.json();",
+                                    "    pm.test(\"Token exists\", () => { pm.expect(jsonData.token).to.not.be.null; });",
+                                    "    pm.environment.set(\"userToken\", jsonData.token);",
+                                    "    postman.setNextRequest(\"Create Community\");",
+                                    "}"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "Register Normal User",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/auth/register",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "auth",
+                                "register"
+                            ]
+                        },
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"username\": \"normal_user\",\n    \"email\": \"normal_user@gmail.com\",\n    \"password\": \"Password123\"\n}"
+                        }
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test(\"Status is 200 or 201\", () => { pm.expect(pm.response.code).to.be.oneOf([200, 201]); });",
+                                    "if (pm.response.code !== 200 && pm.response.code !== 201) {",
+                                    "    postman.setNextRequest(null);",
+                                    "} else {",
+                                    "    postman.setNextRequest(\"Login Normal User Again\");",
+                                    "}"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "Login Normal User Again",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/auth/login",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "auth",
+                                "login"
+                            ]
+                        },
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"email\": \"normal_user@gmail.com\",\n    \"password\": \"Password123\"\n}"
+                        }
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test(\"Status is 200\", () => { pm.response.to.have.status(200); });",
+                                    "var jsonData = pm.response.json();",
+                                    "pm.environment.set(\"userToken\", jsonData.token);",
+                                    "if (pm.response.code !== 200) { postman.setNextRequest(null); }"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "Create Community",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{ownerToken}}",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/communities",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "communities"
+                            ]
+                        },
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"name\": \"E2E Moderation Community {{$timestamp}}\",\n    \"slug\": \"e2e-moderation-community-{{$timestamp}}\",\n    \"description\": \"Integration testing community for Moderation\",\n    \"categoryId\": 1,\n    \"visibility\": \"PRIVATE\"\n}"
+                        }
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test(\"Status is 200\", () => { pm.response.to.have.status(200); });",
+                                    "var jsonData = pm.response.json();",
+                                    "pm.environment.set(\"communityId\", jsonData.id);",
+                                    "pm.environment.set(\"communitySlug\", jsonData.slug);",
+                                    "if (pm.response.code !== 200) { postman.setNextRequest(null); }"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "Join Community (Moderator)",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{moderatorToken}}",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/communities/{{communityId}}/join",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "communities",
+                                "{{communityId}}",
+                                "join"
+                            ]
+                        }
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test(\"Status is 200\", () => { pm.response.to.have.status(200); });",
+                                    "if (pm.response.code !== 200) { postman.setNextRequest(null); }"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "Join Community (Normal User)",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{userToken}}",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/communities/{{communityId}}/join",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "communities",
+                                "{{communityId}}",
+                                "join"
+                            ]
+                        }
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test(\"Status is 200\", () => { pm.response.to.have.status(200); });",
+                                    "if (pm.response.code !== 200) { postman.setNextRequest(null); }"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "Get Pending Requests",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{ownerToken}}",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/communities/{{communityId}}/requests",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "communities",
+                                "{{communityId}}",
+                                "requests"
+                            ]
+                        }
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test(\"Status is 200\", () => { pm.response.to.have.status(200); });",
+                                    "var requests = pm.response.json();",
+                                    "console.log(\"PENDING REQUESTS:\", JSON.stringify(requests));",
+                                    "requests.forEach(r => {",
+                                    "    if (r.email === \"moderator_user@gmail.com\") {",
+                                    "        pm.environment.set(\"moderatorMemberId\", r.memberId);",
+                                    "    } else if (r.email === \"normal_user@gmail.com\") {",
+                                    "        pm.environment.set(\"userMemberId\", r.memberId);",
+                                    "    }",
+                                    "});",
+                                    "if (pm.response.code !== 200) { postman.setNextRequest(null); }"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "Approve Moderator Join Request",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{ownerToken}}",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/communities/{{communityId}}/requests/{{moderatorMemberId}}/approve",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "communities",
+                                "{{communityId}}",
+                                "requests",
+                                "{{moderatorMemberId}}",
+                                "approve"
+                            ]
+                        }
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test(\"Status is 200\", () => { pm.response.to.have.status(200); });",
+                                    "if (pm.response.code !== 200) { postman.setNextRequest(null); }"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "Approve Normal User Join Request",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{ownerToken}}",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/communities/{{communityId}}/requests/{{userMemberId}}/approve",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "communities",
+                                "{{communityId}}",
+                                "requests",
+                                "{{userMemberId}}",
+                                "approve"
+                            ]
+                        }
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test(\"Status is 200\", () => { pm.response.to.have.status(200); });",
+                                    "if (pm.response.code !== 200) { postman.setNextRequest(null); }"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "List Community Members",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{ownerToken}}",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/communities/{{communityId}}/members",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "communities",
+                                "{{communityId}}",
+                                "members"
+                            ]
+                        }
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test(\"Status is 200\", () => { pm.response.to.have.status(200); });",
+                                    "var members = pm.response.json();",
+                                    "members.forEach(m => {",
+                                    "    if (m.email === \"owner_user@gmail.com\") {",
+                                    "        pm.environment.set(\"ownerMemberId\", m.memberId);",
+                                    "    }",
+                                    "});",
+                                    "if (pm.response.code !== 200) { postman.setNextRequest(null); }"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "Promote Moderator User",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{ownerToken}}",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/communities/{{communityId}}/members/{{moderatorMemberId}}/role",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "communities",
+                                "{{communityId}}",
+                                "members",
+                                "{{moderatorMemberId}}",
+                                "role"
+                            ]
+                        },
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"role\": \"MODERATOR\"\n}"
+                        }
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test(\"Status is 200\", () => { pm.response.to.have.status(200); });",
+                                    "var jsonData = pm.response.json();",
+                                    "pm.test(\"Role is MODERATOR\", () => { pm.expect(jsonData.role).to.equal(\"MODERATOR\"); });",
+                                    "if (pm.response.code !== 200) { postman.setNextRequest(null); }"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "Create Decision",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{ownerToken}}",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/decisions",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "decisions"
+                            ]
+                        },
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"title\": \"E2E Moderation Decision {{$timestamp}}\",\n    \"description\": \"Comparing options\",\n    \"communityId\": \"{{communityId}}\",\n    \"isPublic\": true,\n    \"votingType\": \"SINGLE_CHOICE\",\n    \"votingEndTime\": \"2030-08-01T12:00:00\",\n    \"deadline\": \"2030-08-02T12:00:00\",\n    \"options\": [\n        {\n            \"title\": \"Opt A\",\n            \"description\": \"Opt A desc\"\n        },\n        {\n            \"title\": \"Opt B\",\n            \"description\": \"Opt B desc\"\n        }\n    ]\n}"
+                        }
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test(\"Status is 201\", () => { pm.response.to.have.status(201); });",
+                                    "var jsonData = pm.response.json();",
+                                    "pm.environment.set(\"decisionId\", jsonData.id);",
+                                    "if (pm.response.code !== 201) { postman.setNextRequest(null); }"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "Publish Decision",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{ownerToken}}",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/decisions/{{decisionId}}/publish",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "decisions",
+                                "{{decisionId}}",
+                                "publish"
+                            ]
+                        }
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test(\"Status is 200\", () => { pm.response.to.have.status(200); });",
+                                    "if (pm.response.code !== 200) { postman.setNextRequest(null); }"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "Create Comment 1",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{userToken}}",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/decisions/{{decisionId}}/comments",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "decisions",
+                                "{{decisionId}}",
+                                "comments"
+                            ]
+                        },
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"content\": \"First Comment Content\"\n}"
+                        }
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test(\"Status is 201\", () => { pm.response.to.have.status(201); });",
+                                    "var jsonData = pm.response.json();",
+                                    "pm.environment.set(\"commentId\", jsonData.id);",
+                                    "if (pm.response.code !== 201) { postman.setNextRequest(null); }"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "Pin Comment 1",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{moderatorToken}}",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/moderation/comments/{{commentId}}/pin",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "moderation",
+                                "comments",
+                                "{{commentId}}",
+                                "pin"
+                            ]
+                        }
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test(\"Status is 200\", () => { pm.response.to.have.status(200); });",
+                                    "var jsonData = pm.response.json();",
+                                    "pm.test(\"Comment is pinned\", () => { pm.expect(jsonData.pinned).to.be.true; });",
+                                    "if (pm.response.code !== 200) { postman.setNextRequest(null); }"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "Verify Pinned Comment 1",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{userToken}}",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/moderation/decisions/{{decisionId}}/comments/pinned",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "moderation",
+                                "decisions",
+                                "{{decisionId}}",
+                                "comments",
+                                "pinned"
+                            ]
+                        }
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test(\"Status is 200\", () => { pm.response.to.have.status(200); });",
+                                    "var jsonData = pm.response.json();",
+                                    "pm.test(\"ID matches commentId\", () => { pm.expect(jsonData.id).to.equal(parseInt(pm.environment.get(\"commentId\"))); });",
+                                    "pm.test(\"Pinned is true\", () => { pm.expect(jsonData.pinned).to.be.true; });",
+                                    "if (pm.response.code !== 200) { postman.setNextRequest(null); }"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "Create Comment 2",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{userToken}}",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/decisions/{{decisionId}}/comments",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "decisions",
+                                "{{decisionId}}",
+                                "comments"
+                            ]
+                        },
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"content\": \"Second Comment Content\"\n}"
+                        }
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test(\"Status is 201\", () => { pm.response.to.have.status(201); });",
+                                    "var jsonData = pm.response.json();",
+                                    "pm.environment.set(\"commentId2\", jsonData.id);",
+                                    "if (pm.response.code !== 201) { postman.setNextRequest(null); }"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "List Comments (After Create)",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{userToken}}",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/decisions/{{decisionId}}/comments",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "decisions",
+                                "{{decisionId}}",
+                                "comments"
+                            ]
+                        }
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test(\"Status is 200\", () => { pm.response.to.have.status(200); });",
+                                    "var comments = pm.response.json();",
+                                    "pm.test(\"Should return 2 comments\", () => { pm.expect(comments.length).to.equal(2); });",
+                                    "pm.test(\"Comments have correct content\", () => {",
+                                    "    pm.expect(comments[0].content).to.equal(\"First Comment Content\");",
+                                    "    pm.expect(comments[1].content).to.equal(\"Second Comment Content\");",
+                                    "});",
+                                    "if (pm.response.code !== 200) { postman.setNextRequest(null); }"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "Pin Comment 2",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{ownerToken}}",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/moderation/comments/{{commentId2}}/pin",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "moderation",
+                                "comments",
+                                "{{commentId2}}",
+                                "pin"
+                            ]
+                        }
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test(\"Status is 200\", () => { pm.response.to.have.status(200); });",
+                                    "var jsonData = pm.response.json();",
+                                    "pm.test(\"Comment 2 is pinned\", () => { pm.expect(jsonData.pinned).to.be.true; });",
+                                    "if (pm.response.code !== 200) { postman.setNextRequest(null); }"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "Get Pinned Comment 2",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{userToken}}",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/moderation/decisions/{{decisionId}}/comments/pinned",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "moderation",
+                                "decisions",
+                                "{{decisionId}}",
+                                "comments",
+                                "pinned"
+                            ]
+                        }
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test(\"Status is 200\", () => { pm.response.to.have.status(200); });",
+                                    "var jsonData = pm.response.json();",
+                                    "pm.test(\"ID matches commentId2\", () => { pm.expect(jsonData.id).to.equal(parseInt(pm.environment.get(\"commentId2\"))); });",
+                                    "pm.test(\"Pinned is true\", () => { pm.expect(jsonData.pinned).to.be.true; });",
+                                    "if (pm.response.code !== 200) { postman.setNextRequest(null); }"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "Unpin Comment 2",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{moderatorToken}}",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/moderation/comments/{{commentId2}}/unpin",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "moderation",
+                                "comments",
+                                "{{commentId2}}",
+                                "unpin"
+                            ]
+                        }
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test(\"Status is 200\", () => { pm.response.to.have.status(200); });",
+                                    "var jsonData = pm.response.json();",
+                                    "pm.test(\"Pinned is false\", () => { pm.expect(jsonData.pinned).to.be.false; });",
+                                    "if (pm.response.code !== 200) { postman.setNextRequest(null); }"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "Verify 204 No Content Pinned",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{userToken}}",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/moderation/decisions/{{decisionId}}/comments/pinned",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "moderation",
+                                "decisions",
+                                "{{decisionId}}",
+                                "comments",
+                                "pinned"
+                            ]
+                        }
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test(\"Status is 204\", () => { pm.response.to.have.status(204); });",
+                                    "if (pm.response.code !== 204) { postman.setNextRequest(null); }"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "Delete Comment 2",
+                    "request": {
+                        "method": "DELETE",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{moderatorToken}}",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/moderation/comments/{{commentId2}}",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "moderation",
+                                "comments",
+                                "{{commentId2}}"
+                            ]
+                        }
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test(\"Status is 200\", () => { pm.response.to.have.status(200); });",
+                                    "if (pm.response.code !== 200) { postman.setNextRequest(null); }"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "List Comments (After Soft Delete)",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{userToken}}",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/decisions/{{decisionId}}/comments",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "decisions",
+                                "{{decisionId}}",
+                                "comments"
+                            ]
+                        }
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test(\"Status is 200\", () => { pm.response.to.have.status(200); });",
+                                    "var comments = pm.response.json();",
+                                    "pm.test(\"Should return 1 comment\", () => { pm.expect(comments.length).to.equal(1); });",
+                                    "pm.test(\"Only comment 1 remains\", () => {",
+                                    "    pm.expect(comments[0].id).to.equal(parseInt(pm.environment.get(\"commentId\")));",
+                                    "    pm.expect(comments[0].content).to.equal(\"First Comment Content\");",
+                                    "});",
+                                    "if (pm.response.code !== 200) { postman.setNextRequest(null); }"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "Verify Soft Delete Action Failure",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{ownerToken}}",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/moderation/comments/{{commentId2}}/pin",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "moderation",
+                                "comments",
+                                "{{commentId2}}",
+                                "pin"
+                            ]
+                        }
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test(\"Status is 404\", () => { pm.response.to.have.status(404); });",
+                                    "if (pm.response.code !== 404) { postman.setNextRequest(null); }"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "Promoted Moderator Pins Decision",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{moderatorToken}}",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/moderation/decisions/{{decisionId}}/pin",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "moderation",
+                                "decisions",
+                                "{{decisionId}}",
+                                "pin"
+                            ]
+                        }
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test(\"Status is 200\", () => { pm.response.to.have.status(200); });",
+                                    "pm.test(\"Decision is pinned\", () => { pm.expect(pm.response.json().pinned).to.be.true; });"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "Promoted Moderator Unpins Decision",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{moderatorToken}}",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/moderation/decisions/{{decisionId}}/unpin",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "moderation",
+                                "decisions",
+                                "{{decisionId}}",
+                                "unpin"
+                            ]
+                        }
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test(\"Status is 200\", () => { pm.response.to.have.status(200); });",
+                                    "pm.test(\"Decision is unpinned\", () => { pm.expect(pm.response.json().pinned).to.be.false; });"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "Promoted Moderator Locks Discussion",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{moderatorToken}}",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/moderation/decisions/{{decisionId}}/lock",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "moderation",
+                                "decisions",
+                                "{{decisionId}}",
+                                "lock"
+                            ]
+                        }
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test(\"Status is 200\", () => { pm.response.to.have.status(200); });",
+                                    "pm.test(\"Discussion is locked\", () => { pm.expect(pm.response.json().locked).to.be.true; });"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "Promoted Moderator Unlocks Discussion",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{moderatorToken}}",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/moderation/decisions/{{decisionId}}/unlock",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "moderation",
+                                "decisions",
+                                "{{decisionId}}",
+                                "unlock"
+                            ]
+                        }
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test(\"Status is 200\", () => { pm.response.to.have.status(200); });",
+                                    "pm.test(\"Discussion is unlocked\", () => { pm.expect(pm.response.json().locked).to.be.false; });"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "Platform Admin Pins Comment 1",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{adminToken}}",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/moderation/comments/{{commentId}}/pin",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "moderation",
+                                "comments",
+                                "{{commentId}}",
+                                "pin"
+                            ]
+                        }
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test(\"Status is 200\", () => { pm.response.to.have.status(200); });",
+                                    "pm.test(\"Comment is pinned by admin\", () => { pm.expect(pm.response.json().pinned).to.be.true; });"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "Platform Admin Unpins Comment 1",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{adminToken}}",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/moderation/comments/{{commentId}}/unpin",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "moderation",
+                                "comments",
+                                "{{commentId}}",
+                                "unpin"
+                            ]
+                        }
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test(\"Status is 200\", () => { pm.response.to.have.status(200); });",
+                                    "pm.test(\"Comment is unpinned by admin\", () => { pm.expect(pm.response.json().pinned).to.be.false; });"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "Negative Tests",
+            "item": [
+                {
+                    "name": "403 Forbidden - Normal User Pins Comment",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{userToken}}",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/moderation/comments/{{commentId}}/pin",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "moderation",
+                                "comments",
+                                "{{commentId}}",
+                                "pin"
+                            ]
+                        }
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test(\"Status is 403\", () => { pm.response.to.have.status(403); });"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "403 Forbidden - Normal User Deletes Comment",
+                    "request": {
+                        "method": "DELETE",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{userToken}}",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/moderation/comments/{{commentId}}",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "moderation",
+                                "comments",
+                                "{{commentId}}"
+                            ]
+                        }
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test(\"Status is 403\", () => { pm.response.to.have.status(403); });"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "403 Forbidden - Moderator Deletes Community",
+                    "request": {
+                        "method": "DELETE",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{userToken}}",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/communities/{{communityId}}",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "communities",
+                                "{{communityId}}"
+                            ]
+                        }
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test(\"Status is 403\", () => { pm.response.to.have.status(403); });"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "404 Not Found - Non-existent Comment",
+                    "request": {
+                        "method": "DELETE",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{ownerToken}}",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/moderation/comments/999999",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "moderation",
+                                "comments",
+                                "999999"
+                            ]
+                        }
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test(\"Status is 404\", () => { pm.response.to.have.status(404); });"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "404 Not Found - Already Deleted Comment",
+                    "request": {
+                        "method": "DELETE",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{ownerToken}}",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/moderation/comments/{{commentId2}}",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "moderation",
+                                "comments",
+                                "{{commentId2}}"
+                            ]
+                        }
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test(\"Status is 404\", () => { pm.response.to.have.status(404); });"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "403 Forbidden - Normal User attempts role promotion",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{userToken}}",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/communities/{{communityId}}/members/{{moderatorMemberId}}/role",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "communities",
+                                "{{communityId}}",
+                                "members",
+                                "{{moderatorMemberId}}",
+                                "role"
+                            ]
+                        },
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"role\": \"MODERATOR\"\n}"
+                        }
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test(\"Status is 403\", () => { pm.response.to.have.status(403); });"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "400 Bad Request - Try to demote community owner",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{ownerToken}}",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/communities/{{communityId}}/members/{{ownerMemberId}}/role",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "communities",
+                                "{{communityId}}",
+                                "members",
+                                "{{ownerMemberId}}",
+                                "role"
+                            ]
+                        },
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"role\": \"MEMBER\"\n}"
+                        }
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test(\"Status is 400\", () => { pm.response.to.have.status(400); });"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "Teardown Cleanups",
+            "item": [
+                {
+                    "name": "Delete Community as Platform Admin",
+                    "request": {
+                        "method": "DELETE",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{adminToken}}",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/communities/{{communityId}}",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "communities",
+                                "{{communityId}}"
+                            ]
+                        }
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test(\"Status is 200\", () => { pm.response.to.have.status(200); });",
+                                    "if (pm.response.code !== 200) { postman.setNextRequest(null); }"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ]
+                }
+            ]
+        }
+    ]
+}

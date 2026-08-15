@@ -23,7 +23,7 @@ public class Comment {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false, length = 1000)
+    @Column(nullable = false, length = 2000)
     private String content;
 
     @ManyToOne(fetch = FetchType.LAZY)
@@ -31,14 +31,19 @@ public class Comment {
     private User user;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "decision_id", nullable = false)
+    @JoinColumn(name = "decision_id", nullable =false)
     private Decision decision;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "parent_comment_id")
     private Comment parentComment;
 
-    @OneToMany(mappedBy = "parentComment", fetch = FetchType.LAZY)
+    @OneToMany(
+            mappedBy = "parentComment",
+            fetch = FetchType.LAZY,
+            cascade = CascadeType.ALL,
+            orphanRemoval = false
+    )
     private List<Comment> replies;
 
     @Column(name = "created_at", nullable = false)
@@ -49,4 +54,21 @@ public class Comment {
 
     @Column(name = "deleted_at")
     private LocalDateTime deletedAt;
+
+    @Column(name = "pinned", nullable = false)
+    private boolean pinned = false;
+
+    @Column(nullable = false)
+    private Integer depth = 0;
+
+    @PrePersist
+    protected void onCreate() {
+        this.createdAt = LocalDateTime.now();
+        this.updatedAt = LocalDateTime.now();
+    }
+
+    @PreUpdate
+    protected void onUpdate() {
+        this.updatedAt = LocalDateTime.now();
+    }
 }

@@ -4,10 +4,11 @@ import java.util.List;
 
 import com.decisionhub.dto.request.community.CreateCommunityRequest;
 import com.decisionhub.dto.request.community.UpdateCommunityRequest;
+import com.decisionhub.dto.request.community.UpdateMemberRoleRequest;
 import com.decisionhub.dto.response.community.CommunityJoinRequestResponse;
 import com.decisionhub.dto.response.community.CommunityMemberResponse;
 import com.decisionhub.dto.response.community.CommunityResponse;
-import com.decisionhub.dto.response.community.JoinCommunityResponse; // 👈 NEW IMPORT
+import com.decisionhub.dto.response.community.JoinCommunityResponse;
 
 public interface CommunityService {
 
@@ -29,7 +30,6 @@ public interface CommunityService {
 
     void deleteCommunity(Long communityId);
 
-    // ✅ FIXED: Now returns the professional JSON DTO
     JoinCommunityResponse joinCommunity(Long communityId);
 
     void leaveCommunity(Long communityId);
@@ -45,4 +45,6 @@ public interface CommunityService {
     List<CommunityMemberResponse> getCommunityMembers(Long communityId);
 
     void removeMember(Long communityId, Long memberId);
+
+    CommunityMemberResponse updateMemberRole(Long communityId, Long memberId, UpdateMemberRoleRequest request);
 }

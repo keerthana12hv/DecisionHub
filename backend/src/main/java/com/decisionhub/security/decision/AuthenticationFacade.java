@@ -25,4 +25,12 @@ public class AuthenticationFacade {
         return userRepository.findByEmail(authentication.getName())
                 .map(User::getId);
     }
+
+    public Optional<User> getCurrentUser() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || !authentication.isAuthenticated() || "anonymousUser".equals(authentication.getPrincipal())) {
+            return Optional.empty();
+        }
+        return userRepository.findByEmail(authentication.getName());
+    }
 }

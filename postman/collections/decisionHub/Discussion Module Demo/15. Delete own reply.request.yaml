@@ -1,0 +1,8 @@
+$kind: http-request
+url: http://localhost:8080/api/comments/{{replyId}}
+method: DELETE
+auth:
+  type: bearer
+  credentials:
+    token: "{{authToken}}"
+order: 16000

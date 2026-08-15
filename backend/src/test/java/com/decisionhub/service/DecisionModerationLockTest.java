@@ -62,8 +62,13 @@ class DecisionModerationLockTest {
     private com.decisionhub.service.interfaces.audit.AuditService auditService;
     @Mock
     private org.springframework.context.ApplicationEventPublisher eventPublisher;
+    @Mock
+    private com.decisionhub.repository.voting.PollRepository pollRepository;
+    @Mock
+    private com.decisionhub.repository.voting.VoteRepository voteRepository;
+    @Mock
+    private com.decisionhub.repository.discussion.CommentRepository commentRepository;
 
-    @Spy
     private DecisionModificationValidator decisionModificationValidator;
 
     @InjectMocks

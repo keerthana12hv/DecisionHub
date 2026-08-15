@@ -3,3 +3,9 @@ values:
   - key: authToken
     value: ''
     enabled: true
+  - key: commentId
+    value: ''
+    enabled: true
+  - key: replyId
+    value: ''
+    enabled: true

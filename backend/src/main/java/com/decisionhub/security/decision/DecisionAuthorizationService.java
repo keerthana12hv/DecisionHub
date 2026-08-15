@@ -76,4 +76,30 @@ public interface DecisionAuthorizationService {
      *         otherwise false.
      */
     boolean canParticipateInVoting(Long decisionId, Long userId);
+
+    /**
+     * Checks whether a user is allowed to create comments
+     * on a Decision.
+     *
+     * Users can comment only if they are allowed to view
+     * the Decision.
+     */
+    boolean canComment(Long decisionId, Long userId);
+
+    /**
+     * Checks whether a user is allowed to edit a comment.
+     *
+     * Only the comment owner may edit.
+     */
+    boolean canEditComment(Long commentId, Long userId);
+
+    /**
+     * Checks whether a user is allowed to delete a comment.
+     *
+     * A comment may be deleted by:
+     * - The comment owner.
+     * - The owner of the community containing the decision,
+     *   when the decision belongs to a community.
+     */
+    boolean canDeleteComment(Long commentId, Long userId);
 }
