@@ -274,13 +274,17 @@ public class DecisionServiceImpl implements DecisionService {
         Decision decision = decisionRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Decision not found with ID: " + id));
 
-        if (currentUser.getRole() != com.decisionhub.enums.authentication.PlatformRole.ADMIN) {
-            decisionModificationValidator.validateDecisionEditable(decision);
-        }
-
-        // 1. Authorization
+        // 1. Authorization: Only creator/owner or Platform Admin can delete
         if (!decisionAuthorizationService.canDeleteDecision(id, currentUserId)) {
             throw new UnauthorizedActionException("Not authorized to delete this decision");
+        }
+
+        // 2. Lifecycle check: If the decision is locked and the user is not a Platform Admin, prevent deletion.
+        // Status-based restrictions (DRAFT/ACTIVE/CLOSED) are bypassed for the owner.
+        if (currentUser.getRole() != com.decisionhub.enums.authentication.PlatformRole.ADMIN) {
+            if (decision.isLocked()) {
+                throw new com.decisionhub.exception.DecisionLockedException("This decision has been locked by a moderator.");
+            }
         }
 
         // 2. Cascade delete dependent entities manually as cascade is not configured in DB/entity.

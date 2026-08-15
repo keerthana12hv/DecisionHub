@@ -160,7 +160,7 @@ class DecisionLifecycleTest {
         when(decisionRepository.findById(1L)).thenReturn(Optional.of(closedDecision));
         when(decisionAuthorizationService.canViewDecision(1L, 1L)).thenReturn(true);
         
-        DecisionResponse responseObj = new DecisionResponse(1L, "Title", "Desc", null, null, null, DecisionStatus.CLOSED, null, VotingType.RATING_BASED, null, null, null, null, false, false);
+        DecisionResponse responseObj = new DecisionResponse(1L, "Title", "Desc", null, null, null, DecisionStatus.CLOSED, null, VotingType.RATING_BASED, null, null, null, null, false, false, 0L, 0L);
         when(decisionMapper.toResponse(closedDecision)).thenReturn(responseObj);
 
         DecisionResponse result = decisionService.getDecisionById(1L);

@@ -255,10 +255,7 @@ class DecisionServiceTest {
         when(userRepository.findById(1L)).thenReturn(Optional.of(user));
         when(decisionRepository.findById(1L)).thenReturn(Optional.of(decision));
         when(decisionAuthorizationService.canDeleteDecision(1L, 1L)).thenReturn(true);
-        
-        // ✅ Added the stub to prevent the NullPointerException
-        doNothing().when(decisionModificationValidator).validateDecisionEditable(any(Decision.class));
-        
+
         when(comparisonScoreRepository.findByOptionDecisionId(1L)).thenReturn(Collections.emptyList());
         when(comparisonFactorRepository.findByDecisionId(1L)).thenReturn(Collections.emptyList());
         when(decisionOptionRepository.findByDecisionId(1L)).thenReturn(Collections.emptyList());
