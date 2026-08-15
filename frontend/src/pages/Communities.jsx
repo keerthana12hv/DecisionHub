@@ -8,6 +8,7 @@ import { FaUsers, FaArrowRight, FaTimes, FaPlusCircle, FaChevronDown } from "rea
 import "../styles/Communities.css";
 import {
   getCommunities,
+  getCategories,
   createCommunity,
   joinCommunity,
   leaveCommunity,
@@ -21,6 +22,7 @@ function Communities() {
 
   const [communities, setCommunities] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [categories, setCategories] = useState([]);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [expandedCommunityId, setExpandedCommunityId] = useState(null);
   const [moderationData, setModerationData] = useState({});
@@ -31,18 +33,30 @@ function Communities() {
 
   // Form states for creating community
   const [newName, setNewName] = useState("");
-  const [newCategory, setNewCategory] = useState("");
+  const [selectedCategoryId, setSelectedCategoryId] = useState("");
   const [newVisibility, setNewVisibility] = useState("PUBLIC");
+  const [newBanner, setNewBanner] = useState("");
 
   useEffect(() => {
     loadCommunities();
 
+    loadCategories();
     // Membership approvals happen from a moderator's browser, not this one —
     // there's no push channel, so poll periodically while this page is open
     // so "Request Pending" flips to "Joined" without a manual refresh.
     const intervalId = setInterval(() => loadCommunities(true), 8000);
     return () => clearInterval(intervalId);
   }, [user]);
+
+  const loadCategories = async () => {
+    try {
+      const data = await getCategories();
+      setCategories(data);
+    } catch (error) {
+      console.error(error);
+      addToast("Failed to load categories", "error");
+    }
+  };
 
   // silent=true skips the loading spinner for background refreshes so the
   // grid doesn't flash/reset every poll.
@@ -120,26 +134,17 @@ function Communities() {
   const handleCreateCommunity = async (e) => {
     e.preventDefault();
 
-    if (!newName || !newCategory) {
+    if (!newName || !selectedCategoryId) {
       addToast("Please fill in required fields.", "error");
       return;
     }
 
     try {
-      const categoryMap = {
-        Technology: 1,
-        Education: 2,
-        Career: 3,
-        Business: 4,
-        Travel: 5,
-        Others: 6,
-      };
-
       await createCommunity({
         name: newName,
         slug: newName.toLowerCase().replace(/\s+/g, "-"),
         description: "",
-        categoryId: categoryMap[newCategory],
+        categoryId: Number(selectedCategoryId),
         visibility: newVisibility,
       });
 
@@ -150,8 +155,9 @@ function Communities() {
       await refreshProfile();
 
       setNewName("");
-      setNewCategory("");
+      setSelectedCategoryId("");
       setNewVisibility("PUBLIC");
+      setNewBanner("");
       setShowCreateModal(false);
     } catch (error) {
       console.error(error);
@@ -160,6 +166,33 @@ function Communities() {
         "error"
       );
     }
+  };
+
+  // Add post inside community feed
+  const handlePostFeed = (e) => {
+    e.preventDefault();
+    if (!feedInput.trim()) return;
+
+    const updatedFeedItem = {
+      id: Date.now(),
+      user: user?.username || "Anonymous",
+      text: feedInput.trim(),
+      likes: 0,
+      reactions: {}
+    };
+
+    const nextComms = communities.map((c) => {
+      if (c.id === activeCommDetail.id) {
+        const updatedFeed = [...(c.feed || []), updatedFeedItem];
+        return { ...c, feed: updatedFeed };
+      }
+      return c;
+    });
+
+    persistCommunities(nextComms);
+    setActiveCommDetail(nextComms.find(c => c.id === activeCommDetail.id));
+    setFeedInput("");
+    addToast("Post submitted to feed!", "success");
   };
 
   return (
@@ -488,14 +521,13 @@ function Communities() {
 
               <div className="form-group">
                 <label>Category</label>
-                <select value={newCategory} onChange={(e) => setNewCategory(e.target.value)} required>
+                <select value={selectedCategoryId} onChange={(e) => setSelectedCategoryId(e.target.value)} required>
                   <option value="">Select Category</option>
-                  <option>Education</option>
-                  <option>Career</option>
-                  <option>Technology</option>
-                  <option>Business</option>
-                  <option>Travel</option>
-                  <option>Others</option>
+                  {categories.map((cat) => (
+                    <option key={cat.id} value={cat.id}>
+                      {cat.name}
+                    </option>
+                  ))}
                 </select>
               </div>
 

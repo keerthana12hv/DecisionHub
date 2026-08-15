@@ -122,10 +122,11 @@ function DecisionList() {
     return matchesSearch && matchesCategory && matchesStatus;
   });
 
-  const totalPages = Math.ceil(filteredDecisions.length / itemsPerPage);
+  const sortedFilteredDecisions = [...filteredDecisions].sort((a, b) => (a.pinned && !b.pinned ? -1 : !a.pinned && b.pinned ? 1 : 0));
+  const totalPages = Math.ceil(sortedFilteredDecisions.length / itemsPerPage);
   const indexOfLastItem = currentPage * itemsPerPage;
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
-  const currentItems = filteredDecisions.slice(indexOfFirstItem, indexOfLastItem);
+  const currentItems = sortedFilteredDecisions.slice(indexOfFirstItem, indexOfLastItem);
 
   const paginate = (pageNumber) => {
     if (pageNumber >= 1 && pageNumber <= totalPages) {

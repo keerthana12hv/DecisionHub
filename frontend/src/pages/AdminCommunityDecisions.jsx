@@ -4,7 +4,7 @@ import Sidebar from "../components/Sidebar";
 import Navbar from "../components/Navbar";
 import { useToast } from "../components/Toast";
 import api from "../services/api";
-import { FaChevronLeft, FaThumbtack, FaLock, FaUnlock, FaComments } from "react-icons/fa";
+import { FaChevronLeft, FaThumbtack, FaLock, FaUnlock, FaComments, FaTrash, FaExclamationTriangle } from "react-icons/fa";
 
 export default function AdminCommunityDecisions() {
   const { id: communityId } = useParams();
@@ -16,6 +16,7 @@ export default function AdminCommunityDecisions() {
   const [pollStatuses, setPollStatuses] = useState({});
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
+  const [decisionToDelete, setDecisionToDelete] = useState(null);
 
   useEffect(() => {
     fetchData();
@@ -30,7 +31,8 @@ export default function AdminCommunityDecisions() {
       ]);
       setCommunity(commRes.data);
       const decisionsData = decisionsRes.data || [];
-      setDecisions(decisionsData);
+      const sorted = [...decisionsData].sort((a, b) => (a.pinned && !b.pinned ? -1 : !a.pinned && b.pinned ? 1 : 0));
+      setDecisions(sorted);
 
       // Fetch poll statuses in parallel
       const pollStatusesMap = {};
@@ -59,14 +61,31 @@ export default function AdminCommunityDecisions() {
       const endpoint = `/api/moderation/decisions/${decision.id}/${decision.pinned ? "unpin" : "pin"}`;
       await api.put(endpoint, {});
       addToast(decision.pinned ? "Decision unpinned" : "Decision pinned", "success");
-      
-      // Update decision locally from confirmed backend state
-      setDecisions((prev) =>
-        prev.map((d) => (d.id === decision.id ? { ...d, pinned: !decision.pinned } : d))
-      );
+
+      // Update decision locally from confirmed backend state and re-sort
+      setDecisions((prev) => {
+        const updated = prev.map((d) => (d.id === decision.id ? { ...d, pinned: !decision.pinned } : d));
+        return updated.sort((a, b) => (a.pinned && !b.pinned ? -1 : !a.pinned && b.pinned ? 1 : 0));
+      });
     } catch (err) {
       console.error("Failed to update pin state:", err);
       addToast("Failed to update pin state", "error");
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleDeleteDecision = async () => {
+    if (!decisionToDelete) return;
+    try {
+      setActionLoading(true);
+      await api.delete(`/api/decisions/${decisionToDelete.id}`);
+      addToast("Decision deleted successfully", "success");
+      setDecisions((prev) => prev.filter((d) => d.id !== decisionToDelete.id));
+      setDecisionToDelete(null);
+    } catch (err) {
+      console.error("Failed to delete decision:", err);
+      addToast(err.response?.data?.message || "Failed to delete decision", "error");
     } finally {
       setActionLoading(false);
     }
@@ -78,7 +97,7 @@ export default function AdminCommunityDecisions() {
       const endpoint = `/api/moderation/decisions/${decision.id}/${decision.locked ? "unlock" : "lock"}`;
       await api.put(endpoint, {});
       addToast(decision.locked ? "Discussion unlocked" : "Discussion locked", "success");
-      
+
       // Update decision locally from confirmed backend state
       setDecisions((prev) =>
         prev.map((d) => (d.id === decision.id ? { ...d, locked: !decision.locked } : d))
@@ -125,8 +144,8 @@ export default function AdminCommunityDecisions() {
       <div className="dashboard-main">
         <Navbar />
         <div className="dashboard-content animate-fade-in">
-          <div className="decision-page" style={{ maxWidth: "1000px", margin: "0 auto" }}>
-            
+          <div className="decision-page" style={{ maxWidth: "1200px", margin: "0 auto" }}>
+
             {/* Header section with back button */}
             <div className="decision-header" style={{ marginBottom: "2rem" }}>
               <div>
@@ -165,7 +184,7 @@ export default function AdminCommunityDecisions() {
                       <th style={{ textAlign: "left" }}>Status</th>
                       <th style={{ textAlign: "left" }}>Poll Status</th>
                       <th style={{ textAlign: "left" }}>Visibility</th>
-                      <th style={{ textAlign: "right" }}>Actions</th>
+                      <th style={{ textAlign: "center" }}>Actions</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -194,20 +213,21 @@ export default function AdminCommunityDecisions() {
                             {community.visibility}
                           </span>
                         </td>
-                        <td style={{ textAlign: "right" }}>
-                          <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px" }}>
-                            
+                        <td style={{ textAlign: "right", whiteSpace: "nowrap" }}>
+                          <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px", whiteSpace: "nowrap" }}>
+
                             {/* Pin / Unpin */}
                             <button
                               onClick={() => handlePinToggle(decision)}
                               disabled={actionLoading}
                               className="btn-secondary"
                               style={{
-                                padding: "4px 8px",
+                                padding: "6px 10px",
                                 fontSize: "0.8rem",
                                 display: "flex",
                                 alignItems: "center",
-                                gap: "4px"
+                                gap: "4px",
+                                whiteSpace: "nowrap"
                               }}
                             >
                               <FaThumbtack /> {decision.pinned ? "Unpin Decision" : "Pin Decision"}
@@ -219,31 +239,58 @@ export default function AdminCommunityDecisions() {
                               disabled={actionLoading}
                               className="btn-secondary"
                               style={{
-                                padding: "4px 8px",
+                                padding: "6px 10px",
                                 fontSize: "0.8rem",
                                 display: "flex",
                                 alignItems: "center",
-                                gap: "4px"
+                                justifyContent: "center",
+                                gap: "4px",
+                                whiteSpace: "nowrap"
                               }}
                             >
                               {decision.locked ? <FaUnlock /> : <FaLock />} {decision.locked ? "Unlock Discussion" : "Lock Discussion"}
                             </button>
 
                             {/* View Discussion */}
-                            <Link to={`/admin/decisions/${decision.id}/discuss`}>
+                            <Link to={`/admin/decisions/${decision.id}/discuss`} state={{ communityId }} style={{ textDecoration: "none" }}>
                               <button
                                 className="btn-primary"
                                 style={{
-                                  padding: "4px 8px",
+                                  padding: "6px 10px",
                                   fontSize: "0.8rem",
                                   display: "flex",
                                   alignItems: "center",
-                                  gap: "4px"
+                                  justifyContent: "center",
+                                  gap: "4px",
+                                  whiteSpace: "nowrap"
                                 }}
                               >
                                 <FaComments /> View Discussion
                               </button>
                             </Link>
+
+                            {/* Delete Decision */}
+                            <button
+                              onClick={() => setDecisionToDelete(decision)}
+                              disabled={actionLoading}
+                              className="btn-danger"
+                              style={{
+                                width: "44px",
+                                height: "44px",
+                                padding: "0",
+                                flexShrink: 0,
+                                background: "rgba(239, 68, 68, 0.15)",
+                                color: "#F87171",
+                                border: "1px solid rgba(239, 68, 68, 0.4)",
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                cursor: "pointer"
+                              }}
+                              title="Delete Decision"
+                            >
+                              <FaTrash />
+                            </button>
 
                           </div>
                         </td>
@@ -257,6 +304,37 @@ export default function AdminCommunityDecisions() {
           </div>
         </div>
       </div>
+
+      {/* Delete Decision Confirmation Modal */}
+      {decisionToDelete && (
+        <div className="delete-overlay">
+          <div className="delete-modal glass-panel animate-pop-in">
+            <div className="delete-warning-icon">
+              <FaExclamationTriangle />
+            </div>
+            <h2>Delete Decision?</h2>
+            <p>
+              Are you sure you want to delete this decision?
+            </p>
+            <div className="delete-buttons">
+              <button
+                className="btn-secondary"
+                onClick={() => setDecisionToDelete(null)}
+                disabled={actionLoading}
+              >
+                Cancel
+              </button>
+              <button
+                className="btn-primary confirm-delete-btn"
+                onClick={handleDeleteDecision}
+                disabled={actionLoading}
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

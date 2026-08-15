@@ -96,11 +96,13 @@ export default function CommunityDetail() {
                   </p>
                 ) : (
                   <ul className="community-decisions-list">
-                    {decisions.map((d) => (
-                      <li key={d.id} className="community-decision-row">
-                        <div className="community-decision-info">
-                          <span className="community-decision-title">
-                            {d.pinned && <FaThumbtack title="Pinned" style={{ marginRight: 6 }} />}
+                    {[...decisions]
+                      .sort((a, b) => (a.pinned && !b.pinned ? -1 : !a.pinned && b.pinned ? 1 : 0))
+                      .map((d) => (
+                        <li key={d.id} className="community-decision-row">
+                          <div className="community-decision-info">
+                            <span className="community-decision-title">
+                              {d.pinned && <FaThumbtack title="Pinned" style={{ marginRight: 6 }} />}
                             {d.locked && <FaLock title="Locked" style={{ marginRight: 6 }} />}
                             {d.title}
                           </span>

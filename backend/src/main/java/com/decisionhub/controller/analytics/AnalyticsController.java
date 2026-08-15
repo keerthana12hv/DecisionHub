@@ -24,6 +24,12 @@ import com.decisionhub.dto.response.analytics.AdminDecisionStatisticsResponse;
 import com.decisionhub.dto.response.analytics.AdminFeedbackAnalyticsResponse;
 import com.decisionhub.dto.response.analytics.CommunityActivityResponse;
 import com.decisionhub.dto.response.analytics.CommunityAnalyticsResponse;
+import com.decisionhub.dto.response.analytics.UserPlatformOverviewResponse;
+import com.decisionhub.dto.response.analytics.UserDecisionStatisticsResponse;
+import com.decisionhub.dto.response.authentication.UserResponse;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 
 @RestController
 @RequestMapping("/api/analytics")
@@ -31,6 +37,24 @@ import com.decisionhub.dto.response.analytics.CommunityAnalyticsResponse;
 public class AnalyticsController {
 
     private final AnalyticsService analyticsService;
+
+    @GetMapping("/overview")
+    public ResponseEntity<UserPlatformOverviewResponse> getUserOverview() {
+        return ResponseEntity.ok(analyticsService.getUserPlatformOverview());
+    }
+
+    @GetMapping("/decisions/statistics")
+    public ResponseEntity<UserDecisionStatisticsResponse> getUserDecisionStatistics() {
+        return ResponseEntity.ok(analyticsService.getUserDecisionStatistics());
+    }
+
+    @GetMapping("/admin/users-list")
+    public ResponseEntity<Page<UserResponse>> getAllUsers(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        Pageable pageable = PageRequest.of(page, size);
+        return ResponseEntity.ok(analyticsService.getAllUsers(pageable));
+    }
 
  @GetMapping("/decisions/{decisionId}/overview")
 public ResponseEntity<DecisionOverviewResponse> getDecisionOverview(
@@ -203,13 +227,6 @@ getAdminFeedbackAnalytics() {
 
     return ResponseEntity.ok(
             analyticsService.getAdminFeedbackAnalytics()
-    );
-}
-
-@GetMapping("/admin/users-list")
-public ResponseEntity<List<com.decisionhub.dto.response.authentication.UserResponse>> getAdminUsersList() {
-    return ResponseEntity.ok(
-            analyticsService.getAdminUsersList()
     );
 }
 }

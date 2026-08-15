@@ -14,7 +14,6 @@ function Analytics() {
   const { addToast } = useToast();
   const { user } = useAuth();
   const userRole = user?.role || "USER";
-
   const [downloading, setDownloading] = useState(null);
   const [activeTab, setActiveTab] = useState("decision"); // 'decision' | 'community' | 'admin'
   const [decisionId, setDecisionId] = useState(5);

@@ -274,7 +274,9 @@ public class DecisionServiceImpl implements DecisionService {
         Decision decision = decisionRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Decision not found with ID: " + id));
 
-        decisionModificationValidator.validateDecisionEditable(decision);
+        if (currentUser.getRole() != com.decisionhub.enums.authentication.PlatformRole.ADMIN) {
+            decisionModificationValidator.validateDecisionEditable(decision);
+        }
 
         // 1. Authorization
         if (!decisionAuthorizationService.canDeleteDecision(id, currentUserId)) {

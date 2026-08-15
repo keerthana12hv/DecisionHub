@@ -1,14 +1,15 @@
 import { useState, useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
 import Sidebar from "../components/Sidebar";
 import Navbar from "../components/Navbar";
 import { useToast } from "../components/Toast";
 import api from "../services/api";
-import { FaChevronLeft, FaComments, FaReply, FaTrash, FaThumbtack } from "react-icons/fa";
+import { FaChevronLeft, FaComments, FaReply, FaTrash, FaThumbtack, FaExclamationTriangle } from "react-icons/fa";
 
 export default function AdminDecisionDiscussion() {
   const { id: decisionId } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const { addToast } = useToast();
 
   const [decision, setDecision] = useState(null);
@@ -17,6 +18,33 @@ export default function AdminDecisionDiscussion() {
   const [reportedComments, setReportedComments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
+  const [reportCommentToDelete, setReportCommentToDelete] = useState(null);
+
+  const stateCommunityId = location.state?.communityId;
+  const fromAdminDecisions = location.state?.fromAdminDecisions;
+
+  const handleBack = async () => {
+    if (stateCommunityId) {
+      navigate(`/admin/communities/${stateCommunityId}/decisions`);
+      return;
+    }
+    if (fromAdminDecisions || !decision || !decision.communityName) {
+      navigate("/admin/decisions");
+      return;
+    }
+    // Fallback: look up communityId by name
+    try {
+      const res = await api.get("/api/communities");
+      const community = (res.data || []).find((c) => c.name === decision.communityName);
+      if (community) {
+        navigate(`/admin/communities/${community.id}/decisions`);
+      } else {
+        navigate("/admin/decisions");
+      }
+    } catch (err) {
+      navigate("/admin/decisions");
+    }
+  };
 
   // Form state for new top-level comment
   const [newCommentText, setNewCommentText] = useState("");
@@ -52,7 +80,7 @@ export default function AdminDecisionDiscussion() {
     try {
       const reportsRes = await api.get("/api/moderation/reports");
       const reports = reportsRes.data || [];
-      
+
       const filtered = [];
       await Promise.all(
         reports.map(async (r) => {
@@ -109,16 +137,29 @@ export default function AdminDecisionDiscussion() {
   };
 
   const handleCommentDeleted = (commentId) => {
-    const changes = { deleted: true, content: "[deleted]" };
-    setComments((prev) =>
-      prev.map((c) => (c.id === commentId ? { ...c, ...changes } : c))
-    );
+    setComments((prev) => prev.filter((c) => c.id !== commentId));
     if (pinnedComment && pinnedComment.id === commentId) {
       setPinnedComment(null);
     }
     // Refresh reports list to reflect soft-delete
     if (decision) {
       fetchReports(decision);
+    }
+  };
+
+  const handleConfirmReportCommentDelete = async () => {
+    if (!reportCommentToDelete) return;
+    try {
+      setActionLoading(true);
+      await api.delete(`/api/moderation/comments/${reportCommentToDelete.commentId}`);
+      addToast("Comment removed", "success");
+      handleCommentDeleted(reportCommentToDelete.commentId);
+      setReportCommentToDelete(null);
+    } catch (err) {
+      console.error("Failed to delete comment:", err);
+      addToast("Failed to delete comment", "error");
+    } finally {
+      setActionLoading(false);
     }
   };
 
@@ -189,11 +230,11 @@ export default function AdminDecisionDiscussion() {
         <Navbar />
         <div className="dashboard-content animate-fade-in">
           <div className="discussion-page" style={{ maxWidth: "800px", margin: "0 auto" }}>
-            
+
             {/* Header back navigation */}
             <div style={{ marginBottom: "2.5rem" }}>
               <button
-                onClick={() => navigate(`/admin/communities/${decision.communityId}/decisions`)}
+                onClick={handleBack}
                 style={{
                   background: "none",
                   border: "none",
@@ -216,35 +257,6 @@ export default function AdminDecisionDiscussion() {
                 Moderating discussion for decision: <strong>{decision.title}</strong>
               </p>
             </div>
-
-            {/* Pinned Comment Banner */}
-            {pinnedComment && (
-              <div
-                className="pinned-comment-section glass-panel"
-                style={{
-                  padding: "1.25rem",
-                  border: "1px solid #FBBF24",
-                  borderRadius: "12px",
-                  background: "rgba(251, 191, 36, 0.05)",
-                  marginBottom: "2rem"
-                }}
-              >
-                <h3 style={{ color: "#FBBF24", fontSize: "1rem", fontWeight: "700", display: "flex", alignItems: "center", gap: "6px", margin: "0 0 0.5rem" }}>
-                  📌 Pinned Comment
-                </h3>
-                <p style={{ color: "white", fontSize: "0.95rem", margin: "0 0 0.75rem" }}>
-                  {pinnedComment.content}
-                </p>
-                <button
-                  onClick={handleUnpinPinnedComment}
-                  disabled={actionLoading}
-                  className="btn-secondary"
-                  style={{ fontSize: "0.8rem", padding: "4px 8px" }}
-                >
-                  Unpin
-                </button>
-              </div>
-            )}
 
             {/* Post comment section */}
             <div
@@ -297,16 +309,18 @@ export default function AdminDecisionDiscussion() {
                   No comments yet.
                 </div>
               ) : (
-                comments.map((comment) => (
-                  <AdminCommentNode
-                    key={comment.id}
-                    comment={comment}
-                    decisionId={Number(decisionId)}
-                    onCommentUpdated={handleCommentUpdated}
-                    onCommentDeleted={handleCommentDeleted}
-                    onPinComment={(pinnedCommentData) => setPinnedComment(pinnedCommentData)}
-                  />
-                ))
+                [...comments]
+                  .sort((a, b) => (a.pinned && !b.pinned ? -1 : !a.pinned && b.pinned ? 1 : 0))
+                  .map((comment) => (
+                    <AdminCommentNode
+                      key={comment.id}
+                      comment={comment}
+                      decisionId={Number(decisionId)}
+                      onCommentUpdated={handleCommentUpdated}
+                      onCommentDeleted={handleCommentDeleted}
+                      onPinComment={(pinnedCommentData) => setPinnedComment(pinnedCommentData)}
+                    />
+                  ))
               )}
             </div>
 
@@ -316,54 +330,41 @@ export default function AdminDecisionDiscussion() {
                 Reported Comments
               </h2>
 
-              <div className="decision-table-wrapper glass-panel">
+              <div className="decision-table-wrapper glass-panel" style={{ overflowX: "auto" }}>
                 {reportedComments.length === 0 ? (
                   <p style={{ padding: "20px" }}>No reported comments found</p>
                 ) : (
-                  <table className="decision-table-element">
+                  <table className="decision-table-element" style={{ minWidth: "600px" }}>
                     <thead>
                       <tr>
-                        <th style={{ textAlign: "left" }}>Comment</th>
-                        <th style={{ textAlign: "left" }}>Reported By</th>
-                        <th style={{ textAlign: "left" }}>Reason</th>
-                        <th style={{ textAlign: "left" }}>Decision</th>
-                        <th style={{ textAlign: "left" }}>Date</th>
-                        <th style={{ textAlign: "right" }}>Actions</th>
+                        <th style={{ padding: "10px 12px", textAlign: "left" }}>Comment</th>
+                        <th style={{ padding: "10px 12px", textAlign: "left" }}>Reported By</th>
+                        <th style={{ padding: "10px 12px", textAlign: "left" }}>Reason</th>
+                        <th style={{ padding: "10px 12px", textAlign: "left" }}>Decision</th>
+                        <th style={{ padding: "10px 12px", textAlign: "left" }}>Date</th>
+                        <th style={{ padding: "10px 12px", textAlign: "right" }}>Actions</th>
                       </tr>
                     </thead>
                     <tbody>
                       {reportedComments.map((report) => (
                         <tr key={report.id}>
-                          <td style={{ maxWidth: "200px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                          <td style={{ padding: "10px 12px", maxWidth: "150px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                             {report.commentDeleted ? (
                               <span style={{ fontStyle: "italic", color: "var(--text-muted)" }}>[deleted]</span>
                             ) : (
                               report.commentContent
                             )}
                           </td>
-                          <td>{report.reporterUsername}</td>
-                          <td>{report.reason}</td>
-                          <td>{report.decisionTitle}</td>
-                          <td>{report.createdAt ? new Date(report.createdAt).toLocaleDateString() : "—"}</td>
-                          <td style={{ textAlign: "right" }}>
+                          <td style={{ padding: "10px 12px" }}>{report.reporterUsername}</td>
+                          <td style={{ padding: "10px 12px" }}>{report.reason}</td>
+                          <td style={{ padding: "10px 12px" }}>{report.decisionTitle}</td>
+                          <td style={{ padding: "10px 12px" }}>{report.createdAt ? new Date(report.createdAt).toLocaleDateString() : "—"}</td>
+                          <td style={{ padding: "10px 12px", textAlign: "right" }}>
                             <div style={{ display: "flex", justifyContent: "flex-end", gap: "8px" }}>
                               {!report.commentDeleted && (
                                 <button
                                   className="btn-danger"
-                                  onClick={async () => {
-                                    if (!confirm("Delete comment? This comment will be removed from the discussion.")) return;
-                                    try {
-                                      setActionLoading(true);
-                                      await api.delete(`/api/moderation/comments/${report.commentId}`);
-                                      addToast("Comment removed", "success");
-                                      handleCommentDeleted(report.commentId);
-                                    } catch (err) {
-                                      console.error("Failed to delete comment:", err);
-                                      addToast("Failed to delete comment", "error");
-                                    } finally {
-                                      setActionLoading(false);
-                                    }
-                                  }}
+                                  onClick={() => setReportCommentToDelete(report)}
                                   disabled={actionLoading}
                                   style={{ background: "none", border: "none", color: "#F87171", cursor: "pointer", fontSize: "0.85rem" }}
                                 >
@@ -391,6 +392,38 @@ export default function AdminDecisionDiscussion() {
           </div>
         </div>
       </div>
+
+      {/* Delete Comment Confirmation Modal */}
+      {reportCommentToDelete && (
+        <div className="delete-overlay">
+          <div className="delete-modal glass-panel animate-pop-in" style={{ padding: "2rem", width: "400px", display: "flex", flexDirection: "column", gap: "1.5rem", textAlign: "center" }}>
+            <div className="delete-warning-icon" style={{ margin: "0 auto" }}>
+              <FaExclamationTriangle />
+            </div>
+            <h2 style={{ margin: 0 }}>Delete Comment?</h2>
+            <p style={{ margin: 0, color: "var(--text-secondary)", fontSize: "0.9rem" }}>
+              Are you sure you want to delete this comment? This action will remove the comment from the discussion.
+            </p>
+            <div className="delete-buttons" style={{ display: "flex", gap: "10px", width: "100%" }}>
+              <button
+                className="btn-secondary"
+                style={{ flex: 1 }}
+                onClick={() => setReportCommentToDelete(null)}
+              >
+                Cancel
+              </button>
+              <button
+                className="btn-primary confirm-delete-btn"
+                style={{ flex: 1, background: "var(--danger, #EF4444)" }}
+                onClick={handleConfirmReportCommentDelete}
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }
@@ -411,6 +444,7 @@ function AdminCommentNode({
   const [isReplying, setIsReplying] = useState(false);
   const [replyText, setReplyText] = useState("");
   const [actionLoading, setActionLoading] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   const MAX_DEPTH = 5;
 
@@ -457,8 +491,12 @@ function AdminCommentNode({
     }
   };
 
-  const handleDeleteComment = async () => {
-    if (!confirm("Delete comment? This comment will be removed from the discussion.")) return;
+  const handleDeleteComment = () => {
+    setShowDeleteConfirm(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    setShowDeleteConfirm(false);
     try {
       setActionLoading(true);
       await api.delete(`/api/moderation/comments/${comment.id}`);
@@ -483,7 +521,6 @@ function AdminCommentNode({
       } else {
         const res = await api.put(`/api/moderation/comments/${comment.id}/pin`, {});
         addToast("Comment pinned", "success");
-        // Update previous pinned comment in siblings tree if necessary, or let the parent update
         onPinComment(res.data);
         onCommentUpdated(comment.id, { pinned: true });
       }
@@ -502,10 +539,7 @@ function AdminCommentNode({
   };
 
   const handleChildDeleted = (childId) => {
-    const changes = { deleted: true, content: "[deleted]" };
-    setReplies((prev) =>
-      prev.map((r) => (r.id === childId ? { ...r, ...changes } : r))
-    );
+    setReplies((prev) => prev.filter((r) => r.id !== childId));
   };
 
   const canReply = comment.depth < MAX_DEPTH - 1 && !comment.deleted;
@@ -521,10 +555,10 @@ function AdminCommentNode({
     >
       <div
         style={{
-          background: "rgba(255,255,255,0.04)",
+          background: comment.pinned ? "rgba(251, 191, 36, 0.05)" : "rgba(255,255,255,0.04)",
           borderRadius: "12px",
           padding: "16px",
-          border: "1px solid var(--border-glass)"
+          border: comment.pinned ? "1px solid #FBBF24" : "1px solid var(--border-glass)"
         }}
       >
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "8px" }}>
@@ -663,11 +697,41 @@ function AdminCommentNode({
             {loadingReplies
               ? "Loading..."
               : repliesVisible
-              ? "Hide replies"
-              : `Show ${comment.replyCount} ${comment.replyCount === 1 ? "reply" : "replies"}`}
+                ? "Hide replies"
+                : `Show ${comment.replyCount} ${comment.replyCount === 1 ? "reply" : "replies"}`}
           </button>
         )}
       </div>
+
+      {showDeleteConfirm && (
+        <div className="delete-overlay">
+          <div className="delete-modal glass-panel animate-pop-in" style={{ padding: "2rem", width: "400px", display: "flex", flexDirection: "column", gap: "1.5rem", textAlign: "center" }}>
+            <div className="delete-warning-icon" style={{ margin: "0 auto" }}>
+              <FaExclamationTriangle />
+            </div>
+            <h2 style={{ margin: 0 }}>Delete Comment?</h2>
+            <p style={{ margin: 0, color: "var(--text-secondary)", fontSize: "0.9rem" }}>
+              Are you sure you want to delete this comment? This action will remove the comment from the discussion.
+            </p>
+            <div className="delete-buttons" style={{ display: "flex", gap: "10px", width: "100%" }}>
+              <button
+                className="btn-secondary"
+                style={{ flex: 1 }}
+                onClick={() => setShowDeleteConfirm(false)}
+              >
+                Cancel
+              </button>
+              <button
+                className="btn-primary confirm-delete-btn"
+                style={{ flex: 1, background: "var(--danger, #EF4444)" }}
+                onClick={handleConfirmDelete}
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {repliesVisible &&
         replies.map((reply) => (
