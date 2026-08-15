@@ -80,6 +80,8 @@ class DecisionServiceTest {
     private com.decisionhub.repository.voting.VoteRepository voteRepository;
     @Mock
     private com.decisionhub.repository.discussion.CommentRepository commentRepository;
+    @Mock
+    private com.decisionhub.repository.community.CommunityMemberRepository communityMemberRepository;
 
     @InjectMocks
     private DecisionServiceImpl decisionService;
@@ -274,5 +276,79 @@ class DecisionServiceTest {
         when(decisionAuthorizationService.canDeleteDecision(1L, 2L)).thenReturn(false);
 
         assertThrows(UnauthorizedActionException.class, () -> decisionService.deleteDecision(1L, "127.0.0.1", "Mozilla"));
+    }
+
+    @Test
+    void deleteDecision_Moderator_Success() {
+        User moderator = new User();
+        moderator.setId(2L);
+        moderator.setRole(com.decisionhub.enums.authentication.PlatformRole.USER);
+
+        Community community = new Community();
+        community.setId(10L);
+
+        decision.setCommunity(community);
+
+        com.decisionhub.entity.community.CommunityMember member = new com.decisionhub.entity.community.CommunityMember();
+        member.setStatus(com.decisionhub.enums.community.MembershipStatus.APPROVED);
+        member.setRole(com.decisionhub.enums.community.CommunityMemberRole.MODERATOR);
+
+        when(authenticationFacade.getCurrentUserId()).thenReturn(Optional.of(2L));
+        when(userRepository.findById(2L)).thenReturn(Optional.of(moderator));
+        when(decisionRepository.findById(1L)).thenReturn(Optional.of(decision));
+        when(decisionAuthorizationService.canDeleteDecision(1L, 2L)).thenReturn(true);
+        when(communityMemberRepository.findByCommunityIdAndUserId(10L, 2L)).thenReturn(Optional.of(member));
+
+        when(comparisonScoreRepository.findByOptionDecisionId(1L)).thenReturn(Collections.emptyList());
+        when(comparisonFactorRepository.findByDecisionId(1L)).thenReturn(Collections.emptyList());
+        when(decisionOptionRepository.findByDecisionId(1L)).thenReturn(Collections.emptyList());
+
+        decisionService.deleteDecision(1L, "127.0.0.1", "Mozilla");
+
+        verify(decisionRepository).delete(decision);
+        verify(auditService).log(eq(moderator), eq("DECISION_DELETED"), eq("decisions"), eq(1L), anyString(), isNull(), anyString(), anyString());
+    }
+
+    @Test
+    void deleteDecision_Moderator_Locked_Success() {
+        User moderator = new User();
+        moderator.setId(2L);
+        moderator.setRole(com.decisionhub.enums.authentication.PlatformRole.USER);
+
+        Community community = new Community();
+        community.setId(10L);
+
+        decision.setCommunity(community);
+        decision.setLocked(true);
+
+        com.decisionhub.entity.community.CommunityMember member = new com.decisionhub.entity.community.CommunityMember();
+        member.setStatus(com.decisionhub.enums.community.MembershipStatus.APPROVED);
+        member.setRole(com.decisionhub.enums.community.CommunityMemberRole.MODERATOR);
+
+        when(authenticationFacade.getCurrentUserId()).thenReturn(Optional.of(2L));
+        when(userRepository.findById(2L)).thenReturn(Optional.of(moderator));
+        when(decisionRepository.findById(1L)).thenReturn(Optional.of(decision));
+        when(decisionAuthorizationService.canDeleteDecision(1L, 2L)).thenReturn(true);
+        when(communityMemberRepository.findByCommunityIdAndUserId(10L, 2L)).thenReturn(Optional.of(member));
+
+        when(comparisonScoreRepository.findByOptionDecisionId(1L)).thenReturn(Collections.emptyList());
+        when(comparisonFactorRepository.findByDecisionId(1L)).thenReturn(Collections.emptyList());
+        when(decisionOptionRepository.findByDecisionId(1L)).thenReturn(Collections.emptyList());
+
+        decisionService.deleteDecision(1L, "127.0.0.1", "Mozilla");
+
+        verify(decisionRepository).delete(decision);
+    }
+
+    @Test
+    void deleteDecision_Owner_Locked_ThrowsLockedException() {
+        decision.setLocked(true);
+
+        when(authenticationFacade.getCurrentUserId()).thenReturn(Optional.of(1L));
+        when(userRepository.findById(1L)).thenReturn(Optional.of(user));
+        when(decisionRepository.findById(1L)).thenReturn(Optional.of(decision));
+        when(decisionAuthorizationService.canDeleteDecision(1L, 1L)).thenReturn(true);
+
+        assertThrows(com.decisionhub.exception.DecisionLockedException.class, () -> decisionService.deleteDecision(1L, "127.0.0.1", "Mozilla"));
     }
 }

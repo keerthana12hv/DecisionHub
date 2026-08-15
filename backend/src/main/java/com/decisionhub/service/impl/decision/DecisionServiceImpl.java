@@ -1,4 +1,6 @@
 package com.decisionhub.service.impl.decision;
+import com.decisionhub.repository.community.CommunityMemberRepository;
+import com.decisionhub.enums.community.MembershipStatus;
 import com.decisionhub.repository.discussion.CommentRepository;
 import com.decisionhub.dto.request.decision.DecisionRequest;
 import com.decisionhub.dto.response.decision.DecisionResponse;
@@ -59,6 +61,7 @@ public class DecisionServiceImpl implements DecisionService {
     private final PollRepository pollRepository;
     private final VoteRepository voteRepository;
     private final CommentRepository commentRepository;
+    private final CommunityMemberRepository communityMemberRepository;
 
     private final DecisionMapper decisionMapper;
     private final ComparisonMapper comparisonMapper;
@@ -279,9 +282,17 @@ public class DecisionServiceImpl implements DecisionService {
             throw new UnauthorizedActionException("Not authorized to delete this decision");
         }
 
-        // 2. Lifecycle check: If the decision is locked and the user is not a Platform Admin, prevent deletion.
+        // 2. Lifecycle check: If the decision is locked and the user is not a Platform Admin or the Community Moderator, prevent deletion.
         // Status-based restrictions (DRAFT/ACTIVE/CLOSED) are bypassed for the owner.
-        if (currentUser.getRole() != com.decisionhub.enums.authentication.PlatformRole.ADMIN) {
+        boolean isCommunityModerator = false;
+        if (decision.getCommunity() != null) {
+            isCommunityModerator = communityMemberRepository.findByCommunityIdAndUserId(decision.getCommunity().getId(), currentUserId)
+                    .map(member -> member.getStatus() == MembershipStatus.APPROVED 
+                            && member.getRole() == com.decisionhub.enums.community.CommunityMemberRole.MODERATOR)
+                    .orElse(false);
+        }
+
+        if (currentUser.getRole() != com.decisionhub.enums.authentication.PlatformRole.ADMIN && !isCommunityModerator) {
             if (decision.isLocked()) {
                 throw new com.decisionhub.exception.DecisionLockedException("This decision has been locked by a moderator.");
             }

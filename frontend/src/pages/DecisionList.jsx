@@ -17,6 +17,7 @@ import {
   FaLock,
   FaArrowRight
 } from "react-icons/fa";
+import { getModeratingCommunities } from "../services/moderationService";
 import "../styles/DecisionList.css";
 
 const API = "http://localhost:8080/api";
@@ -46,6 +47,7 @@ function DecisionList() {
 
   const [showDelete, setShowDelete] = useState(false);
   const [selectedDecision, setSelectedDecision] = useState(null);
+  const [moderatingCommunities, setModeratingCommunities] = useState([]);
 
   useEffect(() => {
     const q = searchParams.get("search");
@@ -59,6 +61,7 @@ function DecisionList() {
     }
 
     fetchDecisions();
+    fetchModeratingCommunities();
   }, [searchParams]);
 
   const fetchDecisions = async () => {
@@ -83,6 +86,16 @@ function DecisionList() {
       addToast("Failed to load decisions", "error");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchModeratingCommunities = async () => {
+    try {
+      const data = await getModeratingCommunities();
+      setModeratingCommunities(data || []);
+    } catch (err) {
+      console.error("Failed to fetch moderating communities:", err);
+      setModeratingCommunities([]);
     }
   };
 
@@ -223,6 +236,7 @@ function DecisionList() {
                     ) : (
                       currentItems.map((decision) => {
                         const isCreator = String(decision.creator?.id) === String(currentUserId);
+                        const isModerator = !!decision.communityName && moderatingCommunities.some((c) => c.name === decision.communityName);
                         return (
                           <tr key={decision.id}>
                             <td className="decision-title-col">
@@ -266,7 +280,7 @@ function DecisionList() {
                                   <FaCopy />
                                 </button>
 
-                                {isCreator && (
+                                {(isCreator || isModerator) && (
                                   <button
                                     className="action-row-btn-icon delete"
                                     onClick={() => {
