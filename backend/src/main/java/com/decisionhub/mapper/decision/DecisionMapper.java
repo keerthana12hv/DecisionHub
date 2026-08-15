@@ -22,6 +22,8 @@ public interface DecisionMapper {
     @Mapping(target = "categoryName", source = "community.category.name")
     @Mapping(target = "communityName", source = "community.name")
     @Mapping(target = "factors", source = "comparisonFactors")
+    @Mapping(target = "totalVotes", ignore = true)
+    @Mapping(target = "totalComments", ignore = true)
     DecisionResponse toResponse(Decision decision);
 
     @Mapping(target = "creator", ignore = true)

@@ -86,7 +86,7 @@ export function DecisionAnalyticsView({ decisionId = 5 }) {
           <FaStar className="metric-icon yellow" />
           <div>
             <p>Feedback Rating</p>
-            <h2>{feedback?.averageRating ? `${feedback.averageRating.toFixed(1)} / 5` : "N/A"}</h2>
+            <h2>{feedback?.feedbackCount > 0 && feedback?.averageRating ? `${feedback.averageRating.toFixed(1)} / 5` : "No feedback yet"}</h2>
             <span className="trend-text">{feedback?.feedbackCount ?? 0} Feedback Reviews</span>
           </div>
         </div>
@@ -121,7 +121,7 @@ export function DecisionAnalyticsView({ decisionId = 5 }) {
                 </div>
               ))
             ) : (
-              <p style={{ color: "#64748b", fontSize: "13px" }}>No distribution data available</p>
+              <p style={{ color: "#64748b", fontSize: "13px" }}>No votes yet</p>
             )}
           </div>
         </div>
@@ -199,21 +199,27 @@ export function DecisionAnalyticsView({ decisionId = 5 }) {
 
         <div className="glass-card chart-container">
           <h3>Feedback Rating Breakdown</h3>
-          <div style={{ padding: "15px", display: "flex", gap: "20px", alignItems: "center" }}>
-            <div style={{ textAlign: "center", minWidth: "90px" }}>
-              <h1 style={{ fontSize: "36px", color: "#f59e0b", margin: 0 }}>
-                {feedback?.averageRating ? feedback.averageRating.toFixed(1) : "0.0"}
-              </h1>
-              <span style={{ fontSize: "11px", color: "#94a3b8" }}>{feedback?.feedbackCount ?? 0} Reviews</span>
+          {feedback?.feedbackCount > 0 ? (
+            <div style={{ padding: "15px", display: "flex", gap: "20px", alignItems: "center" }}>
+              <div style={{ textAlign: "center", minWidth: "90px" }}>
+                <h1 style={{ fontSize: "36px", color: "#f59e0b", margin: 0 }}>
+                  {feedback?.averageRating ? feedback.averageRating.toFixed(1) : "0.0"}
+                </h1>
+                <span style={{ fontSize: "11px", color: "#94a3b8" }}>{feedback?.feedbackCount ?? 0} Reviews</span>
+              </div>
+              <div style={{ flex: 1, fontSize: "12px", color: "#cbd5e1", display: "flex", flexDirection: "column", gap: "4px" }}>
+                <div>5 Stars: {feedback?.fiveStar ?? 0}</div>
+                <div>4 Stars: {feedback?.fourStar ?? 0}</div>
+                <div>3 Stars: {feedback?.threeStar ?? 0}</div>
+                <div>2 Stars: {feedback?.twoStar ?? 0}</div>
+                <div>1 Star: {feedback?.oneStar ?? 0}</div>
+              </div>
             </div>
-            <div style={{ flex: 1, fontSize: "12px", color: "#cbd5e1", display: "flex", flexDirection: "column", gap: "4px" }}>
-              <div>5 Stars: {feedback?.fiveStar ?? 0}</div>
-              <div>4 Stars: {feedback?.fourStar ?? 0}</div>
-              <div>3 Stars: {feedback?.threeStar ?? 0}</div>
-              <div>2 Stars: {feedback?.twoStar ?? 0}</div>
-              <div>1 Star: {feedback?.oneStar ?? 0}</div>
+          ) : (
+            <div style={{ padding: "20px", color: "#64748b", fontSize: "13px" }}>
+              No feedback yet
             </div>
-          </div>
+          )}
         </div>
       </div>
     </div>

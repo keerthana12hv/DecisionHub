@@ -20,6 +20,8 @@ public interface CommentRepository extends JpaRepository<Comment, Long> {
     List<Comment> findByDecisionId(Long decisionId);
     List<Comment> findByDecisionIdAndDeletedAtIsNull(Long decisionId);
 
+    long countByDecisionId(Long decisionId);
+
     long countByDecisionIdAndParentCommentIsNull(Long decisionId);
 
     long countByDecisionIdAndParentCommentIsNotNull(Long decisionId);

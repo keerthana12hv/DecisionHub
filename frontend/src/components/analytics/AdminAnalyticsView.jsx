@@ -27,8 +27,29 @@ export function AdminAnalyticsView() {
     } catch (err) {
       console.error("Error fetching admin platform analytics", err);
     } finally {
+      setData((prev) => ({ ...prev, loading: false }));
       setLoading(false);
     }
+  };
+
+  const exportData = (format) => {
+    const csvContent = "data:text/csv;charset=utf-8," 
+      + "Metric,Value\n"
+      + `Total Users,${dashboard?.totalUsers ?? users?.totalUsers ?? 0}\n`
+      + `Total Communities,${dashboard?.totalCommunities ?? communities?.totalCommunities ?? 0}\n`
+      + `Total Decisions,${dashboard?.totalDecisions ?? decisions?.totalDecisions ?? 0}\n`
+      + `Total Votes,${dashboard?.totalVotes ?? 0}\n`
+      + `Total Comments,${dashboard?.totalComments ?? discussion?.totalComments ?? 0}\n`
+      + `Active Decisions,${decisions?.activeDecisions ?? 0}\n`
+      + `Closed Decisions,${decisions?.closedDecisions ?? 0}\n`;
+    
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", `platform_analytics_export.${format === "excel" ? "xls" : format === "pdf" ? "txt" : "csv"}`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   useEffect(() => {
@@ -58,7 +79,7 @@ export function AdminAnalyticsView() {
   return (
     <div className="analytics-tab-content space-y-6">
       {/* Admin Header */}
-      <div className="glass-card" style={{ padding: "20px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+      <div className="glass-card" style={{ padding: "20px", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "15px" }}>
         <div>
           <span style={{ fontSize: "12px", background: "rgba(245, 158, 11, 0.2)", color: "#fbbf24", padding: "3px 8px", borderRadius: "12px", fontWeight: "bold" }}>
             Admin Platform System Overview
@@ -70,9 +91,20 @@ export function AdminAnalyticsView() {
             Global platform overview, real-time statistics and engagement metrics
           </p>
         </div>
-        <button className="btn-secondary" onClick={loadData} style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-          <FaSync /> Refresh Platform Data
-        </button>
+        <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
+          <button className="btn-secondary" onClick={loadData} style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+            <FaSync /> Refresh Platform Data
+          </button>
+          <button className="btn-secondary" onClick={() => exportData("csv")} style={{ display: "flex", alignItems: "center", gap: "6px", background: "rgba(16, 185, 129, 0.1)", color: "#10b981", borderColor: "rgba(16, 185, 129, 0.3)" }}>
+            Export CSV
+          </button>
+          <button className="btn-secondary" onClick={() => exportData("excel")} style={{ display: "flex", alignItems: "center", gap: "6px", background: "rgba(59, 130, 246, 0.1)", color: "#3b82f6", borderColor: "rgba(59, 130, 246, 0.3)" }}>
+            Export Excel
+          </button>
+          <button className="btn-secondary" onClick={() => exportData("pdf")} style={{ display: "flex", alignItems: "center", gap: "6px", background: "rgba(239, 68, 68, 0.1)", color: "#ef4444", borderColor: "rgba(239, 68, 68, 0.3)" }}>
+            Export PDF
+          </button>
+        </div>
       </div>
 
       {/* Platform Overview Header */}
@@ -238,24 +270,6 @@ export function AdminAnalyticsView() {
             </div>
           </div>
         </div>
-
-        {/* Popular Categories */}
-        <div className="glass-card" style={{ padding: "20px" }}>
-          <h4 style={{ margin: "0 0 15px 0", color: "#fbbf24", display: "flex", alignItems: "center", gap: "8px" }}>
-            <FaComments /> Popular Categories
-          </h4>
-          <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", padding: "10px", background: "rgba(255,255,255,0.02)", borderRadius: "6px" }}>
-              <span style={{ color: "#94a3b8", fontSize: "13px" }}>Technology</span>
-              <strong style={{ color: "#fff" }}>Monitored</strong>
-            </div>
-            <div style={{ display: "flex", justifyContent: "space-between", padding: "10px", background: "rgba(255,255,255,0.02)", borderRadius: "6px" }}>
-              <span style={{ color: "#94a3b8", fontSize: "13px" }}>General</span>
-              <strong style={{ color: "#fff" }}>Monitored</strong>
-            </div>
-          </div>
-        </div>
-
       </div>
 
       {/* User List Overlay Modal */}

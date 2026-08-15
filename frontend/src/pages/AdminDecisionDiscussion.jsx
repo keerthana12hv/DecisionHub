@@ -609,24 +609,6 @@ function AdminCommentNode({
                 <FaReply /> Reply
               </button>
             )}
-            
-            <button
-              onClick={handlePinCommentToggle}
-              disabled={actionLoading}
-              style={{
-                background: "none",
-                border: "none",
-                color: "var(--accent-purple, #A78BFA)",
-                cursor: "pointer",
-                fontSize: "0.85rem",
-                fontWeight: "600",
-                display: "flex",
-                alignItems: "center",
-                gap: "4px"
-              }}
-            >
-              <FaThumbtack /> {comment.pinned ? "Unpin" : "Pin"}
-            </button>
           </div>
         )}
 
