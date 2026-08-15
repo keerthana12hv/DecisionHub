@@ -3,19 +3,13 @@ import Sidebar from "../components/Sidebar";
 import Navbar from "../components/Navbar";
 import { useAuth } from "../context/AuthContext";
 import { useToast } from "../components/Toast";
-import { FaUser, FaEnvelope, FaUserShield, FaCheckCircle, FaMoon, FaSun, FaTimes } from "react-icons/fa";
+import { FaUser, FaEnvelope, FaUserShield, FaCheckCircle, FaMoon, FaSun } from "react-icons/fa";
 import "../styles/Account.css";
 
 function Account() {
   const { user, refreshProfile } = useAuth();
   const { addToast } = useToast();
   const [theme, setTheme] = useState(() => localStorage.getItem("decisionhub-theme") || "dark");
-
-  // Modal State for Edit Profile
-  const [showEditModal, setShowEditModal] = useState(false);
-  const [editUsername, setEditUsername] = useState("");
-  const [editEmail, setEditEmail] = useState("");
-  const [editError, setEditError] = useState("");
 
   const isAdmin = user?.role === "ADMIN";
 
@@ -34,23 +28,6 @@ function Account() {
   const toggleTheme = (selectedTheme) => {
     setTheme(selectedTheme);
     addToast(`Theme changed to ${selectedTheme} mode.`, "success");
-  };
-
-  const handleOpenEditModal = () => {
-    setEditUsername(user?.username || "");
-    setEditEmail(user?.email || "");
-    setEditError("");
-    setShowEditModal(true);
-  };
-
-  const handleSaveChanges = (e) => {
-    e.preventDefault();
-    if (!editUsername.trim() || !editEmail.trim()) {
-      setEditError("Username and Email are required.");
-      return;
-    }
-    // Show validation error/status since backend does not expose update endpoint
-    setEditError("Current backend does not expose a profile-update endpoint.");
   };
 
   if (!user) return null;
@@ -110,15 +87,6 @@ function Account() {
                   </div>
                 </div>
               </div>
-
-              {/* Edit Profile button only for standard users (non-admin) */}
-              {!isAdmin && (
-                <div style={{ marginTop: "1rem" }}>
-                  <button className="btn-secondary" onClick={handleOpenEditModal}>
-                    Edit Profile
-                  </button>
-                </div>
-              )}
             </div>
 
             <div className="account-card glass-panel">
@@ -144,57 +112,6 @@ function Account() {
           </div>
         </div>
       </div>
-
-      {/* Edit Profile Modal */}
-      {showEditModal && (
-        <div className="forgot-modal-overlay">
-          <div className="edit-profile-modal glass-panel animate-pop-in">
-            <div className="modal-header">
-              <h2>Edit Profile</h2>
-              <button className="close-x-btn" onClick={() => setShowEditModal(false)}>
-                <FaTimes />
-              </button>
-            </div>
-
-            <form onSubmit={handleSaveChanges} className="profile-edit-form">
-              {editError && (
-                <div className="error-message" style={{ marginBottom: "1rem" }}>
-                  <p>{editError}</p>
-                </div>
-              )}
-
-              <div className="form-group">
-                <label>Username</label>
-                <input
-                  type="text"
-                  value={editUsername}
-                  onChange={(e) => setEditUsername(e.target.value)}
-                  required
-                />
-              </div>
-
-              <div className="form-group">
-                <label>Email Address</label>
-                <input
-                  type="email"
-                  value={editEmail}
-                  onChange={(e) => setEditEmail(e.target.value)}
-                  required
-                />
-              </div>
-
-              <div className="modal-actions">
-                <button type="button" className="btn-secondary" onClick={() => setShowEditModal(false)}>
-                  Cancel
-                </button>
-                <button type="submit" className="btn-primary">
-                  Save Changes
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
