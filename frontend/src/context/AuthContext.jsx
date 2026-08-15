@@ -13,6 +13,9 @@ export const AuthProvider = ({ children }) => {
       setUser(JSON.parse(storedUser));
     }
 
+    const activeTheme = localStorage.getItem("decisionhub-theme") || "dark";
+    document.documentElement.setAttribute("data-theme", activeTheme);
+
     setLoading(false);
   }, []);
 
