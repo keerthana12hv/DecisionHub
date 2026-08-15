@@ -17,6 +17,7 @@ import Analytics from "./pages/Analytics";
 import NotificationsPage from "./pages/NotificationsPage";
 import Profile from "./pages/Profile";
 import Settings from "./pages/Settings";
+import Account from "./pages/Account";
 import NotFound from "./pages/NotFound";
 import ModeratorDashboard from "./pages/ModeratorDashboard";
 import FeedbackPage from "./pages/FeedbackPage";
@@ -80,6 +81,7 @@ function AppRoutes() {
       <Route path="/notifications"    element={<PrivateRoute><NotificationsPage /></PrivateRoute>} />
       <Route path="/profile"          element={<PrivateRoute><Profile /></PrivateRoute>} />
       <Route path="/settings"         element={<PrivateRoute><Settings /></PrivateRoute>} />
+      <Route path="/account"          element={<PrivateRoute><Account /></PrivateRoute>} />
       <Route path="/feedback"         element={<PrivateRoute><FeedbackPage /></PrivateRoute>} />
       <Route
         path="/feedback-dashboard"
