@@ -256,7 +256,21 @@ class DecisionModerationLockTest {
         when(decisionRepository.findById(1L)).thenReturn(Optional.of(lockedDecision));
         when(decisionAuthorizationService.canViewDecision(1L, 1L)).thenReturn(true);
         
-        DecisionResponse responseObj = new DecisionResponse(1L, "Title", "Desc", null, null, null, DecisionStatus.ACTIVE, null, VotingType.RATING_BASED, null, null, null, null, false, true);
+        DecisionResponse responseObj = new DecisionResponse(
+    1L,
+    "Title",
+    "Desc",
+    null,
+    null,
+    null,
+    DecisionStatus.ACTIVE,
+    null,
+    null,
+    null,
+    null,
+    false,
+    true
+);
         when(decisionMapper.toResponse(lockedDecision)).thenReturn(responseObj);
 
         DecisionResponse result = decisionService.getDecisionById(1L);
