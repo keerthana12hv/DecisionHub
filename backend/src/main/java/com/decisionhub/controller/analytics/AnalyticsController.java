@@ -206,10 +206,10 @@ getAdminFeedbackAnalytics() {
     );
 }
 
-@GetMapping("/admin/users-list")
-public ResponseEntity<List<com.decisionhub.dto.response.authentication.UserResponse>> getAdminUsersList() {
-    return ResponseEntity.ok(
-            analyticsService.getAdminUsersList()
-    );
-}
+//@GetMapping("/admin/users-list")
+//public ResponseEntity<List<com.decisionhub.dto.response.authentication.UserResponse>> getAdminUsersList() {
+//    return ResponseEntity.ok(
+//            analyticsService.getAdminUsersList()
+//    );
+//}
 }
