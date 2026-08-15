@@ -37,16 +37,16 @@ export function DecisionAnalyticsView({ decisionId = 5 }) {
   const getRankingWithTies = () => {
     if (!ranking || ranking.length === 0) return [];
     
-    // Sort by vote count descending
-    const sorted = [...ranking].sort((a, b) => b.voteCount - a.voteCount);
+    // Sort by percentage descending
+    const sorted = [...ranking].sort((a, b) => b.percentage - a.percentage);
     
     let currentRank = 1;
     let lastVotes = -1;
     
     return sorted.map((item, idx) => {
-      if (item.voteCount !== lastVotes) {
+      if (item.percentage !== lastVotes) {
         currentRank = idx + 1;
-        lastVotes = item.voteCount;
+        lastVotes = item.percentage;
       }
       return {
         ...item,
@@ -56,7 +56,7 @@ export function DecisionAnalyticsView({ decisionId = 5 }) {
   };
 
   const rankedList = getRankingWithTies();
-  const isTieForFirst = rankedList.length > 1 && rankedList[0].voteCount === rankedList[1].voteCount;
+  const isTieForFirst = rankedList.length > 1 && rankedList[0].percentage === rankedList[1].percentage;
 
   return (
     <div className="analytics-tab-content space-y-6">
