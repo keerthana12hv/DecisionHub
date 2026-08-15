@@ -76,9 +76,9 @@ export default function RatingPanel({ decision, pollOpen }) {
         <div className="ranking-results">
           <h4>Final Ranking</h4>
           <ol>
-            {ranking.map((r) => (
+            {(ranking.options || (Array.isArray(ranking) ? ranking : [])).map((r) => (
               <li key={r.optionId}>
-                {r.optionTitle || r.optionName} — {r.finalScore.toFixed(1)}
+                {r.optionTitle || r.optionName} — {(r.score ?? r.finalScore ?? 0).toFixed(1)}
               </li>
             ))}
           </ol>
