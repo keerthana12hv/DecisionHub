@@ -94,7 +94,11 @@ export function DecisionAnalyticsView({ decisionId = 5 }) {
           <div>
             <p>Total Participants</p>
             <h2>{voteStats?.totalParticipants ?? overview?.totalParticipants ?? 0}</h2>
-            <span className="trend positive">{voteStats?.votePercentage?.toFixed(1) ?? 100}% Turnout</span>
+            <span className="trend positive">
+              {participation?.eligibleUsers > 0 
+                ? `${voteStats?.votePercentage?.toFixed(1) ?? 0}% Turnout` 
+                : "Public Poll"}
+            </span>
           </div>
         </div>
 
@@ -193,23 +197,33 @@ export function DecisionAnalyticsView({ decisionId = 5 }) {
           </div>
         </div>
       </div>
-
       {/* Participation Summary (Spans 100% width) */}
       <div className="glass-card chart-container" style={{ width: "100%" }}>
         <h3>Participation Summary</h3>
-        <div style={{ padding: "15px", display: "flex", justifyContent: "space-around", alignItems: "center" }}>
-          <div style={{ textAlign: "center" }}>
-            <p style={{ fontSize: "12px", color: "#94a3b8", margin: 0 }}>Participation Rate</p>
-            <h2 style={{ fontSize: "32px", color: "#10b981", margin: "5px 0" }}>
-              {participation?.participationPercentage?.toFixed(1) ?? 0}%
-            </h2>
+        {participation?.eligibleUsers > 0 ? (
+          <div style={{ padding: "15px", display: "flex", justifyContent: "space-around", alignItems: "center" }}>
+            <div style={{ textAlign: "center" }}>
+              <p style={{ fontSize: "12px", color: "#94a3b8", margin: 0 }}>Participation Rate</p>
+              <h2 style={{ fontSize: "32px", color: "#10b981", margin: "5px 0" }}>
+                {participation?.participationPercentage?.toFixed(1) ?? 0}%
+              </h2>
+            </div>
+            <div style={{ fontSize: "13px", color: "#cbd5e1" }}>
+              <p style={{ margin: "4px 0" }}>Eligible Users: <strong>{participation?.eligibleUsers}</strong></p>
+              <p style={{ margin: "4px 0" }}>Voted: <strong style={{ color: "#10b981" }}>{participation?.usersVoted}</strong></p>
+              <p style={{ margin: "4px 0" }}>Not Voted: <strong style={{ color: "#ef4444" }}>{participation?.usersNotVoted}</strong></p>
+            </div>
           </div>
-          <div style={{ fontSize: "13px", color: "#cbd5e1" }}>
-            <p style={{ margin: "4px 0" }}>Eligible Users: <strong>{participation?.eligibleUsers ?? 0}</strong></p>
-            <p style={{ margin: "4px 0" }}>Voted: <strong style={{ color: "#10b981" }}>{participation?.usersVoted ?? 0}</strong></p>
-            <p style={{ margin: "4px 0" }}>Not Voted: <strong style={{ color: "#ef4444" }}>{participation?.usersNotVoted ?? 0}</strong></p>
+        ) : (
+          <div style={{ padding: "20px", textAlign: "center", color: "#94a3b8" }}>
+            <p style={{ margin: 0, fontSize: "14px", fontWeight: "600", color: "#cbd5e1" }}>
+              Public / Global Decision
+            </p>
+            <p style={{ margin: "6px 0 0 0", fontSize: "12px", color: "#64748b" }}>
+              Turnout tracking is only available for decisions created inside a Community.
+            </p>
           </div>
-        </div>
+        )}
       </div>
     </div>
   );
