@@ -11,6 +11,8 @@ function Account() {
   const { addToast } = useToast();
   const [theme, setTheme] = useState(() => localStorage.getItem("decisionhub-theme") || "dark");
 
+  const isAdmin = user?.role === "ADMIN";
+
   useEffect(() => {
     if (refreshProfile) {
       refreshProfile();
@@ -39,7 +41,7 @@ function Account() {
           <div className="account-page-wrapper">
             <div className="account-header">
               <h1>Account Settings</h1>
-              <p>Manage your admin profile and system theme preferences.</p>
+              <p>Manage your profile and account preferences.</p>
             </div>
 
             <div className="account-card glass-panel">
@@ -49,7 +51,7 @@ function Account() {
                 </div>
                 <div className="account-profile-info">
                   <h2>{user.username}</h2>
-                  <span className="badge-role badge-admin">
+                  <span className={`badge-role ${isAdmin ? "badge-admin" : "badge-user"}`}>
                     <FaUserShield /> {user.role}
                   </span>
                 </div>
