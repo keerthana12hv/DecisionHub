@@ -1,0 +1,138 @@
+.community-header-sec {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.community-header-sec h1 {
+  font-family: var(--font-title);
+  font-size: 1.85rem;
+  font-weight: 700;
+  margin: 0 0 0.5rem;
+}
+
+.community-header-sec p {
+  color: var(--text-secondary);
+  font-size: 0.95rem;
+  margin: 0;
+}
+
+.community-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1.75rem;
+}
+
+.community-card {
+  padding: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.comm-banner-header {
+  height: 120px;
+  width: 100%;
+  overflow: hidden;
+  border-bottom: 1px solid var(--border-glass);
+}
+
+/* Letter-avatar fallback — replaces the old <img> banner, which relied on a
+   community.banner field that doesn't exist in the backend schema. */
+.comm-banner-fallback {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--gradient-primary);
+  transition: var(--transition-smooth);
+}
+
+.comm-banner-fallback span {
+  font-family: var(--font-title);
+  font-size: 2.25rem;
+  font-weight: 800;
+  color: #fff;
+}
+
+.community-card:hover .comm-banner-fallback {
+  transform: scale(1.03);
+}
+
+.comm-body {
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  flex: 1;
+}
+
+.comm-body h2 {
+  margin: 0;
+  font-family: var(--font-title);
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.comm-description {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  margin: 0;
+  line-height: 1.4;
+}
+
+.comm-stats-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+.community-buttons-sec {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.community-buttons-sec button {
+  flex: 1;
+  font-size: 0.8rem;
+  padding: 8px 12px;
+}
+
+.community-buttons-sec button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.owner-badge-pill {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.8rem;
+  font-weight: 600;
+  padding: 8px 12px;
+  border-radius: 8px;
+  color: var(--success, #10b981);
+  background: rgba(16, 185, 129, 0.1);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+/* Modal creation */
+.create-comm-modal {
+  width: 460px;
+  max-width: 90%;
+  padding: 2.25rem;
+}
+
+.comm-create-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  margin-top: 1rem;
+}

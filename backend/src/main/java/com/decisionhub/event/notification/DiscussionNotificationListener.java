@@ -44,7 +44,7 @@ public class DiscussionNotificationListener {
         }
 
         String title = "New Comment";
-        String message = String.format("A new comment was posted on your decision '%s' by @%s", 
+        String message = String.format("A new comment was posted on your decision '%s' by @%s",
                 event.getDecisionTitle(), event.getCommenterUsername());
         String actionUrl = "/decisions/" + event.getDecisionId();
 
@@ -72,12 +72,12 @@ public class DiscussionNotificationListener {
 
         Long recipientId = parentComment.getUser().getId();
         if (recipientId.equals(event.getReplierId())) {
-            // Do not notify author about their own reply
+            // Do not notify the original commenter if they replied to their own comment
             return;
         }
 
         String title = "New Reply";
-        String message = String.format("@%s replied to your comment on decision '%s'", 
+        String message = String.format("@%s replied to your comment on '%s'",
                 event.getReplierUsername(), event.getDecisionTitle());
         String actionUrl = "/decisions/" + event.getDecisionId();
 

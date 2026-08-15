@@ -1,5 +1,5 @@
 package com.decisionhub.service.impl.decision;
-
+import com.decisionhub.repository.discussion.CommentRepository;
 import com.decisionhub.dto.request.decision.DecisionRequest;
 import com.decisionhub.dto.response.decision.DecisionResponse;
 import com.decisionhub.entity.authentication.User;
@@ -10,6 +10,8 @@ import com.decisionhub.enums.decision.DecisionStatus;
 import com.decisionhub.enums.decision.DecisionVisibility;
 import com.decisionhub.entity.decision.ComparisonFactor;
 import com.decisionhub.entity.decision.ComparisonScore;
+import com.decisionhub.entity.voting.Poll;
+import com.decisionhub.entity.voting.Vote;
 import com.decisionhub.exception.BadRequestException;
 import com.decisionhub.exception.ResourceNotFoundException;
 import com.decisionhub.exception.UnauthorizedActionException;
@@ -23,6 +25,8 @@ import com.decisionhub.repository.decision.DecisionRepository;
 import com.decisionhub.repository.decision.DecisionOptionRepository;
 import com.decisionhub.repository.decision.ComparisonFactorRepository;
 import com.decisionhub.repository.decision.ComparisonScoreRepository;
+import com.decisionhub.repository.voting.PollRepository;
+import com.decisionhub.repository.voting.VoteRepository;
 import com.decisionhub.security.decision.AuthenticationFacade;
 import com.decisionhub.security.decision.DecisionAuthorizationService;
 import com.decisionhub.service.interfaces.audit.AuditService;
@@ -30,6 +34,7 @@ import com.decisionhub.service.interfaces.decision.DecisionService;
 import com.decisionhub.validator.decision.DecisionValidator;
 import com.decisionhub.validator.decision.DecisionModificationValidator;
 import com.decisionhub.event.DecisionPublishedEvent;
+import com.decisionhub.event.DecisionClosedEvent;
 import org.springframework.context.ApplicationEventPublisher;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -51,10 +56,10 @@ public class DecisionServiceImpl implements DecisionService {
     private final DecisionOptionRepository decisionOptionRepository;
     private final ComparisonFactorRepository comparisonFactorRepository;
     private final ComparisonScoreRepository comparisonScoreRepository;
-    private final com.decisionhub.repository.voting.PollRepository pollRepository;
-    private final com.decisionhub.repository.voting.VoteRepository voteRepository;
-    private final com.decisionhub.repository.discussion.CommentRepository commentRepository;
-    
+    private final PollRepository pollRepository;
+    private final VoteRepository voteRepository;
+    private final CommentRepository commentRepository;
+
     private final DecisionMapper decisionMapper;
     private final ComparisonMapper comparisonMapper;
     private final DecisionAuthorizationService decisionAuthorizationService;
@@ -78,7 +83,7 @@ public class DecisionServiceImpl implements DecisionService {
         if (request.communityId() != null) {
             community = communityRepository.findById(request.communityId())
                     .orElseThrow(() -> new ResourceNotFoundException("Community not found with ID: " + request.communityId()));
-            
+
             if (!decisionAuthorizationService.canCreateDecision(request.communityId(), currentUserId)) {
                 throw new UnauthorizedActionException("Not authorized to create a decision in this community");
             }
@@ -141,7 +146,7 @@ public class DecisionServiceImpl implements DecisionService {
     @Transactional(readOnly = true)
     public DecisionResponse getDecisionById(Long id) {
         log.info("Retrieving decision: {}", id);
-        
+
         Decision decision = decisionRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Decision not found with ID: " + id));
 
@@ -209,17 +214,22 @@ public class DecisionServiceImpl implements DecisionService {
             throw new UnauthorizedActionException("Not authorized to edit this decision");
         }
 
-        // 2. Validate community integration
+        // 2. Preserve or update community integration.
+        // The Edit Board UI has no field to change or remove a decision's
+        // community — only Create Decision sets it, once, up front. So an
+        // edit/publish request that simply omits communityId must NOT be
+        // read as "clear the community" (that was the actual bug: every
+        // edit/publish silently detached the decision from its community).
+        // Community only changes here when the request explicitly provides
+        // a different, valid communityId.
         Community community = decision.getCommunity();
         if (request.communityId() != null && (community == null || !community.getId().equals(request.communityId()))) {
             community = communityRepository.findById(request.communityId())
                     .orElseThrow(() -> new ResourceNotFoundException("Community not found with ID: " + request.communityId()));
-            
+
             if (!decisionAuthorizationService.canCreateDecision(request.communityId(), currentUserId)) {
                 throw new UnauthorizedActionException("Not authorized to associate decision with this community");
             }
-        } else if (request.communityId() == null) {
-            community = null;
         }
 
         // 3. Business Validation
@@ -230,11 +240,9 @@ public class DecisionServiceImpl implements DecisionService {
         decision.setTitle(request.title().trim());
         decision.setDescription(request.description());
         decision.setCommunity(community);
-        if (request.communityId() == null) {
-            decision.setVisibility(DecisionVisibility.PUBLIC);
-        } else {
-            decision.setVisibility(DecisionVisibility.COMMUNITY);
-        }
+        // Visibility follows the (preserved or newly-set) community — not
+        // whether this particular request happened to mention communityId.
+        decision.setVisibility(community != null ? DecisionVisibility.COMMUNITY : DecisionVisibility.PUBLIC);
         if (decision.getStatus() == DecisionStatus.DRAFT) {
             decision.setVotingType(request.votingType());
             decision.setVotingEndTime(request.votingEndTime());
@@ -273,7 +281,17 @@ public class DecisionServiceImpl implements DecisionService {
             throw new UnauthorizedActionException("Not authorized to delete this decision");
         }
 
-        // 2. Cascade delete dependent entities manually as cascade is not configured in DB/entity
+        // 2. Cascade delete dependent entities manually as cascade is not configured in DB/entity.
+        // Order matters for FK constraints: votes -> poll -> comparison scores ->
+        // comparison factors -> options -> decision. Votes and the poll must go
+        // first since votes.option_id/poll_id and polls.decision_id are FKs that
+        // otherwise block deleting the options/decision underneath them.
+        pollRepository.findByDecisionId(id).ifPresent(poll -> {
+            List<Vote> votes = voteRepository.findByPollId(poll.getId());
+            voteRepository.deleteAll(votes);
+            pollRepository.delete(poll);
+        });
+
         List<ComparisonScore> scores = comparisonScoreRepository.findByOptionDecisionId(id);
         comparisonScoreRepository.deleteAll(scores);
 
@@ -349,5 +367,39 @@ public class DecisionServiceImpl implements DecisionService {
     private Long getCurrentUserIdOrThrow() {
         return authenticationFacade.getCurrentUserId()
                 .orElseThrow(() -> new UnauthorizedActionException("User is not authenticated"));
+    }
+    @Override
+    @Transactional
+    public DecisionResponse closeDecision(Long id, String ipAddress, String userAgent) {
+        log.info("Attempting to close decision with ID: {}", id);
+
+        Long currentUserId = getCurrentUserIdOrThrow();
+        User currentUser = userRepository.findById(currentUserId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with ID: " + currentUserId));
+
+        Decision decision = decisionRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Decision not found with ID: " + id));
+
+        if (!decisionAuthorizationService.canActivateDecision(id, currentUserId)) {
+            throw new UnauthorizedActionException("Not authorized to close this decision");
+        }
+
+        if (decision.getStatus() != DecisionStatus.ACTIVE) {
+            throw new BadRequestException("Only active decisions can be closed");
+        }
+
+        String oldValueJson = String.format("{\"status\":\"%s\"}", decision.getStatus());
+
+        decision.setStatus(DecisionStatus.CLOSED);
+        decision.setUpdatedAt(LocalDateTime.now());
+        Decision closedDecision = decisionRepository.saveAndFlush(decision);
+
+        String newValueJson = String.format("{\"status\":\"%s\"}", closedDecision.getStatus());
+        auditService.log(currentUser, "DECISION_CLOSED", "decisions", id, oldValueJson, newValueJson, ipAddress, userAgent);
+
+        eventPublisher.publishEvent(new DecisionClosedEvent(this, id));
+
+        log.info("Decision with ID '{}' closed successfully", id);
+        return decisionMapper.toResponse(closedDecision);
     }
 }

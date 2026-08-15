@@ -1,14 +1,15 @@
 import {
   FaHome,
   FaPlusCircle,
-  FaVoteYea,
   FaUsers,
   FaChartBar,
   FaBell,
   FaUser,
   FaCog,
   FaSignOutAlt,
-  FaUserShield
+  FaUserShield,
+  FaComments,
+  FaCommentDots
 } from "react-icons/fa";
 import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
@@ -53,12 +54,13 @@ function Sidebar() {
               <FaCog /> <span>Manage Decisions</span>
             </Link>
           </li>
-
-          <li className={isActive("/vote")}>
-            <Link to="/vote">
-              <FaVoteYea /> <span>Voting Room</span>
-            </Link>
-          </li>
+             {(user?.role === "MODERATOR" || user?.role === "ADMIN") && (
+      <li className={isActive("/moderator-dashboard")}>
+        <Link to="/moderator-dashboard">
+          <FaUserShield /> <span>Moderator</span>
+        </Link>
+      </li>
+    )}
 
           <li className={isActive("/communities")}>
             <Link to="/communities">
@@ -81,6 +83,12 @@ function Sidebar() {
           <li className={isActive("/profile")}>
             <Link to="/profile">
               <FaUser /> <span>My Profile</span>
+            </Link>
+          </li>
+
+          <li className={isActive(isAdmin ? "/feedback-dashboard" : "/feedback")}>
+            <Link to={isAdmin ? "/feedback-dashboard" : "/feedback"}>
+              <FaCommentDots /> <span>Help & Feedback</span>
             </Link>
           </li>
 
