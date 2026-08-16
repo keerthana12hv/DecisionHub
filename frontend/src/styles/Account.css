@@ -152,6 +152,48 @@
   margin: 0 0 1.5rem;
 }
 
+/* Theme Toggle Buttons */
+.theme-toggle-options {
+  display: flex;
+  gap: 1rem;
+  width: 100%;
+}
+
+.theme-btn {
+  flex: 1;
+  padding: 0.75rem 1rem;
+  border-radius: var(--border-radius-sm);
+  border: 1px solid var(--border-glass);
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  transition: var(--transition-smooth);
+}
+
+.theme-btn:hover {
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text-primary);
+  border-color: var(--border-focus);
+}
+
+.theme-btn.active-theme {
+  background: linear-gradient(90deg, #8b5cf6, #3b82f6);
+  color: #ffffff;
+  border-color: transparent;
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.25);
+}
+
+.theme-btn.active-theme:hover {
+  color: #ffffff;
+  transform: translateY(-1px);
+}
+
 /* Edit Profile Modal styles */
 .edit-profile-modal {
   width: 450px;
