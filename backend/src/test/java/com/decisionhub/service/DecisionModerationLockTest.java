@@ -140,6 +140,7 @@ class DecisionModerationLockTest {
         when(authenticationFacade.getCurrentUserId()).thenReturn(Optional.of(1L));
         when(userRepository.findById(1L)).thenReturn(Optional.of(testUser));
         when(decisionRepository.findById(1L)).thenReturn(Optional.of(lockedDecision));
+        when(decisionAuthorizationService.canDeleteDecision(1L, 1L)).thenReturn(true);
 
         assertThrows(DecisionLockedException.class, () ->
             decisionService.deleteDecision(1L, "127.0.0.1", "agent")
@@ -256,7 +257,7 @@ class DecisionModerationLockTest {
         when(decisionRepository.findById(1L)).thenReturn(Optional.of(lockedDecision));
         when(decisionAuthorizationService.canViewDecision(1L, 1L)).thenReturn(true);
         
-        DecisionResponse responseObj = new DecisionResponse(1L, "Title", "Desc", null, null, null, DecisionStatus.ACTIVE, null, VotingType.RATING_BASED, null, null, null, null, false, true);
+        DecisionResponse responseObj = new DecisionResponse(1L, "Title", "Desc", null, null, null, DecisionStatus.ACTIVE, null, VotingType.RATING_BASED, null, null, null, null, false, true, 0L, 0L);
         when(decisionMapper.toResponse(lockedDecision)).thenReturn(responseObj);
 
         DecisionResponse result = decisionService.getDecisionById(1L);

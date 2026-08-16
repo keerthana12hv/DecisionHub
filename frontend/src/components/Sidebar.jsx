@@ -82,7 +82,7 @@ function Sidebar() {
           {!isAdmin && (
             <li className={isActive("/decisions")}>
               <Link to="/decisions">
-                <FaCog /> <span>Manage Decisions</span>
+                <FaGavel /> <span>Manage Decisions</span>
               </Link>
             </li>
           )}
@@ -120,44 +120,29 @@ function Sidebar() {
             </Link>
           </li>
 
-          {isAdmin ? (
-            <>
-              <li className={isActive("/account")}>
-                <Link to="/account">
-                  <FaUser /> <span>Account</span>
-                </Link>
-              </li>
-              <li className={isActive("/feedback-dashboard")}>
-                <Link to="/feedback-dashboard">
-                  <FaCommentDots /> <span>Help & Feedback</span>
-                </Link>
-              </li>
-            </>
-          ) : (
-            <>
-              <li className={isActive("/profile")}>
-                <Link to="/profile">
-                  <FaUser /> <span>My Profile</span>
-                </Link>
-              </li>
-              <li className={isActive("/feedback")}>
-                <Link to="/feedback">
-                  <FaCommentDots /> <span>Help & Feedback</span>
-                </Link>
-              </li>
-              <li className={isActive("/settings")}>
-                <Link to="/settings">
-                  <FaCog /> <span>Settings</span>
-                </Link>
-              </li>
-            </>
-          )}
+          <li className={isActive("/account")}>
+            <Link to="/account">
+              <FaUser /> <span>Account</span>
+            </Link>
+          </li>
+
+          <li className={isActive(isAdmin ? "/feedback-dashboard" : "/feedback")}>
+            <Link to={isAdmin ? "/feedback-dashboard" : "/feedback"}>
+              <FaCommentDots /> <span>Help & Feedback</span>
+            </Link>
+          </li>
         </ul>
       </nav>
 
       {user && (
         <div className="user-profile-footer">
-          <img src={user.photo} alt={user.username} className="footer-avatar" />
+          {user.photo ? (
+            <img src={user.photo} alt={user.username} className="footer-avatar" />
+          ) : (
+            <div className="footer-avatar" style={{ display: "flex", alignItems: "center", justifyContent: "center", background: "var(--bg-tertiary)" }}>
+              <FaUser style={{ fontSize: "14px", color: "var(--accent-purple)" }} />
+            </div>
+          )}
           <div className="footer-user-info">
             <span className="footer-username">{user.username}</span>
             <div className="footer-role-badge">
