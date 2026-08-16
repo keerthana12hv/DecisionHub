@@ -104,28 +104,8 @@ public class DecisionAuthorizationServiceImpl implements DecisionAuthorizationSe
                 return true;
             }
         }
-        
-        if (isOwner(decisionId, userId)) {
-            return true;
-        }
-
-        if (decisionId != null && userId != null) {
-            return decisionRepository.findById(decisionId)
-                    .map(decision -> {
-                        if (decision.getCommunity() != null) {
-                            return communityMemberRepository.findByCommunityIdAndUserId(decision.getCommunity().getId(), userId)
-                                    .map(member -> member.getStatus() == MembershipStatus.APPROVED 
-                                            && member.getRole() == com.decisionhub.enums.community.CommunityMemberRole.MODERATOR)
-                                    .orElse(false);
-                        }
-                        return false;
-                    })
-                    .orElse(false);
-        }
-
-        return false;
+        return isOwner(decisionId, userId);
     }
-
 
     @Override
     @Transactional(readOnly = true)

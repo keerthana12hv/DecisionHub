@@ -3,6 +3,7 @@ import {
   FaBell, 
   FaSearch, 
   FaUserCircle, 
+  FaCog, 
   FaUser, 
   FaSignOutAlt, 
   FaCheck, 
@@ -254,9 +255,7 @@ function Navbar() {
                   onError={() => setImgError(true)}
                 />
               ) : (
-                <div className="nav-avatar" style={{ display: "flex", alignItems: "center", justifyContent: "center", background: "var(--bg-tertiary)", width: "34px", height: "34px", borderRadius: "50%", border: "1px solid var(--border-glass)" }}>
-                  <FaUser style={{ fontSize: "13px", color: "var(--accent-purple)" }} />
-                </div>
+                <FaUserCircle className="profile-icon nav-avatar-icon" />
               )}
 
               <div className="nav-profile-info">
@@ -272,8 +271,11 @@ function Navbar() {
                   <span>{user.email}</span>
                 </div>
                 <ul>
-                  <li onClick={() => { navigate("/account"); setShowProfileMenu(false); }}>
-                    <FaUser /> Account
+                  <li onClick={() => { navigate("/profile"); setShowProfileMenu(false); }}>
+                    <FaUser /> My Profile
+                  </li>
+                  <li onClick={() => { navigate("/settings"); setShowProfileMenu(false); }}>
+                    <FaCog /> Settings
                   </li>
                   <li className="logout-item" onClick={handleLogout}>
                     <FaSignOutAlt /> Logout

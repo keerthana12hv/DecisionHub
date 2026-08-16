@@ -97,31 +97,29 @@ function Analytics() {
               <p>Real-time User Decision, Community Moderator, and Platform Admin Analytics.</p>
             </div>
 
-            {activeTab !== "admin" && (
-              <div className="export-buttons">
-                <button
-                  className="btn-secondary"
-                  disabled={downloading !== null}
-                  onClick={() => handleExport("PDF")}
-                >
-                  <FaFileDownload /> {downloading === "PDF" ? "Exporting..." : "Export PDF"}
-                </button>
-                <button
-                  className="btn-secondary"
-                  disabled={downloading !== null}
-                  onClick={() => handleExport("Excel")}
-                >
-                  <FaFileDownload /> {downloading === "Excel" ? "Exporting..." : "Export Excel"}
-                </button>
-                <button
-                  className="btn-secondary"
-                  disabled={downloading !== null}
-                  onClick={() => handleExport("CSV")}
-                >
-                  <FaFileDownload /> {downloading === "CSV" ? "Exporting..." : "Export CSV"}
-                </button>
-              </div>
-            )}
+            <div className="export-buttons">
+              <button
+                className="btn-secondary"
+                disabled={downloading !== null}
+                onClick={() => handleExport("PDF")}
+              >
+                <FaFileDownload /> {downloading === "PDF" ? "Exporting..." : "Export PDF"}
+              </button>
+              <button
+                className="btn-secondary"
+                disabled={downloading !== null}
+                onClick={() => handleExport("Excel")}
+              >
+                <FaFileDownload /> {downloading === "Excel" ? "Exporting..." : "Export Excel"}
+              </button>
+              <button
+                className="btn-secondary"
+                disabled={downloading !== null}
+                onClick={() => handleExport("CSV")}
+              >
+                <FaFileDownload /> {downloading === "CSV" ? "Exporting..." : "Export CSV"}
+              </button>
+            </div>
           </div>
 
           {/* Navigation Tab Switcher */}

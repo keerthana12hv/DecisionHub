@@ -1,6 +1,5 @@
 import { useState } from "react";
 import axios from "axios";
-import { useToast } from "./Toast";
 
 const API = "http://localhost:8080/api";
 
@@ -13,32 +12,7 @@ const headers = () => ({
   headers: { Authorization: `Bearer ${token()}`, "Content-Type": "application/json" }
 });
 
-const parseLocalDateTimeForInput = (dateTimeStr) => {
-  if (!dateTimeStr) return "";
-  if (dateTimeStr.includes("Z") || dateTimeStr.includes("+")) {
-    const d = new Date(dateTimeStr);
-    const pad = (n) => String(n).padStart(2, "0");
-    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
-  }
-  return dateTimeStr.slice(0, 16);
-};
-
-const formatLocalDateTime = (dateTimeStr) => {
-  if (!dateTimeStr) return null;
-  if (dateTimeStr.length === 16) {
-    return `${dateTimeStr}:00`;
-  }
-  return dateTimeStr;
-};
-
-const getLocalISOTime = () => {
-  const d = new Date();
-  const pad = (n) => String(n).padStart(2, "0");
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
-};
-
 export default function EditBoardPanel({ decision, onSaved, onCancel }) {
-  const { addToast } = useToast();
   // Per spec: Draft = everything editable. Published (ACTIVE) or Closed =
   // only Poll End Time can change, everything else is read-only.
   const isDraft = decision.status === "DRAFT";
@@ -51,8 +25,11 @@ export default function EditBoardPanel({ decision, onSaved, onCancel }) {
   const [publishing, setPublishing] = useState(false);
   const [error, setError] = useState(null);
 
+  // votingEndTime uses the raw value from GET as its default so an unedited
+  // save doesn't accidentally reformat/change it (backend rejects reformatted-
+  // but-identical values as "modified").
   const [votingEndTime, setVotingEndTime] = useState(
-    decision.votingEndTime ? parseLocalDateTimeForInput(decision.votingEndTime) : ""
+    decision.votingEndTime ? decision.votingEndTime.slice(0, 16) : ""
   );
 
   const [options, setOptions] = useState(
@@ -79,103 +56,40 @@ export default function EditBoardPanel({ decision, onSaved, onCancel }) {
     setOptions(options.map((opt) => (opt.id === id ? { ...opt, [field]: val } : opt)));
   };
 
-  const saveDraftEdits = async () => {
-    // 1. Put decision details
-    const payload = {
-      title,
-      description: decision.categoryName ? `[Cat:${decision.categoryName}] ${description}` : description,
-      tags: decision.categoryName ? [decision.categoryName] : [],
-      votingType: decision.votingType,
-      isPublic: decision.isPublic ?? true,
-      anonymityType: decision.anonymityType || "PUBLIC",
-      deadline: formatLocalDateTime(decision.deadline),
-      votingEndTime: formatLocalDateTime(votingEndTime)
-    };
-    await axios.put(`${API}/decisions/${decision.id}`, payload, headers());
-
-    // 2. Put changed options
-    const changedOptions = options.filter((opt) => {
-      const original = (decision.options || []).find((o) => o.id === opt.id);
-      const originalTitle = original?.title || "";
-      const originalDesc = original?.description || "";
-      return originalTitle !== opt.title || originalDesc !== opt.description;
-    });
-    for (const opt of changedOptions) {
-      await axios.put(
-        `${API}/decisions/${decision.id}/options/${opt.id}`,
-        { title: opt.title, description: opt.description },
-        headers()
-      );
-    }
-
-    // 3. Delete/Create factors
-    if (decision.votingType === "RATING_BASED") {
-      const deletedFactors = (decision.factors || []).filter((f) => !criteria.includes(f.name));
-      const addedFactorNames = criteria.filter(
-        (c) => !(decision.factors || []).some((f) => f.name === c)
-      );
-
-      for (const factor of deletedFactors) {
-        await axios.delete(`${API}/decisions/${decision.id}/factors/${factor.id}`, headers());
-      }
-      for (const name of addedFactorNames) {
-        await axios.post(
-          `${API}/decisions/${decision.id}/factors`,
-          { name, description: "" },
-          headers()
-        );
-      }
-    }
-  };
-
   const handlePublish = async () => {
     setPublishing(true);
     setError(null);
     try {
-      // Save any edits made while still in Draft before publishing
-      await saveDraftEdits();
+      // Save any edits made while still in Draft before publishing, so
+      // nothing typed gets lost if the creator forgot to hit "Save Changes" first.
+      const payload = {
+        title,
+        description: decision.categoryName ? `[Cat:${decision.categoryName}] ${description}` : description,
+        tags: decision.categoryName ? [decision.categoryName] : [],
+        votingType: decision.votingType,
+        isPublic: decision.isPublic ?? true,
+        anonymityType: decision.anonymityType || "PUBLIC",
+        deadline: decision.deadline,
+        votingEndTime: new Date(votingEndTime).toISOString(),
+        options: options.map((opt) => ({
+          title: opt.title,
+          description: opt.description
+        })),
+        factors:
+          decision.votingType !== "RATING_BASED"
+            ? []
+            : criteria.map((c) => ({ name: c, description: "" }))
+      };
+      await axios.put(`${API}/decisions/${decision.id}`, payload, headers());
 
       // Draft -> Active, auto-creates the Poll.
-      await axios.put(`${API}/decisions/${decision.id}/publish`, {}, headers());
-
-      // Re-fetch the decision to ensure we return fresh data from backend
-      const res = await axios.get(`${API}/decisions/${decision.id}`, headers());
-      let updatedDecision = res.data;
-      if (updatedDecision && updatedDecision.description) {
-        const match = updatedDecision.description.match(/^\[Cat:([^\]]+)\]\s*(.*)/s);
-        if (match) {
-          updatedDecision.categoryName = match[1];
-          updatedDecision.description = match[2];
-        }
-      }
-      if (updatedDecision && updatedDecision.status !== "DRAFT") {
-        try {
-          const pollRes = await axios.get(`${API}/decisions/${decision.id}/poll`, headers());
-          if (pollRes.data) {
-            updatedDecision.poll = pollRes.data;
-            if (pollRes.data.endTime) {
-              updatedDecision.votingEndTime = pollRes.data.endTime;
-            }
-          }
-        } catch (pollErr) {
-          console.error("Failed to fetch poll details post-publish:", pollErr);
-        }
-      }
-      onSaved(updatedDecision);
+      const res = await axios.put(`${API}/decisions/${decision.id}/publish`, {}, headers());
+      onSaved(res.data);
     } catch (err) {
       console.error("Failed to publish decision:", err.response?.data || err.message);
-      let errMsg = "Could not publish this decision. Check console for details.";
-      if (err.response?.data) {
-        if (typeof err.response.data === "object") {
-          errMsg = err.response.data.error || err.response.data.message || errMsg;
-        } else if (typeof err.response.data === "string") {
-          errMsg = err.response.data;
-        }
-      } else if (err.message) {
-        errMsg = err.message;
-      }
-      setError(errMsg);
-      addToast(errMsg, "error");
+      setError(
+        err.response?.data?.error || "Could not publish this decision. Check console for details."
+      );
     } finally {
       setPublishing(false);
     }
@@ -185,55 +99,54 @@ export default function EditBoardPanel({ decision, onSaved, onCancel }) {
     setSaving(true);
     setError(null);
     try {
+      let updatedDecision;
+
       if (isDraft) {
-        await saveDraftEdits();
+        // Draft: everything is editable, save the full board via the normal
+        // update endpoint. Criteria here only NAMES what will be rated later —
+        // no scores are collected from the creator, matching Create Decision.
+        const payload = {
+          title,
+          description: decision.categoryName ? `[Cat:${decision.categoryName}] ${description}` : description,
+          tags: decision.categoryName ? [decision.categoryName] : [],
+          votingType: decision.votingType,
+          isPublic: decision.isPublic ?? true,
+          anonymityType: decision.anonymityType || "PUBLIC",
+          deadline: decision.deadline,
+          votingEndTime: new Date(votingEndTime).toISOString(),
+          options: options.map((opt) => ({
+            title: opt.title,
+            description: opt.description
+          })),
+          factors:
+            decision.votingType !== "RATING_BASED"
+              ? []
+              : criteria.map((c) => ({ name: c, description: "" }))
+        };
+        const res = await axios.put(`${API}/decisions/${decision.id}`, payload, headers());
+        updatedDecision = res.data;
       } else {
-        // Published/Closed: ONLY Poll End Time can change. Use the dedicated extend-end-time endpoint
-        await axios.patch(
+        // Published/Closed: ONLY Poll End Time can change. Use the dedicated
+        // extend-end-time endpoint rather than the general update endpoint.
+        // NOTE: request field name is a best guess ("votingEndTime") — not yet
+        // confirmed against the UpdatePollEndTimeRequest schema in Swagger.
+        // If the backend rejects this, check Schemas -> UpdatePollEndTimeRequest
+        // for the real field name.
+        const res = await axios.patch(
           `${API}/decisions/${decision.id}/poll/end-time`,
-          { endTime: formatLocalDateTime(votingEndTime) },
+          { votingEndTime: new Date(votingEndTime).toISOString() },
           headers()
         );
+        updatedDecision = res.data;
       }
 
-      // Re-fetch the decision to ensure we return fresh data from backend
-      const res = await axios.get(`${API}/decisions/${decision.id}`, headers());
-      let updatedDecision = res.data;
-      if (updatedDecision && updatedDecision.description) {
-        const match = updatedDecision.description.match(/^\[Cat:([^\]]+)\]\s*(.*)/s);
-        if (match) {
-          updatedDecision.categoryName = match[1];
-          updatedDecision.description = match[2];
-        }
-      }
-      if (updatedDecision && updatedDecision.status !== "DRAFT") {
-        try {
-          const pollRes = await axios.get(`${API}/decisions/${decision.id}/poll`, headers());
-          if (pollRes.data) {
-            updatedDecision.poll = pollRes.data;
-            if (pollRes.data.endTime) {
-              updatedDecision.votingEndTime = pollRes.data.endTime;
-            }
-          }
-        } catch (pollErr) {
-          console.error("Failed to fetch poll details post-save:", pollErr);
-        }
-      }
       onSaved(updatedDecision);
     } catch (err) {
       console.error("Failed to save decision:", err.response?.data || err.message);
-      let errMsg = "Could not save changes. Check console for details.";
-      if (err.response?.data) {
-        if (typeof err.response.data === "object") {
-          errMsg = err.response.data.error || err.response.data.message || errMsg;
-        } else if (typeof err.response.data === "string") {
-          errMsg = err.response.data;
-        }
-      } else if (err.message) {
-        errMsg = err.message;
-      }
-      setError(errMsg);
-      addToast(errMsg, "error");
+      setError(
+        err.response?.data?.error ||
+          "Could not save changes. Check console for details."
+      );
     } finally {
       setSaving(false);
     }
@@ -280,8 +193,8 @@ export default function EditBoardPanel({ decision, onSaved, onCancel }) {
         <input
           type="datetime-local"
           value={votingEndTime}
-          min={getLocalISOTime()}
-          max={decision.deadline ? parseLocalDateTimeForInput(decision.deadline) : undefined}
+          min={new Date().toISOString().slice(0, 16)}
+          max={decision.deadline ? decision.deadline.slice(0, 16) : undefined}
           onChange={(e) => setVotingEndTime(e.target.value)}
         />
         <p className="section-subtitle">

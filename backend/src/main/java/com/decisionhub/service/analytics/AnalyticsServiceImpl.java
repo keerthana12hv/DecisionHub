@@ -33,16 +33,10 @@ import com.decisionhub.repository.decision.DecisionRepository;
 import com.decisionhub.repository.discussion.CommentRepository;
 import com.decisionhub.repository.voting.PollRepository;
 import com.decisionhub.repository.voting.VoteRepository;
-import com.decisionhub.repository.decision.ComparisonScoreRepository;
-import com.decisionhub.entity.decision.ComparisonScore;
-import com.decisionhub.entity.decision.DecisionOption;
-import com.decisionhub.enums.decision.VotingType;
-import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import org.springframework.stereotype.Service;
 import com.decisionhub.dto.response.analytics.CommunityVotingStatisticsResponse;
 import com.decisionhub.dto.response.analytics.DecisionFeedbackAnalyticsResponse;
@@ -76,7 +70,6 @@ public class AnalyticsServiceImpl implements AnalyticsService {
     private final CommunityRepository communityRepository;
         private final DecisionFeedbackRepository decisionFeedbackRepository;
 private final UserRepository userRepository;
-private final ComparisonScoreRepository comparisonScoreRepository;
 
 
 
@@ -102,66 +95,72 @@ public DecisionOverviewResponse getDecisionOverview(Long decisionId) {
 
 @Override
 public VoteStatisticsResponse getVoteStatistics(Long decisionId) {
+
     Decision decision = decisionRepository.findById(decisionId)
-            .orElseThrow(() -> new ResourceNotFoundException("Decision not found"));
+            .orElseThrow(() ->
+                    new ResourceNotFoundException("Decision not found"));
 
     Poll poll = pollRepository.findByDecisionId(decisionId)
             .orElse(null);
 
-    Long numberOfOptions = decisionOptionRepository.countByDecisionId(decisionId);
+    Long numberOfOptions =
+            decisionOptionRepository.countByDecisionId(decisionId);
 
     if (poll == null) {
         return new VoteStatisticsResponse(0L, 0L, 0.0, numberOfOptions);
     }
 
-    Long totalVotes;
+    Long totalVotes = voteRepository.countByPollId(poll.getId());
+
     Long totalParticipants;
-    double votePercentage = 0.0;
-    Long eligibleUsers = 0L;
 
     if (decision.getCommunity() != null) {
-        eligibleUsers = communityMemberRepository.countByCommunityIdAndStatus(
+        totalParticipants = voteRepository.countParticipants(
+                decisionId,
                 decision.getCommunity().getId(),
                 MembershipStatus.APPROVED
         );
+    } else {
+        totalParticipants = voteRepository.countDistinctByPollId(poll.getId());
     }
 
-    if (decision.getVotingType() == VotingType.RATING_BASED) {
-        List<ComparisonScore> scores = comparisonScoreRepository.findByOptionDecisionId(decisionId);
-        long uniqueVoters = scores.stream()
-                .map(s -> s.getUser().getId())
-                .distinct()
-                .count();
-        totalVotes = uniqueVoters;
-        totalParticipants = uniqueVoters;
-    } else {
-        totalVotes = voteRepository.countByPollId(poll.getId());
-        if (decision.getCommunity() != null) {
-            totalParticipants = voteRepository.countParticipants(
-                    decisionId,
-                    decision.getCommunity().getId(),
-                    MembershipStatus.APPROVED
-            );
-        } else {
-            totalParticipants = voteRepository.countDistinctByPollId(poll.getId());
-        }
+    Long eligibleUsers = 0L;
+
+    if (decision.getCommunity() != null) {
+
+        eligibleUsers =
+                communityMemberRepository.countByCommunityIdAndStatus(
+                        decision.getCommunity().getId(),
+                        MembershipStatus.APPROVED
+                );
     }
+
+    double votePercentage = 0;
 
     if (eligibleUsers > 0) {
-        votePercentage = (totalParticipants.doubleValue() * 100) / eligibleUsers.doubleValue();
+        votePercentage =
+                (totalParticipants.doubleValue() * 100)
+                        / eligibleUsers.doubleValue();
     }
 
     return new VoteStatisticsResponse(
+
             totalVotes,
+
             totalParticipants,
+
             Math.round(votePercentage * 100.0) / 100.0,
+
             numberOfOptions
+
     );
 }
+ 
+
+
+
 @Override
 public List<VoteDistributionResponse> getVoteDistribution(Long decisionId) {
-    Decision decision = decisionRepository.findById(decisionId)
-            .orElseThrow(() -> new ResourceNotFoundException("Decision not found"));
 
     Poll poll = pollRepository.findByDecisionId(decisionId)
             .orElse(null);
@@ -170,57 +169,43 @@ public List<VoteDistributionResponse> getVoteDistribution(Long decisionId) {
         return new ArrayList<>();
     }
 
-    if (decision.getVotingType() == VotingType.RATING_BASED) {
-        List<DecisionOption> options = decisionOptionRepository.findByDecisionId(decisionId);
-        List<ComparisonScore> scores = comparisonScoreRepository.findByOptionDecisionId(decisionId);
-        Map<Long, List<ComparisonScore>> scoresMap = scores.stream()
-                .collect(Collectors.groupingBy(s -> s.getOption().getId()));
-
-        List<VoteDistributionResponse> response = new ArrayList<>();
-        for (DecisionOption option : options) {
-            List<ComparisonScore> optionScores = scoresMap.getOrDefault(option.getId(), new ArrayList<>());
-            double averageScore = 0.0;
-            if (!optionScores.isEmpty()) {
-                double sum = 0.0;
-                for (ComparisonScore score : optionScores) {
-                    sum += score.getScore();
-                }
-                averageScore = sum / optionScores.size();
-            }
-            long voterCount = optionScores.stream().map(s -> s.getUser().getId()).distinct().count();
-            response.add(new VoteDistributionResponse(
-                    option.getId(),
-                    option.getOptionName(),
-                    voterCount,
-                    Math.round(averageScore * 100.0) / 100.0
-            ));
-        }
-        return response;
-    }
-
     Long pollId = poll.getId();
+
     List<Object[]> result = voteRepository.getVoteDistribution(decisionId);
+
     long totalVotes = voteRepository.countByPollId(pollId);
+
     List<VoteDistributionResponse> response = new ArrayList<>();
 
-    for (Object[] row : result) {
-        Long optionId = (Long) row[0];
-        String optionName = (String) row[1];
-        Long votes = (Long) row[2];
-        double percentage = 0.0;
+    for(Object[] row : result){
 
-        if (totalVotes != 0) {
-            percentage = ((double) votes * 100) / totalVotes;
+        Long optionId=(Long)row[0];
+
+        String optionName=(String)row[1];
+
+        Long votes=(Long)row[2];
+
+        double percentage=0;
+
+        if(totalVotes!=0){
+
+            percentage=((double)votes*100)/totalVotes;
+
         }
 
-        response.add(new VoteDistributionResponse(
-                optionId,
-                optionName,
-                votes,
-                Math.round(percentage * 100.0) / 100.0
-        ));
+        response.add(
+                new VoteDistributionResponse(
+                        optionId,
+                        optionName,
+                        votes,
+                        Math.round(percentage*100.0)/100.0
+                )
+        );
+
     }
+
     return response;
+
 }
 
 @Override
@@ -270,48 +255,59 @@ public CommunityOverviewResponse getCommunityOverview(Long communityId) {
 
     );
 }
+
 @Override
 public ParticipationResponse getParticipation(Long decisionId) {
+
     Decision decision = decisionRepository.findById(decisionId)
-            .orElseThrow(() -> new ResourceNotFoundException("Decision not found"));
+            .orElseThrow(() ->
+                    new ResourceNotFoundException("Decision not found"));
 
     if (decision.getCommunity() == null) {
-        return new ParticipationResponse(0L, 0L, 0L, 0.0);
-    }
-
-    Long eligibleUsers = communityMemberRepository.countByCommunityIdAndStatus(
-            decision.getCommunity().getId(),
-            MembershipStatus.APPROVED
-    );
-
-    Long usersVoted;
-    if (decision.getVotingType() == VotingType.RATING_BASED) {
-        List<ComparisonScore> scores = comparisonScoreRepository.findByOptionDecisionId(decisionId);
-        usersVoted = scores.stream()
-                .map(s -> s.getUser().getId())
-                .distinct()
-                .count();
-    } else {
-        usersVoted = voteRepository.countParticipants(
-                decisionId,
-                decision.getCommunity().getId(),
-                MembershipStatus.APPROVED
+        return new ParticipationResponse(
+                0L,
+                0L,
+                0L,
+                0.0
         );
     }
 
+    Long eligibleUsers =
+            communityMemberRepository.countByCommunityIdAndStatus(
+                    decision.getCommunity().getId(),
+                    MembershipStatus.APPROVED
+            );
+
+   Long usersVoted =
+    voteRepository.countParticipants(
+        decisionId,
+        decision.getCommunity().getId(),
+        MembershipStatus.APPROVED
+    );
     Long usersNotVoted = eligibleUsers - usersVoted;
-    double percentage = 0.0;
+
+    double percentage = 0;
 
     if (eligibleUsers > 0) {
-        percentage = (usersVoted.doubleValue() * 100) / eligibleUsers.doubleValue();
+
+        percentage =
+                (usersVoted.doubleValue() * 100) /
+                        eligibleUsers.doubleValue();
+
     }
 
     return new ParticipationResponse(
+
             eligibleUsers,
+
             usersVoted,
+
             usersNotVoted,
+
             Math.round(percentage * 100.0) / 100.0
+
     );
+
 }
 
 @Override
@@ -329,10 +325,9 @@ public DiscussionStatisticsResponse getDiscussionStatistics(Long decisionId) {
             totalComments + totalReplies
     );
 }
+
 @Override
 public List<RankingResponse> getFinalRanking(Long decisionId) {
-    Decision decision = decisionRepository.findById(decisionId)
-            .orElseThrow(() -> new ResourceNotFoundException("Decision not found"));
 
     Poll poll = pollRepository.findByDecisionId(decisionId)
             .orElse(null);
@@ -341,79 +336,42 @@ public List<RankingResponse> getFinalRanking(Long decisionId) {
         return new ArrayList<>();
     }
 
-    if (decision.getVotingType() == VotingType.RATING_BASED) {
-        List<DecisionOption> options = decisionOptionRepository.findByDecisionId(decisionId);
-        List<ComparisonScore> scores = comparisonScoreRepository.findByOptionDecisionId(decisionId);
-
-        Map<Long, List<ComparisonScore>> scoresMap = scores.stream()
-                .collect(Collectors.groupingBy(s -> s.getOption().getId()));
-
-        List<RankingResponse> response = new ArrayList<>();
-        List<IntermediateRanking> intermediateList = new ArrayList<>();
-
-        for (DecisionOption option : options) {
-            List<ComparisonScore> optionScores = scoresMap.getOrDefault(option.getId(), new ArrayList<>());
-            double averageScore = 0.0;
-            if (!optionScores.isEmpty()) {
-                double sum = 0.0;
-                for (ComparisonScore score : optionScores) {
-                    sum += score.getScore();
-                }
-                averageScore = sum / optionScores.size();
-            }
-            long voterCount = optionScores.stream().map(s -> s.getUser().getId()).distinct().count();
-            intermediateList.add(new IntermediateRanking(option.getId(), option.getOptionName(), voterCount, averageScore));
-        }
-
-        intermediateList.sort((a, b) -> Double.compare(b.score, a.score));
-
-        int rank = 1;
-        int count = 1;
-        double prevScore = -1.0;
-        for (int i = 0; i < intermediateList.size(); i++) {
-            IntermediateRanking item = intermediateList.get(i);
-            if (i > 0 && item.score < prevScore) {
-                rank = count;
-            }
-            response.add(new RankingResponse(
-                    rank,
-                    item.optionId,
-                    item.optionName,
-                    item.voterCount,
-                    Math.round(item.score * 100.0) / 100.0
-            ));
-            prevScore = item.score;
-            count++;
-        }
-        return response;
-    }
-
     Long pollId = poll.getId();
+
     List<Object[]> result = voteRepository.getVoteDistribution(decisionId);
+
     long totalVotes = voteRepository.countByPollId(pollId);
+
     List<RankingResponse> response = new ArrayList<>();
 
     int rank = 1;
+
     for (Object[] row : result) {
+
         Long optionId = (Long) row[0];
         String optionName = (String) row[1];
         Long voteCount = (Long) row[2];
 
-        double percentage = 0.0;
+        double percentage = 0;
+
         if (totalVotes > 0) {
             percentage = (voteCount.doubleValue() * 100) / totalVotes;
         }
 
-        response.add(new RankingResponse(
-                rank++,
-                optionId,
-                optionName,
-                voteCount,
-                Math.round(percentage * 100.0) / 100.0
-        ));
+        response.add(
+                new RankingResponse(
+                        rank++,
+                        optionId,
+                        optionName,
+                        voteCount,
+                        Math.round(percentage * 100.0) / 100.0
+                )
+        );
     }
+
     return response;
 }
+
 
 @Override
 public CommunityDecisionStatisticsResponse getCommunityDecisionStatistics(Long communityId) {
@@ -887,19 +845,5 @@ public Page<UserResponse> getAllUsers(Pageable pageable) {
                     u.getRole(),
                     u.getStatus()
             ));
-}
-
-private static class IntermediateRanking {
-    Long optionId;
-    String optionName;
-    Long voterCount;
-    double score;
-    
-    IntermediateRanking(Long optionId, String optionName, Long voterCount, double score) {
-        this.optionId = optionId;
-        this.optionName = optionName;
-        this.voterCount = voterCount;
-        this.score = score;
-    }
 }
 }
