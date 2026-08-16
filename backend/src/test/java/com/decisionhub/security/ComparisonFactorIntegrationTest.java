@@ -96,7 +96,7 @@ class ComparisonFactorIntegrationTest {
                         .content(objectMapper.writeValueAsString(creatorReg)))
                 .andExpect(status().isOk());
 
-        LoginRequest creatorLogin = new LoginRequest("creator@test.com", "Password123!");
+        LoginRequest creatorLogin = new LoginRequest("creator@test.com", "Password123!", "USER");
         
         String creatorLoginResponse = mockMvc.perform(post("/api/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -117,7 +117,7 @@ class ComparisonFactorIntegrationTest {
                         .content(objectMapper.writeValueAsString(otherReg)))
                 .andExpect(status().isOk());
 
-        LoginRequest otherLogin = new LoginRequest("other@test.com", "Password123!");
+        LoginRequest otherLogin = new LoginRequest("other@test.com", "Password123!", "USER");
         
         String otherLoginResponse = mockMvc.perform(post("/api/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
