@@ -19,6 +19,5 @@ public interface UserRepository extends JpaRepository<User, Long> {
     
     long countByStatus(UserStatus status);
 
-
-
+    java.util.List<User> findByRole(com.decisionhub.enums.authentication.PlatformRole role);
 }

@@ -27,7 +27,8 @@ public class CommentReportServiceImpl implements CommentReportService {
     private final CommentRepository commentRepository;
     private final UserRepository userRepository;
     private final AuthenticationFacade authenticationFacade;
-        private final com.decisionhub.repository.community.CommunityMemberRepository communityMemberRepository;
+    private final com.decisionhub.repository.community.CommunityMemberRepository communityMemberRepository;
+    private final com.decisionhub.service.interfaces.notification.NotificationService notificationService;
 
     @Override
     @Transactional
@@ -54,6 +55,23 @@ public class CommentReportServiceImpl implements CommentReportService {
         CommentReport savedReport = commentReportRepository.save(report);
 
         log.info("Comment report created with ID: {} for comment ID: {}", savedReport.getId(), commentId);
+
+        try {
+            java.util.List<User> admins = userRepository.findByRole(com.decisionhub.enums.authentication.PlatformRole.ADMIN);
+            for (User admin : admins) {
+                notificationService.createNotification(
+                        admin.getId(),
+                        "New Comment Report",
+                        "A comment has been reported and requires review: \"" + comment.getContent() + "\"",
+                        com.decisionhub.enums.notification.NotificationType.REPORT,
+                        com.decisionhub.enums.notification.ReferenceType.COMMENT,
+                        comment.getId(),
+                        "/admin/decisions/" + comment.getDecision().getId() + "/discuss"
+                );
+            }
+        } catch (Exception e) {
+            log.error("Failed to generate report notifications for admins", e);
+        }
 
         return new CommentReportResponse(
                 savedReport.getId(),
