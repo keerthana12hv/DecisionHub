@@ -60,6 +60,13 @@ export const NotificationsProvider = ({ children }) => {
     if (user) {
       fetchNotifications();
       fetchUnreadCount();
+
+      const interval = setInterval(() => {
+        fetchNotifications(true);
+        fetchUnreadCount(true);
+      }, 30000); // Poll every 30 seconds
+
+      return () => clearInterval(interval);
     } else {
       setNotifications([]);
       setUnreadCount(0);

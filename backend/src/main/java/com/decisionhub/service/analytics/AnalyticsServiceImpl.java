@@ -460,60 +460,32 @@ public CommunityDecisionStatisticsResponse getCommunityDecisionStatistics(Long c
 
 
 @Override
-public CommunityVotingStatisticsResponse
-getCommunityVotingStatistics(Long communityId) {
+public CommunityVotingStatisticsResponse getCommunityVotingStatistics(Long communityId) {
+    Community community = communityRepository.findById(communityId)
+            .orElseThrow(() -> new ResourceNotFoundException("Community not found"));
 
-    Community community =
-            communityRepository.findById(communityId)
-                    .orElseThrow(() ->
-                            new ResourceNotFoundException("Community not found"));
+    Long totalPolls = pollRepository.countByDecisionCommunityId(communityId);
+    Long openPolls = pollRepository.countByDecisionCommunityIdAndStatus(communityId, PollStatus.OPEN);
+    Long closedPolls = pollRepository.countByDecisionCommunityIdAndStatus(communityId, PollStatus.CLOSED);
+    
+    Long totalVotes = voteRepository.countVotesByCommunity(communityId) 
+            + comparisonScoreRepository.countDistinctUserDecisionsByCommunityId(communityId);
 
-    Long totalPolls =
-            pollRepository.countByDecisionCommunityId(communityId);
-
-    Long openPolls =
-            pollRepository.countByDecisionCommunityIdAndStatus(
-                    communityId,
-                    PollStatus.OPEN
-            );
-
-    Long closedPolls =
-            pollRepository.countByDecisionCommunityIdAndStatus(
-                    communityId,
-                    PollStatus.CLOSED
-            );
-
-    Long totalVotes =
-            voteRepository.countVotesByCommunity(communityId);
-
-    double averageVotes = 0;
-
+    double averageVotes = 0.0;
     if (totalPolls > 0) {
-        averageVotes =
-                totalVotes.doubleValue() /
-                        totalPolls.doubleValue();
+        averageVotes = totalVotes.doubleValue() / totalPolls.doubleValue();
     }
 
     return new CommunityVotingStatisticsResponse(
-
             community.getId(),
-
             community.getName(),
-
             totalPolls,
-
             openPolls,
-
             closedPolls,
-
             totalVotes,
-
             Math.round(averageVotes * 100.0) / 100.0
-
     );
-
 }
-
 
 @Override
 public CommunityDiscussionStatisticsResponse
@@ -693,20 +665,12 @@ getCommunityModerationAnalytics(Long communityId) {
 
 @Override
 public PlatformOverviewResponse getPlatformOverview() {
-
     long totalUsers = userRepository.count();
-
     long totalCommunities = communityRepository.countByDeletedAtIsNull();
-
     long totalDecisions = decisionRepository.count();
-
-    long totalVotes = voteRepository.count();
-
-    long totalComments =
-            commentRepository.countByParentCommentIsNull();
-
-    long totalReplies =
-            commentRepository.countByParentCommentIsNotNull();
+    long totalVotes = voteRepository.count() + comparisonScoreRepository.countDistinctUserDecisions();
+    long totalComments = commentRepository.countByParentCommentIsNull();
+    long totalReplies = commentRepository.countByParentCommentIsNotNull();
 
     return new PlatformOverviewResponse(
             totalUsers,
@@ -717,7 +681,6 @@ public PlatformOverviewResponse getPlatformOverview() {
             totalReplies
     );
 }
-
 
 @Override
 public UserAnalyticsResponse getUserAnalytics() {
@@ -839,10 +802,9 @@ public AdminFeedbackAnalyticsResponse getAdminFeedbackAnalytics() {
             decisionFeedbackRepository.countByRating(1)
     );
 }
-
 @Override
 public UserPlatformOverviewResponse getUserPlatformOverview() {
-    long totalVotes = voteRepository.count();
+    long totalVotes = voteRepository.count() + comparisonScoreRepository.countDistinctUserDecisions();
     long activeDecisions = decisionRepository.countByStatus(DecisionStatus.ACTIVE);
     long totalUsers = userRepository.count();
 

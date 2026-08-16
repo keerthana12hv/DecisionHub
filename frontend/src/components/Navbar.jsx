@@ -58,6 +58,12 @@ function Navbar() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  // Fetch unread count & notifications when Navbar loads
+  useEffect(() => {
+    fetchUnreadCount(true);
+    fetchNotifications(true);
+  }, [fetchUnreadCount, fetchNotifications]);
+
   const handleSearchSubmit = (e) => {
     e.preventDefault();
     if (searchVal.trim()) {

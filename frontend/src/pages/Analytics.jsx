@@ -73,7 +73,6 @@ function Analytics() {
     }
     return tabName === "decision";
   };
-
   const handleExport = (format) => {
     setDownloading(format);
     addToast(`Preparing ${format} report download...`, "info");
@@ -122,9 +121,7 @@ function Analytics() {
                 </button>
               </div>
             )}
-          </div>
-
-          {/* Navigation Tab Switcher */}
+          </div>          {/* Navigation Tab Switcher */}
           {userRole !== "ADMIN" && (
             <div 
               className="analytics-tabs-container"
