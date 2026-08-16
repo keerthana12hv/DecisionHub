@@ -1,4 +1,6 @@
 package com.decisionhub.service.impl.decision;
+import com.decisionhub.repository.community.CommunityMemberRepository;
+import com.decisionhub.enums.community.MembershipStatus;
 import com.decisionhub.repository.discussion.CommentRepository;
 import com.decisionhub.dto.request.decision.DecisionRequest;
 import com.decisionhub.dto.response.decision.DecisionResponse;
@@ -33,6 +35,8 @@ import com.decisionhub.service.interfaces.audit.AuditService;
 import com.decisionhub.service.interfaces.decision.DecisionService;
 import com.decisionhub.validator.decision.DecisionValidator;
 import com.decisionhub.validator.decision.DecisionModificationValidator;
+import com.decisionhub.enums.voting.PollStatus;
+import com.decisionhub.event.PollClosedEvent;
 import com.decisionhub.event.DecisionPublishedEvent;
 import com.decisionhub.event.voting.DecisionClosedEvent;
 import org.springframework.context.ApplicationEventPublisher;
@@ -49,7 +53,6 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 @Slf4j
 public class DecisionServiceImpl implements DecisionService {
-
     private final DecisionRepository decisionRepository;
     private final UserRepository userRepository;
     private final CommunityRepository communityRepository;
@@ -59,6 +62,7 @@ public class DecisionServiceImpl implements DecisionService {
     private final PollRepository pollRepository;
     private final VoteRepository voteRepository;
     private final CommentRepository commentRepository;
+    private final CommunityMemberRepository communityMemberRepository;
 
     private final DecisionMapper decisionMapper;
     private final ComparisonMapper comparisonMapper;
@@ -274,13 +278,25 @@ public class DecisionServiceImpl implements DecisionService {
         Decision decision = decisionRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Decision not found with ID: " + id));
 
-        if (currentUser.getRole() != com.decisionhub.enums.authentication.PlatformRole.ADMIN) {
-            decisionModificationValidator.validateDecisionEditable(decision);
-        }
-
-        // 1. Authorization
+        // 1. Authorization: Only creator/owner or Platform Admin can delete
         if (!decisionAuthorizationService.canDeleteDecision(id, currentUserId)) {
             throw new UnauthorizedActionException("Not authorized to delete this decision");
+        }
+
+        // 2. Lifecycle check: If the decision is locked and the user is not a Platform Admin or the Community Moderator, prevent deletion.
+        // Status-based restrictions (DRAFT/ACTIVE/CLOSED) are bypassed for the owner.
+        boolean isCommunityModerator = false;
+        if (decision.getCommunity() != null) {
+            isCommunityModerator = communityMemberRepository.findByCommunityIdAndUserId(decision.getCommunity().getId(), currentUserId)
+                    .map(member -> member.getStatus() == MembershipStatus.APPROVED 
+                            && member.getRole() == com.decisionhub.enums.community.CommunityMemberRole.MODERATOR)
+                    .orElse(false);
+        }
+
+        if (currentUser.getRole() != com.decisionhub.enums.authentication.PlatformRole.ADMIN && !isCommunityModerator) {
+            if (decision.isLocked()) {
+                throw new com.decisionhub.exception.DecisionLockedException("This decision has been locked by a moderator.");
+            }
         }
 
         // 2. Cascade delete dependent entities manually as cascade is not configured in DB/entity.
@@ -395,6 +411,24 @@ public class DecisionServiceImpl implements DecisionService {
         decision.setStatus(DecisionStatus.CLOSED);
         decision.setUpdatedAt(LocalDateTime.now());
         Decision closedDecision = decisionRepository.saveAndFlush(decision);
+
+        // Automatically close the associated poll if it exists and is OPEN
+        pollRepository.findByDecisionId(id).ifPresent(poll -> {
+            if (poll.getStatus() == PollStatus.OPEN) {
+                poll.setStatus(PollStatus.CLOSED);
+                poll.setUpdatedAt(LocalDateTime.now());
+                pollRepository.save(poll);
+                log.info("Associated Poll with ID '{}' closed automatically", poll.getId());
+                if (eventPublisher != null) {
+                    eventPublisher.publishEvent(new PollClosedEvent(
+                            this,
+                            poll.getId(),
+                            id,
+                            decision.getTitle()
+                    ));
+                }
+            }
+        });
 
         String newValueJson = String.format("{\"status\":\"%s\"}", closedDecision.getStatus());
         auditService.log(currentUser, "DECISION_CLOSED", "decisions", id, oldValueJson, newValueJson, ipAddress, userAgent);

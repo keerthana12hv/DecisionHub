@@ -31,7 +31,32 @@ export function DecisionAnalyticsView({ decisionId = 5 }) {
     );
   }
 
-  const { overview, voteStats, distribution, participation, discussion, ranking, feedback } = data || {};
+  const { overview, voteStats, distribution, participation, discussion, ranking } = data || {};
+
+  // Calculate ranking with ties
+  const getRankingWithTies = () => {
+    if (!ranking || ranking.length === 0) return [];
+    
+    // Sort by percentage descending
+    const sorted = [...ranking].sort((a, b) => b.percentage - a.percentage);
+    
+    let currentRank = 1;
+    let lastVotes = -1;
+    
+    return sorted.map((item, idx) => {
+      if (item.percentage !== lastVotes) {
+        currentRank = idx + 1;
+        lastVotes = item.percentage;
+      }
+      return {
+        ...item,
+        rank: currentRank
+      };
+    });
+  };
+
+  const rankedList = getRankingWithTies();
+  const isTieForFirst = rankedList.length > 1 && rankedList[0].percentage === rankedList[1].percentage;
 
   return (
     <div className="analytics-tab-content space-y-6">
@@ -45,7 +70,7 @@ export function DecisionAnalyticsView({ decisionId = 5 }) {
             {overview?.title || `Decision #${decisionId} Overview`}
           </h2>
           <p style={{ fontSize: "12px", color: "#94a3b8", margin: 0 }}>
-            Status: <strong>{overview?.status || overview?.pollStatus || "CLOSED"}</strong> | Total Votes: <strong>{overview?.totalVotes ?? 0}</strong>
+            Status: <strong>{overview?.status || overview?.pollStatus || "CLOSED"}</strong> | Total Votes: <strong>{voteStats?.totalVotes ?? 0}</strong>
           </p>
         </div>
         <button className="btn-secondary" onClick={loadData} style={{ display: "flex", alignItems: "center", gap: "6px" }}>
@@ -54,7 +79,7 @@ export function DecisionAnalyticsView({ decisionId = 5 }) {
       </div>
 
       {/* Metrics Row */}
-      <div className="stats-grid analytics-metrics">
+      <div className="stats-grid analytics-metrics" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: "20px" }}>
         <div className="glass-card metric-item animate-glow">
           <FaVoteYea className="metric-icon purple" />
           <div>
@@ -69,7 +94,11 @@ export function DecisionAnalyticsView({ decisionId = 5 }) {
           <div>
             <p>Total Participants</p>
             <h2>{voteStats?.totalParticipants ?? overview?.totalParticipants ?? 0}</h2>
-            <span className="trend positive">{voteStats?.votePercentage?.toFixed(1) ?? 100}% Turnout</span>
+            <span className="trend positive">
+              {participation?.eligibleUsers > 0 
+                ? `${voteStats?.votePercentage?.toFixed(1) ?? 0}% Turnout` 
+                : "Public Poll"}
+            </span>
           </div>
         </div>
 
@@ -79,15 +108,6 @@ export function DecisionAnalyticsView({ decisionId = 5 }) {
             <p>Total Comments</p>
             <h2>{discussion?.totalComments ?? 0}</h2>
             <span className="trend-text">{discussion?.totalReplies ?? 0} Replies</span>
-          </div>
-        </div>
-
-        <div className="glass-card metric-item">
-          <FaStar className="metric-icon yellow" />
-          <div>
-            <p>Feedback Rating</p>
-            <h2>{feedback?.feedbackCount > 0 && feedback?.averageRating ? `${feedback.averageRating.toFixed(1)} / 5` : "No feedback yet"}</h2>
-            <span className="trend-text">{feedback?.feedbackCount ?? 0} Feedback Reviews</span>
           </div>
         </div>
       </div>
@@ -132,8 +152,8 @@ export function DecisionAnalyticsView({ decisionId = 5 }) {
           <p className="chart-desc">Ranked results after voting closed</p>
 
           <div style={{ marginTop: "15px", display: "flex", flexDirection: "column", gap: "10px" }}>
-            {ranking && ranking.length > 0 ? (
-              ranking.map((item, idx) => (
+            {rankedList && rankedList.length > 0 ? (
+              rankedList.map((item, idx) => (
                 <div
                   key={item.optionId || idx}
                   style={{
@@ -152,8 +172,8 @@ export function DecisionAnalyticsView({ decisionId = 5 }) {
                         width: "24px",
                         height: "24px",
                         borderRadius: "50%",
-                        background: idx === 0 ? "#f59e0b" : "#334155",
-                        color: idx === 0 ? "#0f172a" : "#94a3b8",
+                        background: item.rank === 1 ? "#f59e0b" : "#334155",
+                        color: item.rank === 1 ? "#0f172a" : "#94a3b8",
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "center",
@@ -161,10 +181,10 @@ export function DecisionAnalyticsView({ decisionId = 5 }) {
                         fontWeight: "bold"
                       }}
                     >
-                      #{idx + 1}
+                      #{item.rank}
                     </span>
                     <span style={{ color: "#fff", fontWeight: "600", fontSize: "14px" }}>{item.optionName}</span>
-                    {idx === 0 && <FaTrophy style={{ color: "#f59e0b" }} />}
+                    {item.rank === 1 && !isTieForFirst && item.voteCount > 0 && <FaTrophy style={{ color: "#f59e0b" }} />}
                   </div>
                   <span style={{ color: "#c084fc", fontWeight: "bold", fontSize: "13px" }}>
                     {item.voteCount} votes ({item.percentage?.toFixed(1)}%)
@@ -177,11 +197,10 @@ export function DecisionAnalyticsView({ decisionId = 5 }) {
           </div>
         </div>
       </div>
-
-      {/* Participation & Rating */}
-      <div className="charts-grid bottom-charts">
-        <div className="glass-card chart-container">
-          <h3>Participation Summary</h3>
+      {/* Participation Summary (Spans 100% width) */}
+      <div className="glass-card chart-container" style={{ width: "100%" }}>
+        <h3>Participation Summary</h3>
+        {participation?.eligibleUsers > 0 ? (
           <div style={{ padding: "15px", display: "flex", justifyContent: "space-around", alignItems: "center" }}>
             <div style={{ textAlign: "center" }}>
               <p style={{ fontSize: "12px", color: "#94a3b8", margin: 0 }}>Participation Rate</p>
@@ -190,37 +209,21 @@ export function DecisionAnalyticsView({ decisionId = 5 }) {
               </h2>
             </div>
             <div style={{ fontSize: "13px", color: "#cbd5e1" }}>
-              <p style={{ margin: "4px 0" }}>Eligible Users: <strong>{participation?.eligibleUsers ?? 0}</strong></p>
-              <p style={{ margin: "4px 0" }}>Voted: <strong style={{ color: "#10b981" }}>{participation?.usersVoted ?? 0}</strong></p>
-              <p style={{ margin: "4px 0" }}>Not Voted: <strong style={{ color: "#ef4444" }}>{participation?.usersNotVoted ?? 0}</strong></p>
+              <p style={{ margin: "4px 0" }}>Eligible Users: <strong>{participation?.eligibleUsers}</strong></p>
+              <p style={{ margin: "4px 0" }}>Voted: <strong style={{ color: "#10b981" }}>{participation?.usersVoted}</strong></p>
+              <p style={{ margin: "4px 0" }}>Not Voted: <strong style={{ color: "#ef4444" }}>{participation?.usersNotVoted}</strong></p>
             </div>
           </div>
-        </div>
-
-        <div className="glass-card chart-container">
-          <h3>Feedback Rating Breakdown</h3>
-          {feedback?.feedbackCount > 0 ? (
-            <div style={{ padding: "15px", display: "flex", gap: "20px", alignItems: "center" }}>
-              <div style={{ textAlign: "center", minWidth: "90px" }}>
-                <h1 style={{ fontSize: "36px", color: "#f59e0b", margin: 0 }}>
-                  {feedback?.averageRating ? feedback.averageRating.toFixed(1) : "0.0"}
-                </h1>
-                <span style={{ fontSize: "11px", color: "#94a3b8" }}>{feedback?.feedbackCount ?? 0} Reviews</span>
-              </div>
-              <div style={{ flex: 1, fontSize: "12px", color: "#cbd5e1", display: "flex", flexDirection: "column", gap: "4px" }}>
-                <div>5 Stars: {feedback?.fiveStar ?? 0}</div>
-                <div>4 Stars: {feedback?.fourStar ?? 0}</div>
-                <div>3 Stars: {feedback?.threeStar ?? 0}</div>
-                <div>2 Stars: {feedback?.twoStar ?? 0}</div>
-                <div>1 Star: {feedback?.oneStar ?? 0}</div>
-              </div>
-            </div>
-          ) : (
-            <div style={{ padding: "20px", color: "#64748b", fontSize: "13px" }}>
-              No feedback yet
-            </div>
-          )}
-        </div>
+        ) : (
+          <div style={{ padding: "20px", textAlign: "center", color: "#94a3b8" }}>
+            <p style={{ margin: 0, fontSize: "14px", fontWeight: "600", color: "#cbd5e1" }}>
+              Public / Global Decision
+            </p>
+            <p style={{ margin: "6px 0 0 0", fontSize: "12px", color: "#64748b" }}>
+              Turnout tracking is only available for decisions created inside a Community.
+            </p>
+          </div>
+        )}
       </div>
     </div>
   );
