@@ -47,7 +47,7 @@ public class DecisionRefactoringIntegrationTest {
                 .content(objectMapper.writeValueAsString(reg)))
                 .andExpect(status().isOk());
 
-        LoginRequest login = new LoginRequest("refactor@test.com", "Password123!");
+        LoginRequest login = new LoginRequest("refactor@test.com", "Password123!", "USER");
         String responseStr = mockMvc.perform(post("/api/auth/login")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(login)))

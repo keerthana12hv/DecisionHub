@@ -10,6 +10,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.core.Authentication;
@@ -119,6 +120,27 @@ public class AuthServiceImpl implements AuthService {
         // 2. Fetch our custom User entity strictly to get the ID for our JWT extra claims
         User user = userRepository.findByEmail(request.email())
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
+        // Validate requested role against user's actual role in the system
+        PlatformRole requestedRole;
+        try {
+            requestedRole = PlatformRole.valueOf(request.role().trim().toUpperCase());
+        } catch (IllegalArgumentException ex) {
+            throw new BadCredentialsException("Invalid email or password");
+        }
+
+        boolean isValid = false;
+        if (requestedRole == PlatformRole.ADMIN) {
+            isValid = (user.getRole() == PlatformRole.ADMIN);
+        } else if (requestedRole == PlatformRole.USER) {
+            isValid = (user.getRole() == PlatformRole.USER || user.getRole() == PlatformRole.MODERATOR);
+        } else {
+            isValid = (user.getRole() == requestedRole);
+        }
+
+        if (!isValid) {
+            throw new BadCredentialsException("Invalid email or password");
+        }
 
         // 3. Extract UserDetails directly from the successful Authentication object
         UserDetails userDetails = (UserDetails) authentication.getPrincipal();
