@@ -136,7 +136,8 @@ class DecisionOptionIntegrationTest {
         LoginRequest creatorLogin =
                 new LoginRequest(
                         "creator@test.com",
-                        "Password123!"
+                        "Password123!",
+                        "USER"
                 );
 
         String creatorLoginResponse =
@@ -194,7 +195,8 @@ class DecisionOptionIntegrationTest {
         LoginRequest otherLogin =
                 new LoginRequest(
                         "other@test.com",
-                        "Password123!"
+                        "Password123!",
+                        "USER"
                 );
 
         String otherLoginResponse =

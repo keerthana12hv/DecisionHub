@@ -48,6 +48,7 @@ function DecisionList() {
   const [showDelete, setShowDelete] = useState(false);
   const [selectedDecision, setSelectedDecision] = useState(null);
   const [moderatingCommunities, setModeratingCommunities] = useState([]);
+  const [pollStatuses, setPollStatuses] = useState({});
 
   useEffect(() => {
     const q = searchParams.get("search");
@@ -81,6 +82,26 @@ function DecisionList() {
         return d;
       });
       setDecisions(parsed);
+
+      // Fetch poll statuses in parallel
+      const pollStatusesMap = {};
+      await Promise.all(
+        parsed.map(async (d) => {
+          if (d.status === "DRAFT") {
+            pollStatusesMap[d.id] = "—";
+            return;
+          }
+          try {
+            const pollRes = await axios.get(`${API}/decisions/${d.id}/poll`, headers());
+            const p = pollRes.data;
+            const isExpired = p?.endTime ? (new Date() >= new Date(p.endTime)) : false;
+            pollStatusesMap[d.id] = (p?.status === "OPEN" && !isExpired) ? "Active" : "Closed";
+          } catch (err) {
+            pollStatusesMap[d.id] = "—";
+          }
+        })
+      );
+      setPollStatuses(pollStatusesMap);
     } catch (err) {
       console.error("Failed to fetch decisions:", err);
       addToast("Failed to load decisions", "error");
@@ -224,14 +245,15 @@ function DecisionList() {
                       <th>Decision Title</th>
                       <th>Category</th>
                       <th>Community</th>
-                      <th>Status</th>
+                      <th>Decision Status</th>
+                      <th>Poll Status</th>
                       <th style={{ textAlign: "right" }}>Actions</th>
                     </tr>
                   </thead>
                   <tbody>
                     {currentItems.length === 0 ? (
                       <tr>
-                        <td colSpan="5" className="empty-table">No matching decisions found.</td>
+                        <td colSpan="6" className="empty-table">No matching decisions found.</td>
                       </tr>
                     ) : (
                       currentItems.map((decision) => {
@@ -259,8 +281,17 @@ function DecisionList() {
                             <td>{decision.communityName || "Public"}</td>
                             <td>
                               <span className={`status-badge ${decision.status.toLowerCase()}`}>
-                                {decision.status}
+                                {decision.status.charAt(0).toUpperCase() + decision.status.slice(1).toLowerCase()}
                               </span>
+                            </td>
+                            <td>
+                              {pollStatuses[decision.id] === "Active" || pollStatuses[decision.id] === "Closed" ? (
+                                <span className={`status-badge ${pollStatuses[decision.id].toLowerCase()}`}>
+                                  {pollStatuses[decision.id]}
+                                </span>
+                              ) : (
+                                <span style={{ color: "var(--text-muted)", fontSize: "0.85rem" }}>—</span>
+                              )}
                             </td>
                             <td className="actions-col">
                               <div className="actions-btn-group">

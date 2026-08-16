@@ -35,6 +35,8 @@ import com.decisionhub.service.interfaces.audit.AuditService;
 import com.decisionhub.service.interfaces.decision.DecisionService;
 import com.decisionhub.validator.decision.DecisionValidator;
 import com.decisionhub.validator.decision.DecisionModificationValidator;
+import com.decisionhub.enums.voting.PollStatus;
+import com.decisionhub.event.PollClosedEvent;
 import com.decisionhub.event.DecisionPublishedEvent;
 import com.decisionhub.event.voting.DecisionClosedEvent;
 import org.springframework.context.ApplicationEventPublisher;
@@ -51,7 +53,6 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 @Slf4j
 public class DecisionServiceImpl implements DecisionService {
-
     private final DecisionRepository decisionRepository;
     private final UserRepository userRepository;
     private final CommunityRepository communityRepository;
@@ -410,6 +411,24 @@ public class DecisionServiceImpl implements DecisionService {
         decision.setStatus(DecisionStatus.CLOSED);
         decision.setUpdatedAt(LocalDateTime.now());
         Decision closedDecision = decisionRepository.saveAndFlush(decision);
+
+        // Automatically close the associated poll if it exists and is OPEN
+        pollRepository.findByDecisionId(id).ifPresent(poll -> {
+            if (poll.getStatus() == PollStatus.OPEN) {
+                poll.setStatus(PollStatus.CLOSED);
+                poll.setUpdatedAt(LocalDateTime.now());
+                pollRepository.save(poll);
+                log.info("Associated Poll with ID '{}' closed automatically", poll.getId());
+                if (eventPublisher != null) {
+                    eventPublisher.publishEvent(new PollClosedEvent(
+                            this,
+                            poll.getId(),
+                            id,
+                            decision.getTitle()
+                    ));
+                }
+            }
+        });
 
         String newValueJson = String.format("{\"status\":\"%s\"}", closedDecision.getStatus());
         auditService.log(currentUser, "DECISION_CLOSED", "decisions", id, oldValueJson, newValueJson, ipAddress, userAgent);
