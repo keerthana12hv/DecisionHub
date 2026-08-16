@@ -5,8 +5,6 @@ export default function RatingPanel({ decision, pollOpen }) {
   const [scores, setScores] = useState({});
   const [ranking, setRanking] = useState(null);
 
-  const factors = decision.factors || decision.comparisonFactors || [];
-
   useEffect(() => {
     if (!pollOpen) fetchRanking();
   }, [pollOpen]);
@@ -42,7 +40,7 @@ export default function RatingPanel({ decision, pollOpen }) {
         <thead>
           <tr>
             <th>Option</th>
-            {factors.map((f) => (
+            {decision.comparisonFactors.map((f) => (
               <th key={f.id}>{f.name}</th>
             ))}
           </tr>
@@ -51,7 +49,7 @@ export default function RatingPanel({ decision, pollOpen }) {
           {decision.options.map((opt) => (
             <tr key={opt.id}>
               <td>{opt.title || opt.optionName}</td>
-              {factors.map((factor) => (
+              {decision.comparisonFactors.map((factor) => (
                 <td key={factor.id}>
                   <input
                     type="range"
@@ -76,9 +74,9 @@ export default function RatingPanel({ decision, pollOpen }) {
         <div className="ranking-results">
           <h4>Final Ranking</h4>
           <ol>
-            {(ranking.options || (Array.isArray(ranking) ? ranking : [])).map((r) => (
+            {ranking.map((r) => (
               <li key={r.optionId}>
-                {r.optionTitle || r.optionName} — {(r.score ?? r.finalScore ?? 0).toFixed(1)}
+                {r.optionTitle || r.optionName} — {r.finalScore.toFixed(1)}
               </li>
             ))}
           </ol>

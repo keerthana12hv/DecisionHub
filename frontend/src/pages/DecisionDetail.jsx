@@ -8,9 +8,10 @@ import RatingPanel from "../components/RatingPanel";
 import PollResultsPanel from "../components/PollResultsPanel";
 import EditBoardPanel from "../components/EditBoardPanel";
 import DecisionModerationControls from "../components/moderator/DecisionModerationControls";
-import { getModeratingCommunities, closeDecision } from "../services/moderationService";
+import { getModeratingCommunities } from "../services/moderationService";
 import { getCommunities, getMembers } from "../services/communityService";
 import { useToast } from "../components/Toast";
+import { useAuth } from "../context/AuthContext";
 import "../styles/DecisionDetail.css";
 
 const API = "http://localhost:8080/api";
@@ -40,12 +41,14 @@ const findCriterionValue = (option, factor) => {
 export default function DecisionDetail() {
   const { id: decisionId } = useParams();
   const { addToast } = useToast();
+  const { user } = useAuth();
   const [decision, setDecision] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [currentUserId, setCurrentUserId] = useState(null);
   const [activeTab, setActiveTab] = useState("overview");
-  const [closing, setClosing] = useState(false);
+  
+  const isAdmin = user?.role === "ADMIN";
 
   // Voting state for SINGLE_CHOICE / MULTIPLE_CHOICE
   const [myVoteOptionIds, setMyVoteOptionIds] = useState([]);
@@ -64,6 +67,7 @@ export default function DecisionDetail() {
   // Decisions with no community (communityName null) are open to everyone.
   const [canParticipate, setCanParticipate] = useState(true);
   const [membershipChecked, setMembershipChecked] = useState(false);
+  const isVoter = canParticipate && !isAdmin;
 
   useEffect(() => {
     fetchDecision();
@@ -92,8 +96,7 @@ export default function DecisionDetail() {
   // so other users' votes/ratings show up without a manual reload.
   useEffect(() => {
     if (!decision) return;
-    const isPollExpired = decision.votingEndTime ? (new Date() >= new Date(decision.votingEndTime)) : false;
-    const pollOpen = (decision.poll?.status === "OPEN" || decision.status === "ACTIVE") && !isPollExpired;
+    const pollOpen = decision.status === "ACTIVE" && decision.poll?.status === "OPEN";
     if (!pollOpen) return;
 
     const intervalId = setInterval(() => {
@@ -101,7 +104,7 @@ export default function DecisionDetail() {
     }, 5000);
 
     return () => clearInterval(intervalId);
-  }, [decisionId, decision?.status, decision?.poll?.status, decision?.votingEndTime]);
+  }, [decisionId, decision?.status, decision?.poll?.status]);
 
   // Check community membership once we have both the decision and the
   // current user's ID. Decisions with no community are open to everyone;
@@ -158,19 +161,6 @@ export default function DecisionDetail() {
           d.description = match[2];
         }
       }
-      if (d && d.status !== "DRAFT") {
-        try {
-          const pollRes = await axios.get(`${API}/decisions/${decisionId}/poll`, headers());
-          if (pollRes.data) {
-            d.poll = pollRes.data;
-            if (pollRes.data.endTime) {
-              d.votingEndTime = pollRes.data.endTime;
-            }
-          }
-        } catch (pollErr) {
-          console.error("Failed to fetch poll details in detail page:", pollErr);
-        }
-      }
       setDecision(d);
     } catch (err) {
       console.error("Failed to fetch decision:", err);
@@ -196,21 +186,6 @@ export default function DecisionDetail() {
     } catch (err) {
       // No vote cast yet is a normal state, not necessarily an error
       setMyVoteOptionIds([]);
-    }
-  };
-
-  const handleCloseDecision = async () => {
-    setClosing(true);
-    try {
-      await closeDecision(decisionId);
-      addToast("Decision closed successfully.", "success");
-      await fetchDecision();
-    } catch (err) {
-      console.error("Failed to close decision:", err);
-      const errMsg = err.response?.data?.error || err.response?.data?.message || err.message || "Failed to close decision.";
-      addToast(errMsg, "error");
-    } finally {
-      setClosing(false);
     }
   };
 
@@ -287,9 +262,8 @@ export default function DecisionDetail() {
   // never get edit access, even if they're viewing their own community's decision.
   const isCreator =
     decision?.creator && String(decision.creator.id) === String(currentUserId);
-  const canEdit = isCreator;
-  const isPollExpired = decision?.votingEndTime ? (new Date() >= new Date(decision.votingEndTime)) : false;
-  const pollOpen = (decision?.poll?.status === "OPEN" || decision?.status === "ACTIVE") && !isPollExpired;
+  const canEdit = isCreator || isModerator;
+  const pollOpen = decision?.status === "ACTIVE" && decision?.poll?.status === "OPEN";
 
   return (
     <div className="dashboard">
@@ -314,14 +288,6 @@ export default function DecisionDetail() {
                 />
               )}
 
-              {isCreator && decision.status === "ACTIVE" && (
-                <div className="decision-moderation-controls" style={{ marginTop: isModerator ? "-12px" : "0px" }}>
-                  <button onClick={handleCloseDecision} disabled={closing}>
-                    {closing ? "Closing..." : "Close Decision"}
-                  </button>
-                </div>
-              )}
-
               {/* Tabs — "Edit Board" shown to the decision's creator OR the
                   community moderator of the community it belongs to.
                   Labels are distinct from the internal keys on purpose: the
@@ -340,16 +306,7 @@ export default function DecisionDetail() {
                     <button
                       key={key}
                       className={`detail-tab-btn ${activeTab === key ? "active" : ""}`}
-                      onClick={async () => {
-                        if (key === "edit-board") {
-                          try {
-                            await fetchDecision();
-                          } catch (err) {
-                            console.error("Failed to refresh decision before editing:", err);
-                          }
-                        }
-                        setActiveTab(key);
-                      }}
+                      onClick={() => setActiveTab(key)}
                     >
                       {label}
                     </button>
@@ -362,6 +319,32 @@ export default function DecisionDetail() {
                   <div className="description-context-card">
                     <h3>Description &amp; Context</h3>
                     <p>{decision.description}</p>
+                  </div>
+
+                  <div className="description-context-card" style={{ marginTop: "1.5rem" }}>
+                    <h3>Decision Timeline</h3>
+                    <div style={{ display: "flex", gap: "2rem", flexWrap: "wrap", marginTop: "0.5rem" }}>
+                      <div>
+                        <span style={{ display: "block", color: "var(--text-muted)", fontSize: "0.85rem", textTransform: "uppercase", letterSpacing: "0.05em" }}>Poll End Time</span>
+                        <strong style={{ fontSize: "1.1rem", color: "var(--text-primary)" }}>
+                          {decision.votingEndTime
+                            ? new Date(decision.votingEndTime).toLocaleString()
+                            : decision.poll?.endTime
+                            ? new Date(decision.poll.endTime).toLocaleString()
+                            : "No poll end time set"}
+                        </strong>
+                        <span style={{ display: "block", fontSize: "0.8rem", color: "var(--text-muted)", marginTop: "0.2rem" }}>(When voting ends)</span>
+                      </div>
+                      <div style={{ borderLeft: "1px solid rgba(255,255,255,0.1)", paddingLeft: "2rem" }}>
+                        <span style={{ display: "block", color: "var(--text-muted)", fontSize: "0.85rem", textTransform: "uppercase", letterSpacing: "0.05em" }}>Decision Deadline / Closure</span>
+                        <strong style={{ fontSize: "1.1rem", color: "var(--text-primary)" }}>
+                          {decision.deadline
+                            ? new Date(decision.deadline).toLocaleString()
+                            : "No decision deadline set"}
+                        </strong>
+                        <span style={{ display: "block", fontSize: "0.8rem", color: "var(--text-muted)", marginTop: "0.2rem" }}>(Overall decision lifecycle ends)</span>
+                      </div>
+                    </div>
                   </div>
 
                   {hasCriteria && (
@@ -392,7 +375,7 @@ export default function DecisionDetail() {
                     </div>
                   )}
 
-                  {membershipChecked && !canParticipate && (
+                  {membershipChecked && !canParticipate && !isAdmin && (
                     <div className="membership-required-notice">
                       <p>
                         You must be an approved member of this community to vote, rate, or
@@ -405,7 +388,11 @@ export default function DecisionDetail() {
                     <RatingPanel
                       decision={decision}
                       currentUserId={currentUserId}
-                      pollOpen={pollOpen && canParticipate}
+                      pollOpen={
+                        decision.status === "ACTIVE" &&
+                        decision.poll?.status === "OPEN" &&
+                        isVoter
+                      }
                       onScoreSubmitted={fetchDecision}
                     />
                   ) : (
@@ -423,7 +410,7 @@ export default function DecisionDetail() {
                                     flexDirection: "row",
                                     alignItems: "center",
                                     gap: "0.6rem",
-                                    cursor: canParticipate ? "pointer" : "default",
+                                    cursor: isVoter ? "pointer" : "default",
                                     width: "100%",
                                     float: "none",
                                     position: "static",
@@ -434,7 +421,7 @@ export default function DecisionDetail() {
                                     type="radio"
                                     name={`decision-${decision.id}-choice`}
                                     checked={isSelected}
-                                    disabled={voting || !canParticipate || !pollOpen}
+                                    disabled={voting || !isVoter}
                                     onChange={() => handleSingleChoiceVote(opt.id)}
                                     style={{ flexShrink: 0, margin: 0, position: "static", float: "none", width: "18px", height: "18px" }}
                                   />
@@ -456,7 +443,7 @@ export default function DecisionDetail() {
                                     flexDirection: "row",
                                     alignItems: "center",
                                     gap: "0.6rem",
-                                    cursor: canParticipate ? "pointer" : "default",
+                                    cursor: isVoter ? "pointer" : "default",
                                     width: "100%",
                                     float: "none",
                                     position: "static",
@@ -466,7 +453,7 @@ export default function DecisionDetail() {
                                   <input
                                     type="checkbox"
                                     checked={isSelected}
-                                    disabled={voting || !canParticipate || !pollOpen}
+                                    disabled={voting || !isVoter}
                                     onChange={() => toggleMultipleChoiceOption(opt.id)}
                                     style={{ flexShrink: 0, margin: 0, position: "static", float: "none", width: "18px", height: "18px" }}
                                   />
@@ -481,10 +468,10 @@ export default function DecisionDetail() {
 
                       {/* Only MULTIPLE_CHOICE needs an explicit submit — SINGLE_CHOICE
                           submits instantly the moment a radio button is selected. */}
-                      {decision.votingType === "MULTIPLE_CHOICE" && (
+                      {decision.votingType === "MULTIPLE_CHOICE" && isVoter && (
                         <button
                           className="btn-primary"
-                          disabled={voting || !canParticipate || pendingSelection === null || !pollOpen}
+                          disabled={voting || !isVoter || pendingSelection === null}
                           onClick={submitMultipleChoiceVote}
                         >
                           {voting ? "Submitting..." : "Submit Vote"}

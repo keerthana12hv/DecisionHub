@@ -4,7 +4,7 @@ import Sidebar from "../components/Sidebar";
 import Navbar from "../components/Navbar";
 import { useToast } from "../components/Toast";
 import api from "../services/api";
-import { FaThumbtack, FaLock, FaUnlock, FaComments, FaTrash, FaExclamationTriangle, FaEye } from "react-icons/fa";
+import { FaThumbtack, FaLock, FaUnlock, FaComments, FaTrash, FaExclamationTriangle } from "react-icons/fa";
 
 export default function AdminDecisions() {
   const { addToast } = useToast();
@@ -14,9 +14,6 @@ export default function AdminDecisions() {
   const [loading, setLoading] = useState(true);
   const [decisionToDelete, setDecisionToDelete] = useState(null);
   const [actionLoading, setActionLoading] = useState(false);
-  const [decisionToView, setDecisionToView] = useState(null);
-  const [viewDetails, setViewDetails] = useState(null);
-  const [viewLoading, setViewLoading] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -36,9 +33,7 @@ export default function AdminDecisions() {
           publicDecisions.map(async (d) => {
             try {
               const pollRes = await api.get(`/api/decisions/${d.id}/poll`);
-              const p = pollRes.data;
-              const isExpired = p?.endTime ? (new Date() >= new Date(p.endTime)) : false;
-              pollStatusesMap[d.id] = (p?.status === "OPEN" && !isExpired) ? "OPEN" : "CLOSED";
+              pollStatusesMap[d.id] = pollRes.data?.status || "CLOSED";
             } catch (err) {
               console.warn(`Failed to fetch poll status for decision ${d.id}:`, err);
               pollStatusesMap[d.id] = "—";
@@ -107,50 +102,6 @@ export default function AdminDecisions() {
       addToast(err.response?.data?.message || "Failed to delete decision", "error");
     } finally {
       setActionLoading(false);
-    }
-  };
-
-  const handleViewDecision = async (decision) => {
-    setDecisionToView(decision);
-    setViewLoading(true);
-    setViewDetails(null);
-    try {
-      const detailRes = await api.get(`/api/decisions/${decision.id}`);
-      const d = detailRes.data;
-
-      if (d && d.description) {
-        const match = d.description.match(/^\[Cat:([^\]]+)\]\s*(.*)/s);
-        if (match) {
-          d.categoryName = match[1];
-          d.description = match[2];
-        }
-      }
-
-      let results = null;
-      if (d.status !== "DRAFT") {
-        try {
-          if (d.votingType === "RATING_BASED") {
-            const rankingRes = await api.get(`/api/decisions/${decision.id}/ranking`);
-            results = rankingRes.data?.options || [];
-          } else {
-            const distRes = await api.get(`/api/analytics/decisions/${decision.id}/distribution`);
-            results = distRes.data || [];
-          }
-        } catch (err) {
-          console.error("Failed to load decision results:", err);
-        }
-      }
-
-      setViewDetails({
-        decision: d,
-        results
-      });
-    } catch (err) {
-      console.error("Failed to view decision details:", err);
-      addToast("Failed to load decision details", "error");
-      setDecisionToView(null);
-    } finally {
-      setViewLoading(false);
     }
   };
 
@@ -223,6 +174,41 @@ export default function AdminDecisions() {
                           <td style={{ padding: "12px 16px", textAlign: "right", whiteSpace: "nowrap" }}>
                             <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px", alignItems: "center", whiteSpace: "nowrap" }}>
 
+                              {/* Pin / Unpin */}
+                              <button
+                                onClick={() => handlePinToggle(decision)}
+                                disabled={actionLoading}
+                                className="btn-secondary"
+                                style={{
+                                  padding: "6px 10px",
+                                  fontSize: "0.8rem",
+                                  display: "flex",
+                                  alignItems: "center",
+                                  gap: "4px",
+                                  whiteSpace: "nowrap"
+                                }}
+                              >
+                                <FaThumbtack /> {decision.pinned ? "Unpin Decision" : "Pin Decision"}
+                              </button>
+
+                              {/* Lock / Unlock */}
+                              <button
+                                onClick={() => handleLockToggle(decision)}
+                                disabled={actionLoading}
+                                className="btn-secondary"
+                                style={{
+                                  padding: "6px 10px",
+                                  fontSize: "0.8rem",
+                                  display: "flex",
+                                  alignItems: "center",
+                                  justifyContent: "center",
+                                  gap: "4px",
+                                  whiteSpace: "nowrap"
+                                }}
+                              >
+                                {decision.locked ? <FaUnlock /> : <FaLock />} {decision.locked ? "Unlock Discussion" : "Lock Discussion"}
+                              </button>
+
                               {/* View Discussion */}
                               <Link to={`/admin/decisions/${decision.id}/discuss`} state={{ fromAdminDecisions: true }} style={{ textDecoration: "none" }}>
                                 <button
@@ -240,23 +226,6 @@ export default function AdminDecisions() {
                                   <FaComments /> View Discussion
                                 </button>
                               </Link>
-
-                              {/* View Decision */}
-                              <button
-                                onClick={() => handleViewDecision(decision)}
-                                className="btn-primary"
-                                style={{
-                                  padding: "6px 10px",
-                                  fontSize: "0.8rem",
-                                  display: "flex",
-                                  alignItems: "center",
-                                  justifyContent: "center",
-                                  gap: "4px",
-                                  whiteSpace: "nowrap"
-                                }}
-                              >
-                                <FaEye /> View Decision
-                              </button>
 
                               {/* Delete Decision */}
                               <button
@@ -320,196 +289,6 @@ export default function AdminDecisions() {
                 disabled={actionLoading}
               >
                 Delete
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* View Decision Details Modal */}
-      {decisionToView && (
-        <div className="delete-overlay" style={{ overflowY: "auto", padding: "2rem 0" }}>
-          <div className="glass-panel animate-pop-in" style={{
-            width: "600px",
-            maxWidth: "95%",
-            padding: "2rem",
-            margin: "auto",
-            position: "relative",
-            display: "flex",
-            flexDirection: "column",
-            maxHeight: "90vh",
-            overflow: "hidden"
-          }}>
-            <button
-              onClick={() => setDecisionToView(null)}
-              style={{
-                position: "absolute",
-                top: "1rem",
-                right: "1rem",
-                background: "none",
-                border: "none",
-                color: "var(--text-secondary)",
-                fontSize: "1.5rem",
-                cursor: "pointer",
-                padding: "0.25rem",
-                lineHeight: 1
-              }}
-              title="Close"
-            >
-              &times;
-            </button>
-
-            <h3 style={{ margin: "0 0 1.5rem 0", color: "var(--accent-purple, #A78BFA)", fontSize: "1.2rem", fontWeight: "600" }}>
-              Decision Details
-            </h3>
-
-            {viewLoading ? (
-              <p style={{ padding: "20px", textAlignment: "center" }}>Loading details...</p>
-            ) : viewDetails ? (
-              <div style={{ overflowY: "auto", flex: 1, paddingRight: "0.5rem", textAlign: "left" }}>
-                <h2 style={{ margin: "0 0 1rem 0", color: "var(--text-primary)", fontSize: "1.5rem" }}>
-                  {viewDetails.decision.title}
-                </h2>
-
-                {/* Status elements */}
-                <div style={{ display: "flex", flexWrap: "wrap", gap: "10px", marginBottom: "1.5rem" }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                    <span style={{ fontSize: "0.85rem", color: "var(--text-secondary)" }}>Decision:</span>
-                    <span className={`status-badge ${viewDetails.decision.status?.toLowerCase()}`}>
-                      {viewDetails.decision.status}
-                    </span>
-                  </div>
-                  <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                    <span style={{ fontSize: "0.85rem", color: "var(--text-secondary)" }}>Poll:</span>
-                    <span className={`status-badge ${pollStatuses[viewDetails.decision.id] === "OPEN" ? "active" : "draft"}`}>
-                      {pollStatuses[viewDetails.decision.id] || "—"}
-                    </span>
-                  </div>
-                  <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                    <span style={{ fontSize: "0.85rem", color: "var(--text-secondary)" }}>Type:</span>
-                    <span className="category-tag" style={{ textTransform: "uppercase", display: "inline-block", padding: "2px 8px", fontSize: "0.75rem", borderRadius: "4px" }}>
-                      {viewDetails.decision.votingType?.replace("_", " ")}
-                    </span>
-                  </div>
-                </div>
-
-                {/* Description */}
-                <div style={{
-                  marginBottom: "1.5rem",
-                  padding: "1rem",
-                  borderRadius: "8px",
-                  background: "rgba(255, 255, 255, 0.02)",
-                  border: "1px solid var(--border-glass)"
-                }}>
-                  <h4 style={{ margin: "0 0 0.5rem 0", color: "var(--text-secondary)", fontSize: "0.9rem", textTransform: "uppercase", letterSpacing: "0.05em" }}>
-                    Description & Context
-                  </h4>
-                  <p style={{ margin: 0, fontSize: "0.95rem", color: "var(--text-primary)", whiteSpace: "pre-wrap", lineHeight: "1.5" }}>
-                    {viewDetails.decision.description || "No description provided."}
-                  </p>
-                </div>
-
-                {/* Options List */}
-                <div style={{ marginBottom: "1.5rem" }}>
-                  <h4 style={{ margin: "0 0 0.75rem 0", color: "var(--text-secondary)", fontSize: "0.9rem", textTransform: "uppercase", letterSpacing: "0.05em" }}>
-                    Options
-                  </h4>
-                  <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
-                    {viewDetails.decision.options && viewDetails.decision.options.length > 0 ? (
-                      viewDetails.decision.options.map((opt) => (
-                        <div
-                          key={opt.id}
-                          style={{
-                            padding: "0.75rem 1rem",
-                            borderRadius: "6px",
-                            background: "rgba(255, 255, 255, 0.01)",
-                            border: "1px solid var(--border-glass)"
-                          }}
-                        >
-                          <strong style={{ color: "var(--text-primary)" }}>{opt.title}</strong>
-                          {opt.description && (
-                            <div style={{ color: "var(--text-secondary)", fontSize: "0.85rem", marginTop: "2px" }}>
-                              {opt.description}
-                            </div>
-                          )}
-                        </div>
-                      ))
-                    ) : (
-                      <p style={{ margin: 0, fontSize: "0.9rem", color: "var(--text-secondary)", fontStyle: "italic" }}>
-                        No options defined.
-                      </p>
-                    )}
-                  </div>
-                </div>
-
-                {/* Results/Outcome */}
-                <div style={{ marginBottom: "1rem" }}>
-                  <h4 style={{ margin: "0 0 0.75rem 0", color: "var(--text-secondary)", fontSize: "0.9rem", textTransform: "uppercase", letterSpacing: "0.05em" }}>
-                    Results & Outcome
-                  </h4>
-                  {!viewDetails.results || viewDetails.results.length === 0 ? (
-                    <p style={{ margin: 0, fontSize: "0.9rem", color: "var(--text-secondary)", fontStyle: "italic" }}>
-                      No votes/ratings have been submitted yet.
-                    </p>
-                  ) : (
-                    <div style={{ display: "flex", flexDirection: "column", gap: "0.85rem" }}>
-                      {viewDetails.decision.votingType === "RATING_BASED"
-                        ? [...viewDetails.results]
-                            .sort((a, b) => b.score - a.score)
-                            .map((resItem, idx) => {
-                              const maxScore = Math.max(...viewDetails.results.map(r => r.score)) || 1;
-                              const pct = (resItem.score / maxScore) * 100;
-                              return (
-                                <div key={resItem.optionId} style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-                                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.9rem" }}>
-                                    <span style={{ color: "var(--text-primary)" }}>
-                                      <strong style={{ marginRight: "4px" }}>#{idx + 1}</strong> {resItem.optionTitle}
-                                    </span>
-                                    <span style={{ color: "var(--accent-purple, #A78BFA)", fontWeight: "600" }}>
-                                      {resItem.score.toFixed(1)} pts
-                                    </span>
-                                  </div>
-                                  <div style={{ height: "6px", borderRadius: "3px", background: "rgba(255, 255, 255, 0.05)", overflow: "hidden" }}>
-                                    <div style={{ width: `${pct}%`, height: "100%", background: "var(--gradient-primary)" }} />
-                                  </div>
-                                </div>
-                              );
-                            })
-                        : [...viewDetails.results]
-                            .sort((a, b) => b.voteCount - a.voteCount)
-                            .map((resItem, idx) => {
-                              const totalVotes = viewDetails.results.reduce((sum, r) => sum + r.voteCount, 0) || 1;
-                              const pct = (resItem.voteCount / totalVotes) * 100;
-                              return (
-                                <div key={resItem.optionId} style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-                                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.9rem" }}>
-                                    <span style={{ color: "var(--text-primary)" }}>
-                                      <strong style={{ marginRight: "4px" }}>#{idx + 1}</strong> {resItem.optionName}
-                                    </span>
-                                    <span style={{ color: "var(--accent-purple, #A78BFA)", fontWeight: "600" }}>
-                                      {resItem.voteCount} {resItem.voteCount === 1 ? "vote" : "votes"} ({Math.round(pct)}%)
-                                    </span>
-                                  </div>
-                                  <div style={{ height: "6px", borderRadius: "3px", background: "rgba(255, 255, 255, 0.05)", overflow: "hidden" }}>
-                                    <div style={{ width: `${pct}%`, height: "100%", background: "var(--gradient-primary)" }} />
-                                  </div>
-                                </div>
-                              );
-                            })
-                      }
-                    </div>
-                  )}
-                </div>
-              </div>
-            ) : null}
-
-            <div style={{ marginTop: "2rem", display: "flex", justifyContent: "flex-end" }}>
-              <button
-                className="btn-secondary"
-                onClick={() => setDecisionToView(null)}
-                style={{ minWidth: "100px" }}
-              >
-                Close
               </button>
             </div>
           </div>

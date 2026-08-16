@@ -160,7 +160,7 @@ class DecisionLifecycleTest {
         when(decisionRepository.findById(1L)).thenReturn(Optional.of(closedDecision));
         when(decisionAuthorizationService.canViewDecision(1L, 1L)).thenReturn(true);
         
-        DecisionResponse responseObj = new DecisionResponse(1L, "Title", "Desc", null, null, null, DecisionStatus.CLOSED, null, VotingType.RATING_BASED, null, null, null, null, false, false, 0L, 0L);
+        DecisionResponse responseObj = new DecisionResponse(1L, "Title", "Desc", null, null, null, DecisionStatus.CLOSED, null, VotingType.RATING_BASED, null, null, null, null, false, false);
         when(decisionMapper.toResponse(closedDecision)).thenReturn(responseObj);
 
         DecisionResponse result = decisionService.getDecisionById(1L);
@@ -189,29 +189,5 @@ class DecisionLifecycleTest {
         assertDoesNotThrow(() ->
             decisionService.deleteDecision(3L, "127.0.0.1", "agent")
         );
-    }
-
-    @Test
-    void closeDecision_ClosesAssociatedPoll() {
-        activeDecision.setTitle("Adopt new logo");
-        when(authenticationFacade.getCurrentUserId()).thenReturn(Optional.of(1L));
-        when(userRepository.findById(1L)).thenReturn(Optional.of(testUser));
-        when(decisionRepository.findById(3L)).thenReturn(Optional.of(activeDecision));
-        when(decisionAuthorizationService.canActivateDecision(3L, 1L)).thenReturn(true);
-        when(decisionRepository.saveAndFlush(activeDecision)).thenReturn(activeDecision);
-
-        com.decisionhub.entity.voting.Poll associatedPoll = new com.decisionhub.entity.voting.Poll();
-        associatedPoll.setId(10L);
-        associatedPoll.setStatus(com.decisionhub.enums.voting.PollStatus.OPEN);
-        when(pollRepository.findByDecisionId(3L)).thenReturn(Optional.of(associatedPoll));
-
-        DecisionResponse responseObj = new DecisionResponse(3L, "Title", "Desc", null, null, null, DecisionStatus.CLOSED, null, VotingType.RATING_BASED, null, null, null, null, false, false, 0L, 0L);
-        when(decisionMapper.toResponse(activeDecision)).thenReturn(responseObj);
-
-        DecisionResponse response = decisionService.closeDecision(3L, "127.0.0.1", "agent");
-
-        assertNotNull(response);
-        assertEquals(DecisionStatus.CLOSED, activeDecision.getStatus());
-        assertEquals(com.decisionhub.enums.voting.PollStatus.CLOSED, associatedPoll.getStatus());
     }
 }
