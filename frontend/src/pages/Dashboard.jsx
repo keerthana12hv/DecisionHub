@@ -10,6 +10,7 @@ import NotificationCard from "../components/NotificationCard";
 import { FaPlus, FaInbox, FaChartPie, FaUsers, FaShieldAlt, FaHourglassHalf } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import { getAdminPlatformOverview, getAdminDecisionStats } from "../services/analyticsService";
 import "../styles/Dashboard.css";
 
 const API = "http://localhost:8080/api";
@@ -23,11 +24,20 @@ function Dashboard() {
   const navigate = useNavigate();
   const { user } = useAuth();
 
+  // User Dashboard State
   const [stats, setStats] = useState({
     decisionsCount: 0,
     activePollsCount: 0,
     communitiesCount: 0,
     moderatingCount: 0
+  });
+
+  // Admin Dashboard State
+  const [adminStats, setAdminStats] = useState({
+    usersCount: 0,
+    communitiesCount: 0,
+    decisionsCount: 0,
+    activePollsCount: 0
   });
 
   const [deadlines, setDeadlines] = useState([]);
@@ -44,30 +54,44 @@ function Dashboard() {
   const loadDashboardData = async () => {
     try {
       setLoading(true);
-      const [decisionsRes, communitiesRes, moderatingRes] = await Promise.all([
-        axios.get(`${API}/decisions`, headers()),
-        axios.get(`${API}/communities/my`, headers()),
-        axios.get(`${API}/communities/moderating`, headers())
-      ]);
+      if (user?.role === "ADMIN") {
+        const [overviewRes, decisionsRes] = await Promise.all([
+          getAdminPlatformOverview(),
+          getAdminDecisionStats()
+        ]);
+        
+        setAdminStats({
+          usersCount: overviewRes?.totalUsers ?? 0,
+          communitiesCount: overviewRes?.totalCommunities ?? 0,
+          decisionsCount: overviewRes?.totalDecisions ?? 0,
+          activePollsCount: decisionsRes?.activeDecisions ?? 0
+        });
+      } else {
+        const [decisionsRes, communitiesRes, moderatingRes] = await Promise.all([
+          axios.get(`${API}/decisions`, headers()),
+          axios.get(`${API}/communities/my`, headers()),
+          axios.get(`${API}/communities/moderating`, headers())
+        ]);
 
-      const decisions = decisionsRes.data;
-      const communities = communitiesRes.data;
-      const moderating = moderatingRes.data;
+        const decisions = decisionsRes.data;
+        const communities = communitiesRes.data;
+        const moderating = moderatingRes.data;
 
-      const activePolls = decisions.filter((d) => d.status === "ACTIVE");
+        const activePolls = decisions.filter((d) => d.status === "ACTIVE");
 
-      setStats({
-        decisionsCount: decisions.length,
-        activePollsCount: activePolls.length,
-        communitiesCount: communities.length,
-        moderatingCount: moderating.length
-      });
+        setStats({
+          decisionsCount: decisions.length,
+          activePollsCount: activePolls.length,
+          communitiesCount: communities.length,
+          moderatingCount: moderating.length
+        });
 
-      const upcoming = activePolls
-        .filter((d) => d.deadline)
-        .slice(0, 3)
-        .map((d) => ({ id: d.id, title: d.title, deadline: d.deadline }));
-      setDeadlines(upcoming);
+        const upcoming = activePolls
+          .filter((d) => d.deadline)
+          .slice(0, 3)
+          .map((d) => ({ id: d.id, title: d.title, deadline: d.deadline }));
+        setDeadlines(upcoming);
+      }
     } catch (err) {
       console.error("Failed to load dashboard data:", err);
     } finally {
@@ -75,10 +99,73 @@ function Dashboard() {
     }
   };
 
-  const isModerator = user?.role === "MODERATOR" || stats.moderatingCount > 0;
-
   if (!user) return null;
 
+  // Render Admin simplified platform dashboard layout
+  if (user.role === "ADMIN") {
+    return (
+      <div className="dashboard">
+        <Sidebar />
+
+        <div className="dashboard-main">
+          <Navbar />
+
+          <div className="dashboard-content animate-fade-in" style={{ padding: "1.25rem", display: "flex", flexDirection: "column", gap: "1.25rem" }}>
+            
+            {/* Compact Welcome Section */}
+            <div className="welcome-banner glass-panel animate-glow" style={{ padding: "1rem 1.5rem", marginBottom: "0", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <div className="welcome-text">
+                <h1 style={{ fontSize: "1.6rem", margin: "0 0 0.25rem 0" }}>Welcome Back, {user.username} 👋</h1>
+                <p style={{ fontSize: "0.9rem", margin: "0", color: "var(--text-secondary)" }}>
+                  Platform overview
+                </p>
+              </div>
+            </div>
+
+            {/* Statistics - Compact and aligned in one row */}
+            <div className="admin-stats-row">
+              <div className="admin-stat-card">
+                <StatCard
+                  title="Total Users"
+                  value={loading ? "…" : adminStats.usersCount}
+                  icon={<FaUsers />}
+                />
+              </div>
+              <div className="admin-stat-card">
+                <StatCard
+                  title="Total Communities"
+                  value={loading ? "…" : adminStats.communitiesCount}
+                  icon={<FaUsers />}
+                />
+              </div>
+              <div className="admin-stat-card">
+                <StatCard
+                  title="Total Decisions"
+                  value={loading ? "…" : adminStats.decisionsCount}
+                  icon={<FaInbox />}
+                />
+              </div>
+              <div className="admin-stat-card">
+                <StatCard
+                  title="Active Polls"
+                  value={loading ? "…" : adminStats.activePollsCount}
+                  icon={<FaChartPie />}
+                />
+              </div>
+            </div>
+
+            {/* Compact Recent Activity list */}
+            <div style={{ flex: 1, minHeight: 0 }}>
+              <Activity />
+            </div>
+
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Render standard user dashboard layout
   return (
     <div className="dashboard">
       <Sidebar />
@@ -94,14 +181,12 @@ function Dashboard() {
                 Collaborate with your team, cast votes on key initiatives,
                 and analyze polling trends from a single dashboard workspace.
               </p>
-              {user.role !== "ADMIN" && (
-                <button
-                  className="btn-primary banner-btn"
-                  onClick={() => navigate("/create-decision")}
-                >
-                  <FaPlus /> Create Decision
-                </button>
-              )}
+              <button
+                className="btn-primary banner-btn"
+                onClick={() => navigate("/create-decision")}
+              >
+                <FaPlus /> Create Decision
+              </button>
             </div>
             <div className="welcome-image">
               {user.photo ? (
