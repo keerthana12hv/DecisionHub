@@ -31,6 +31,7 @@ import com.decisionhub.repository.community.CommunityRepository;
 import com.decisionhub.repository.decision.DecisionOptionRepository;
 import com.decisionhub.repository.decision.DecisionRepository;
 import com.decisionhub.repository.discussion.CommentRepository;
+import com.decisionhub.repository.reports.CommentReportRepository;
 import com.decisionhub.repository.voting.PollRepository;
 import com.decisionhub.repository.voting.VoteRepository;
 import com.decisionhub.repository.decision.ComparisonScoreRepository;
@@ -39,6 +40,7 @@ import com.decisionhub.entity.decision.DecisionOption;
 import com.decisionhub.enums.decision.VotingType;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
+import com.decisionhub.repository.reports.CommentReportRepository;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -68,7 +70,7 @@ public class AnalyticsServiceImpl implements AnalyticsService {
     private final DecisionOptionRepository decisionOptionRepository;
 
     private final PollRepository pollRepository;
-
+    private final CommentReportRepository commentReportRepository;
     private final VoteRepository voteRepository;
 
     private final CommunityMemberRepository communityMemberRepository;
@@ -652,7 +654,8 @@ getCommunityModerationAnalytics(Long communityId) {
                     communityId
             );
 
-    long reported = 0;
+    long reported =
+        commentReportRepository.countByCommentDecisionCommunityId(communityId);
 
     return new CommunityModerationAnalyticsResponse(
             locked,
