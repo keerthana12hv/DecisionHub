@@ -1,8 +1,8 @@
 import { useEffect, useState, useCallback } from "react";
 import "./JoinRequestsPanel.css";
+import API_URL from "../../services/api";
 
-const API_BASE = "http://localhost:8080";
-
+const API_BASE = API_URL;
 function getToken() {
   return localStorage.getItem("token");
 }

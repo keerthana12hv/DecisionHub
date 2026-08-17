@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import axios from "axios";
+import api from "../services/api";
 import Sidebar from "../components/Sidebar";
 import Navbar from "../components/Navbar";
 import { useAuth } from "../context/AuthContext";
@@ -9,16 +9,7 @@ import { getMyCommunities } from "../services/communityService";
 import { FaArrowLeft, FaPlusCircle, FaTrash, FaTimes } from "react-icons/fa";
 import "../styles/CreateDecision.css";
 
-const API = "http://localhost:8080/api";
 
-const token = () =>
-  localStorage.getItem("token") ||
-  localStorage.getItem("authToken") ||
-  localStorage.getItem("jwt");
-
-const headers = () => ({
-  headers: { Authorization: `Bearer ${token()}`, "Content-Type": "application/json" }
-});
 
 function CreateDecision() {
   const navigate = useNavigate();
@@ -72,7 +63,7 @@ function CreateDecision() {
   const fetchCategories = async () => {
     try {
       setCategoriesLoading(true);
-      const res = await axios.get(`${API}/categories`, headers());
+      const res = await api.get("/categories");
       const list = res.data || [];
       setCategoryOptions(list);
       if (list.length > 0) {
@@ -176,8 +167,8 @@ function CreateDecision() {
 
     setSubmitting(true);
     try {
-      const createRes = await axios.post(
-        `${API}/decisions`,
+      const createRes = await api.post(
+          "/decisions",
         {
           title,
           description: category ? `[Cat:${category}] ${description}` : description,
@@ -202,8 +193,7 @@ function CreateDecision() {
           // ("Comparison factors are not allowed for SINGLE_CHOICE decisions") —
           // only send them when this is actually a Rating Based decision.
           factors: votingType !== "RATING_BASED" ? [] : criteria.map((c) => ({ name: c, description: "" }))
-        },
-        headers()
+        }
       );
 
       const decisionId = createRes.data.id;

@@ -1,37 +1,30 @@
-import axios from "axios";
-
-const API = "http://localhost:8080/api";
-
-const token = () =>
-  localStorage.getItem("token") ||
-  localStorage.getItem("authToken") ||
-  localStorage.getItem("jwt");
-
-const headers = () => ({
-  headers: {
-    Authorization: `Bearer ${token()}`,
-    "Content-Type": "application/json"
-  }
-});
+import api from "./api";
 
 export const getScores = (decisionId) =>
-  axios.get(`${API}/decisions/${decisionId}/scores`, headers());
+    api.get(`/decisions/${decisionId}/scores`);
 
 export const getMyScores = (decisionId) =>
-  axios.get(`${API}/decisions/${decisionId}/scores/me`, headers());
+    api.get(`/decisions/${decisionId}/scores/me`);
 
-export const submitScore = (decisionId, optionId, factorId, score, remarks = "") =>
-  axios.post(
-    `${API}/decisions/${decisionId}/scores`,
-    { optionId, factorId, score, remarks },
-    headers()
-  );
+export const submitScore = (
+    decisionId,
+    optionId,
+    factorId,
+    score,
+    remarks = ""
+) =>
+    api.post(
+        `/decisions/${decisionId}/scores`,
+        { optionId, factorId, score, remarks }
+    );
 
 export const deleteScore = (decisionId, optionId, factorId) =>
-  axios.delete(`${API}/decisions/${decisionId}/scores/${optionId}/${factorId}`, headers());
+    api.delete(
+        `/decisions/${decisionId}/scores/${optionId}/${factorId}`
+    );
 
 export const getRanking = (decisionId) =>
-  axios.get(`${API}/decisions/${decisionId}/ranking`, headers());
+    api.get(`/decisions/${decisionId}/ranking`);
 
 export const getRankingSummary = (decisionId) =>
-  axios.get(`${API}/decisions/${decisionId}/ranking/summary`, headers());
+    api.get(`/decisions/${decisionId}/ranking/summary`);

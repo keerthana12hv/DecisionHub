@@ -1,7 +1,7 @@
 import Discussion from "./Discussion";
 import { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
-import axios from "axios";
+import api from "../services/api";
 import Sidebar from "../components/Sidebar";
 import Navbar from "../components/Navbar";
 import RatingPanel from "../components/RatingPanel";
@@ -13,16 +13,12 @@ import { getCommunities, getMembers } from "../services/communityService";
 import { useToast } from "../components/Toast";
 import "../styles/DecisionDetail.css";
 
-const API = "http://localhost:8080/api";
+
 
 const token = () =>
-  localStorage.getItem("token") ||
-  localStorage.getItem("authToken") ||
-  localStorage.getItem("jwt");
-
-const headers = () => ({
-  headers: { Authorization: `Bearer ${token()}` }
-});
+    localStorage.getItem("token") ||
+    localStorage.getItem("authToken") ||
+    localStorage.getItem("jwt");
 
 // Options store values in comparisonScores keyed by factorId, one entry per
 // voter (each entry also carries a userId). Showing a single raw entry would
@@ -149,7 +145,7 @@ export default function DecisionDetail() {
   const fetchDecision = async (silent = false) => {
     try {
       if (!silent) setLoading(true);
-      const res = await axios.get(`${API}/decisions/${decisionId}`, headers());
+      const res = await api.get(`/decisions/${decisionId}`);
       const d = res.data;
       if (d && d.description) {
         const match = d.description.match(/^\[Cat:([^\]]+)\]\s*(.*)/s);
@@ -160,7 +156,7 @@ export default function DecisionDetail() {
       }
       if (d && d.status !== "DRAFT") {
         try {
-          const pollRes = await axios.get(`${API}/decisions/${decisionId}/poll`, headers());
+          const pollRes = await api.get(`/decisions/${decisionId}/poll`);
           if (pollRes.data) {
             d.poll = pollRes.data;
             if (pollRes.data.endTime) {
@@ -191,7 +187,7 @@ export default function DecisionDetail() {
   // Reuses the same endpoint already confirmed working in VotingPage.jsx
   const fetchMyVote = async () => {
     try {
-      const res = await axios.get(`${API}/decisions/${decisionId}/votes/me`, headers());
+      const res = await    api.get(`/decisions/${decisionId}/votes/me`);
       setMyVoteOptionIds(res.data?.optionIds || []);
     } catch (err) {
       // No vote cast yet is a normal state, not necessarily an error
@@ -221,10 +217,9 @@ export default function DecisionDetail() {
     const isFirstVote = myVoteOptionIds.length === 0;
     setVoting(true);
     try {
-      await axios.put(
-        `${API}/decisions/${decisionId}/votes`,
-        { optionIds: [optionId] },
-        headers()
+      await api.put(
+        `/decisions/${decisionId}/votes`,
+        { optionIds: [optionId] }
       );
       setMyVoteOptionIds([optionId]);
       addToast(isFirstVote ? "Vote submitted successfully." : "Vote updated successfully.", "success");
@@ -254,10 +249,9 @@ export default function DecisionDetail() {
     const optionIds = pendingSelection ?? myVoteOptionIds;
     setVoting(true);
     try {
-      await axios.put(
-        `${API}/decisions/${decisionId}/votes`,
-        { optionIds },
-        headers()
+      await api.put(
+        `/decisions/${decisionId}/votes`,
+        { optionIds }
       );
       setMyVoteOptionIds(optionIds);
       setPendingSelection(null);

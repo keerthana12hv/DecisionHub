@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import axios from "axios";
+import api from "../services/api";
 import { getRanking } from "../services/voteService";
 
 // Confirmed from the real API response: { decisionId, decisionTitle, options: [...], status }
@@ -150,10 +150,9 @@ function VoteCountResults({ decisionId, pollOpen }) {
     if (!decisionId) return;
     if (!silent) setLoading(true);
     try {
-      const t = localStorage.getItem("token") || localStorage.getItem("authToken") || localStorage.getItem("jwt");
-      const res = await axios.get(`http://localhost:8080/api/analytics/decisions/${decisionId}/distribution`, {
-        headers: { Authorization: `Bearer ${t}` }
-      });
+      const res = await api.get(
+          `/analytics/decisions/${decisionId}/distribution`
+      );
       console.log("Analytics distribution response:", res.data);
       setDistribution(Array.isArray(res.data) ? res.data : []);
     } catch (err) {

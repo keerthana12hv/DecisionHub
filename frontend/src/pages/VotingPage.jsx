@@ -1,18 +1,17 @@
 import { useEffect, useState } from "react";
-import axios from "axios";
+import api from "../services/api";
 import Sidebar from "../components/Sidebar";
 import Navbar from "../components/Navbar";
 import { useToast } from "../components/Toast";
 import { FaVoteYea, FaShareAlt, FaCheckCircle } from "react-icons/fa";
 import "../styles/VotingPage.css";
 
-const API = "http://localhost:8080/api";
-const token = () =>
+
+
+  const token = () =>
   localStorage.getItem("token") ||
   localStorage.getItem("authToken") ||
   localStorage.getItem("jwt");
-const headers = () => ({ headers: { Authorization: `Bearer ${token()}` } });
-
 const VotingPage = () => {
   const { addToast } = useToast();
   const [polls, setPolls] = useState([]);
@@ -30,10 +29,10 @@ const VotingPage = () => {
   const loadActivePolls = async () => {
     try {
       setLoading(true);
-      const res = await axios.get(`${API}/decisions`, headers());
+      const res = await api.get("/decisions");
       const votable = res.data.filter(
-        (d) => d.status === "ACTIVE" && 
-               d.votingType !== "RATING_BASED" && 
+        (d) => d.status === "ACTIVE" &&
+               d.votingType !== "RATING_BASED" &&
                (!d.votingEndTime || new Date() < new Date(d.votingEndTime))
       );
       setPolls(votable);
@@ -42,7 +41,7 @@ const VotingPage = () => {
       const voteEntries = await Promise.all(
         votable.map(async (d) => {
           try {
-            const voteRes = await axios.get(`${API}/decisions/${d.id}/votes/me`, headers());
+            const voteRes = await api.get(`/decisions/${d.id}/votes/me`, headers());
             return [d.id, voteRes.data.optionIds || []];
           } catch {
             return [d.id, []];
@@ -62,10 +61,9 @@ const VotingPage = () => {
   const handleSingleChoiceVote = async (decisionId, optionId) => {
     setSubmitting(decisionId);
     try {
-      await axios.put(
-        `${API}/decisions/${decisionId}/votes`,
-        { optionIds: [optionId] },
-        headers()
+      await api.put(
+        `/decisions/${decisionId}/votes`,
+        { optionIds: [optionId] }
       );
       setMyVotes((prev) => ({ ...prev, [decisionId]: [optionId] }));
       addToast("Vote submitted!", "success");
@@ -93,11 +91,9 @@ const VotingPage = () => {
     const optionIds = pendingSelections[decisionId] ?? myVotes[decisionId] ?? [];
     setSubmitting(decisionId);
     try {
-      await axios.put(
-        `${API}/decisions/${decisionId}/votes`,
-        { optionIds },
-        headers()
-      );
+      await api.put(
+        `/decisions/${decisionId}/votes`,
+        { optionIds });
       setMyVotes((prev) => ({ ...prev, [decisionId]: optionIds }));
       setPendingSelections((prev) => {
         const next = { ...prev };

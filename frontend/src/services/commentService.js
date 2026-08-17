@@ -1,29 +1,21 @@
-import axios from "axios";
-
-const API_URL = "http://localhost:8080/api";
-
-const authHeader = () => ({
-  headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
-});
+import api from "./api";
 
 export const getComments = (decisionId) =>
-  axios.get(`${API_URL}/decisions/${decisionId}/comments`, authHeader());
+  api.get(`/decisions/${decisionId}/comments`);
 
 export const postComment = (decisionId, content) =>
-  axios.post(`${API_URL}/decisions/${decisionId}/comments`, { content }, authHeader());
+  api.post(`/decisions/${decisionId}/comments`, { content });
 
 export const postReply = (decisionId, commentId, content) =>
-  axios.post(
-    `${API_URL}/decisions/${decisionId}/comments/${commentId}/replies`,
-    { content },
-    authHeader()
-  );
+  api.post(`/decisions/${decisionId}/comments/${commentId}/replies`, {
+    content,
+  });
 
 export const getReplies = (commentId) =>
-  axios.get(`${API_URL}/comments/${commentId}/replies`, authHeader());
+  api.get(`/comments/${commentId}/replies`);
 
 export const editComment = (commentId, content) =>
-  axios.put(`${API_URL}/comments/${commentId}`, { content }, authHeader());
+  api.put(`/comments/${commentId}`, { content });
 
 export const deleteComment = (commentId) =>
-  axios.delete(`${API_URL}/comments/${commentId}`, authHeader());
+  api.delete(`/comments/${commentId}`);

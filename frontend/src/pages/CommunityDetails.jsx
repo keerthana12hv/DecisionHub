@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import axios from "axios";
+import api from "../services/api";
 import "../styles/CommunityDetail.css";
 import Sidebar from "../components/Sidebar";
 import Navbar from "../components/Navbar";
@@ -9,12 +9,6 @@ import { FaThumbtack, FaLock, FaArrowRight } from "react-icons/fa";
 import { useAuth } from "../context/AuthContext";
 import AdminCommunityWorkspace from "./AdminCommunityWorkspace";
 
-const API = "http://localhost:8080/api";
-const token = () =>
-  localStorage.getItem("token") ||
-  localStorage.getItem("authToken") ||
-  localStorage.getItem("jwt");
-const headers = () => ({ headers: { Authorization: `Bearer ${token()}` } });
 
 export default function CommunityDetail() {
   const { user } = useAuth();
@@ -45,7 +39,7 @@ export default function CommunityDetail() {
 
   const fetchCommunity = async () => {
     try {
-      const res = await axios.get(`${API}/communities/${communityId}`, headers());
+      const res = await api.get(`/communities/${communityId}`);
       setCommunity(res.data);
     } catch (err) {
       console.error("Failed to fetch community:", err);
@@ -57,10 +51,8 @@ export default function CommunityDetail() {
   const fetchCommunityDecisions = async () => {
     try {
       setDecisionsLoading(true);
-      const res = await axios.get(
-        `${API}/decisions?communityId=${communityId}`,
-        headers()
-      );
+      const res = await api.get(`/decisions?communityId=${communityId}`);
+
       setDecisions(res.data);
     } catch (err) {
       console.error("Failed to fetch community decisions:", err);
