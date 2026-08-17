@@ -64,15 +64,15 @@ function RecentDecision() {
                 {decision.pinned && <FaThumbtack title="Pinned" style={{ marginRight: 6, fontSize: "0.8em" }} />}
                 {decision.locked && <FaLock title="Locked" style={{ marginRight: 6, fontSize: "0.8em" }} />}
                 {decision.title}
-              </span>onClick={() => navigate(`/decisions/${decision.id}`)}
-              <span className="decision-cat-cell">{decision.categoryName}</span>
+              </span>
+              <span className="decision-cat-cell">{decision.categoryName || "—"}</span>
               <span>
                 <span className={`status-badge ${decision.status.toLowerCase()}`}>
                   {decision.status}
                 </span>
               </span>
               <span className="action-cell">
-                <button className="row-action-btn" >
+                <button className="row-action-btn" onClick={() => navigate(`/decisions/${decision.id}`)}>
                   <FaVoteYea /> View
                 </button>
               </span>

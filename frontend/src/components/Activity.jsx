@@ -64,21 +64,24 @@ function Activity() {
   };
 
   return (
-    <div className="activity-container">
-      <h2 className="section-title">Recent Activity</h2>
+    <div className="activity-container" style={{ marginBottom: "1rem" }}>
+      <h3 className="section-title" style={{ fontSize: "1.1rem", marginBottom: "0.75rem" }}>Recent Activity</h3>
 
       <div className="activity-card glass-panel">
         {loading ? (
-          <div className="empty-activity">Loading...</div>
+          <div className="empty-activity" style={{ padding: "1rem" }}>Loading...</div>
         ) : activities.length === 0 ? (
-          <div className="empty-activity">No recent activities.</div>
+          <div className="empty-activity" style={{ padding: "1.5rem", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
+            <FaChartLine style={{ fontSize: "1.5rem", color: "var(--text-muted)", marginBottom: "8px" }} />
+            <span style={{ fontSize: "0.85rem", color: "var(--text-muted)" }}>No recent platform activity</span>
+          </div>
         ) : (
           activities.map((item) => (
-            <div className="activity-item" key={item.id}>
-              <div className="activity-icon-wrapper">{getIcon(item.icon)}</div>
+            <div className="activity-item" key={item.id} style={{ padding: "0.75rem 1.25rem" }}>
+              <div className="activity-icon-wrapper" style={{ width: "30px", height: "30px", fontSize: "0.95rem" }}>{getIcon(item.icon)}</div>
               <div className="activity-details">
-                <span className="activity-text">{item.text}</span>
-                <span className="activity-time">{item.time}</span>
+                <span className="activity-text" style={{ fontSize: "0.85rem" }}>{item.text}</span>
+                <span className="activity-time" style={{ fontSize: "0.7rem" }}>{item.time}</span>
               </div>
             </div>
           ))

@@ -159,3 +159,61 @@
     height: 80px;
   }
 }
+
+/* Compact Admin Dashboard Specifics */
+.admin-stats-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+@media (max-width: 900px) {
+  .admin-stats-row {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 480px) {
+  .admin-stats-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+.admin-stat-card .stat-card {
+  padding: 0.75rem 1rem !important;
+  min-height: 80px !important;
+}
+
+.admin-stat-card .stat-value {
+  font-size: 1.6rem !important;
+}
+
+.admin-stat-card .stat-icon-wrapper {
+  width: 32px !important;
+  height: 32px !important;
+  font-size: 1rem !important;
+}
+
+.admin-stat-card .stat-card-footer {
+  margin-top: 0.5rem !important;
+}
+
+.clickable-stat-card {
+  transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;
+}
+
+.clickable-stat-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 0 15px rgba(139, 92, 246, 0.25);
+  border-color: rgba(139, 92, 246, 0.4) !important;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: .4; }
+}
+
+.animate-pulse {
+  animation: pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
