@@ -655,7 +655,7 @@ getCommunityModerationAnalytics(Long communityId) {
             );
 
     long reported =
-        commentReportRepository.countByCommentDecisionCommunityId(communityId);
+        commentReportRepository.countByCommentDecisionCommunityIdAndCommentDeletedAtIsNull(communityId);
 
     return new CommunityModerationAnalyticsResponse(
             locked,
