@@ -7,9 +7,10 @@ import QuickAction from "../components/QuickAction";
 import RecentDecision from "../components/RecentDecision";
 import Activity from "../components/Activity";
 import NotificationCard from "../components/NotificationCard";
-import { FaPlus, FaInbox, FaChartPie, FaUsers, FaShieldAlt, FaHourglassHalf } from "react-icons/fa";
+import { FaPlus, FaInbox, FaChartPie, FaUsers, FaShieldAlt, FaArrowRight } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import { useToast } from "../components/Toast";
 import { getAdminPlatformOverview, getAdminDecisionStats } from "../services/analyticsService";
 import "../styles/Dashboard.css";
 
@@ -23,6 +24,7 @@ const headers = () => ({ headers: { Authorization: `Bearer ${token()}` } });
 function Dashboard() {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { addToast } = useToast();
 
   // User Dashboard State
   const [stats, setStats] = useState({
@@ -40,8 +42,8 @@ function Dashboard() {
     activePollsCount: 0
   });
 
-  const [deadlines, setDeadlines] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
 
   useEffect(() => {
     if (!user) {
@@ -54,6 +56,7 @@ function Dashboard() {
   const loadDashboardData = async () => {
     try {
       setLoading(true);
+      setError(false);
       if (user?.role === "ADMIN") {
         const [overviewRes, decisionsRes] = await Promise.all([
           getAdminPlatformOverview(),
@@ -85,21 +88,43 @@ function Dashboard() {
           communitiesCount: communities.length,
           moderatingCount: moderating.length
         });
-
-        const upcoming = activePolls
-          .filter((d) => d.deadline)
-          .slice(0, 3)
-          .map((d) => ({ id: d.id, title: d.title, deadline: d.deadline }));
-        setDeadlines(upcoming);
       }
     } catch (err) {
       console.error("Failed to load dashboard data:", err);
+      setError(true);
     } finally {
       setLoading(false);
     }
   };
 
+  const handleModeratingClick = () => {
+    if (stats.moderatingCount > 0) {
+      navigate("/moderator-dashboard");
+    } else {
+      addToast("You are not moderating any communities yet.", "info");
+    }
+  };
+
   if (!user) return null;
+
+  // Render Error State
+  if (error) {
+    return (
+      <div className="dashboard">
+        <Sidebar />
+        <div className="dashboard-main">
+          <Navbar />
+          <div className="dashboard-content animate-fade-in" style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", minHeight: "60vh", gap: "1rem" }}>
+            <FaShieldAlt style={{ fontSize: "3rem", color: "var(--warning)" }} />
+            <h2 style={{ color: "#f87171", fontSize: "1.5rem" }}>Unable to load dashboard data.</h2>
+            <button className="btn-primary" onClick={() => loadDashboardData()}>
+              Retry
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   // Render Admin simplified platform dashboard layout
   if (user.role === "ADMIN") {
@@ -165,6 +190,66 @@ function Dashboard() {
     );
   }
 
+  // Render Zero-Data Empty State for standard user
+  const isEmptyState =
+    !loading &&
+    stats.decisionsCount === 0 &&
+    stats.activePollsCount === 0 &&
+    stats.communitiesCount === 0 &&
+    stats.moderatingCount === 0;
+
+  if (isEmptyState) {
+    return (
+      <div className="dashboard">
+        <Sidebar />
+        <div className="dashboard-main">
+          <Navbar />
+          <div className="dashboard-content animate-fade-in" style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
+            
+            {/* Welcome banner */}
+            <div className="welcome-banner glass-panel animate-glow" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "1.5rem 2rem", marginBottom: "0" }}>
+              <div className="welcome-text">
+                <h1 style={{ fontSize: "1.8rem" }}>Welcome Back, {user.username} 👋</h1>
+                <p style={{ fontSize: "0.95rem", margin: "0" }}>
+                  Collaborate, vote and make decisions together.
+                </p>
+              </div>
+              <button
+                className="btn-primary banner-btn"
+                onClick={() => navigate("/create-decision")}
+                style={{ display: "flex", alignItems: "center", gap: "6px" }}
+              >
+                <FaPlus /> Create Decision
+              </button>
+            </div>
+
+            {/* Empty Dashboard Content Card */}
+            <div className="glass-panel animate-glow" style={{ padding: "3rem 2rem", textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center", gap: "1.5rem", maxWidth: "600px", margin: "3rem auto" }}>
+              <div style={{ background: "rgba(139, 92, 246, 0.1)", color: "var(--accent-purple)", width: "64px", height: "64px", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "2rem" }}>
+                <FaInbox />
+              </div>
+              <div>
+                <h2 style={{ fontSize: "1.4rem", color: "#fff", marginBottom: "0.5rem" }}>Welcome to DecisionHub!</h2>
+                <p style={{ color: "var(--text-secondary)", fontSize: "0.9rem", maxWidth: "420px", margin: "0 auto", lineHeight: "1.5" }}>
+                  Create your first decision or explore communities to get started.
+                </p>
+              </div>
+              <div style={{ display: "flex", gap: "1rem", flexWrap: "wrap", justifyContent: "center" }}>
+                <button className="btn-primary" onClick={() => navigate("/create-decision")} style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                  <FaPlus /> Create Decision
+                </button>
+                <button className="btn-secondary" onClick={() => navigate("/communities")} style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                  <FaUsers /> Explore Communities
+                </button>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   // Render standard user dashboard layout
   return (
     <div className="dashboard">
@@ -173,83 +258,72 @@ function Dashboard() {
       <div className="dashboard-main">
         <Navbar />
 
-        <div className="dashboard-content animate-fade-in">
-          <div className="welcome-banner glass-panel animate-glow">
+        <div className="dashboard-content animate-fade-in" style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
+          
+          {/* Welcome Banner */}
+          <div className="welcome-banner glass-panel animate-glow" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "1.5rem 2rem", marginBottom: "0" }}>
             <div className="welcome-text">
-              <h1>Welcome Back, {user.username} 👋</h1>
-              <p>
-                Collaborate with your team, cast votes on key initiatives,
-                and analyze polling trends from a single dashboard workspace.
+              <h1 style={{ fontSize: "1.8rem" }}>Welcome Back, {user.username} 👋</h1>
+              <p style={{ fontSize: "0.95rem", margin: "0" }}>
+                Collaborate, vote and make decisions together.
               </p>
-              <button
-                className="btn-primary banner-btn"
-                onClick={() => navigate("/create-decision")}
-              >
-                <FaPlus /> Create Decision
-              </button>
             </div>
-            <div className="welcome-image">
-              {user.photo ? (
-                <img src={user.photo} alt={user.username} />
-              ) : (
-                <div className="avatar-fallback">
-                  {user.username?.[0]?.toUpperCase() || "?"}
-                </div>
-              )}
-            </div>
+            <button
+              className="btn-primary banner-btn"
+              onClick={() => navigate("/create-decision")}
+              style={{ display: "flex", alignItems: "center", gap: "6px" }}
+            >
+              <FaPlus /> Create Decision
+            </button>
           </div>
 
-          <div className="stats-grid">
+          {/* Clickable Statistics Cards */}
+          <div className="stats-grid" style={{ marginBottom: "0" }}>
             <StatCard
               title="Total Decisions"
-              value={loading ? "…" : stats.decisionsCount}
+              value={loading ? "" : stats.decisionsCount}
               icon={<FaInbox />}
+              onClick={() => navigate("/decisions")}
             />
             <StatCard
               title="Active Polls"
-              value={loading ? "…" : stats.activePollsCount}
+              value={loading ? "" : stats.activePollsCount}
               icon={<FaChartPie />}
+              onClick={() => navigate("/decisions?status=ACTIVE")}
             />
             <StatCard
               title="Joined Communities"
-              value={loading ? "…" : stats.communitiesCount}
+              value={loading ? "" : stats.communitiesCount}
               icon={<FaUsers />}
+              onClick={() => navigate("/communities")}
             />
             <StatCard
               title="Communities Moderating"
-              value={loading ? "…" : stats.moderatingCount}
+              value={loading ? "" : stats.moderatingCount}
               icon={<FaShieldAlt />}
+              onClick={handleModeratingClick}
             />
           </div>
 
+          {/* View Analytics Shortcut Link */}
+          <div style={{ display: "flex", justifyContent: "flex-start", marginTop: "-0.5rem" }}>
+            <button 
+              className="view-all-link-btn" 
+              onClick={() => navigate("/analytics")}
+              style={{ fontSize: "0.9rem", display: "flex", alignItems: "center", gap: "6px" }}
+            >
+              View Analytics <FaArrowRight style={{ fontSize: "0.8rem" }} />
+            </button>
+          </div>
+
+          {/* Actions and Recent Decisions columns */}
           <div className="dashboard-columns">
-            <div className="dashboard-left-column">
+            <div className="dashboard-left-column" style={{ gap: "1.5rem" }}>
               <QuickAction />
-              <RecentDecision />
             </div>
 
             <div className="dashboard-right-column">
-              <div className="deadlines-container">
-                <h2 className="section-title">Upcoming Deadlines</h2>
-                <div className="deadlines-card glass-panel">
-                  {deadlines.length === 0 ? (
-                    <div className="empty-deadlines">No upcoming deadlines.</div>
-                  ) : (
-                    deadlines.map((d) => (
-                      <div key={d.id} className="deadline-item">
-                        <FaHourglassHalf className="deadline-icon" />
-                        <div>
-                          <h4>{d.title}</h4>
-                          <p>Closes on: {new Date(d.deadline).toLocaleDateString()}</p>
-                        </div>
-                      </div>
-                    ))
-                  )}
-                </div>
-              </div>
-
-              <Activity />
-              <NotificationCard />
+              <RecentDecision />
             </div>
           </div>
         </div>
