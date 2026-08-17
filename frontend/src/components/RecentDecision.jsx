@@ -65,7 +65,7 @@ function RecentDecision() {
                 {decision.locked && <FaLock title="Locked" style={{ marginRight: 6, fontSize: "0.8em" }} />}
                 {decision.title}
               </span>
-              <span className="decision-cat-cell">{decision.categoryName}</span>
+              <span className="decision-cat-cell">{decision.categoryName || "—"}</span>
               <span>
                 <span className={`status-badge ${decision.status.toLowerCase()}`}>
                   {decision.status}
