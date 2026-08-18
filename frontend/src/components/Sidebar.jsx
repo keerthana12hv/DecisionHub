@@ -13,7 +13,7 @@ import {
   FaGavel
 } from "react-icons/fa";
 import { Link, useLocation } from "react-router-dom";
-import axios from "axios";
+import api from "../services/api";
 import { useAuth } from "../context/AuthContext";
 import "../styles/Sidebar.css";
 
@@ -30,13 +30,7 @@ function Sidebar() {
 
   useEffect(() => {
     if (user && user.role === "MODERATOR") {
-      const token = localStorage.getItem("token") ||
-        localStorage.getItem("authToken") ||
-        localStorage.getItem("jwt");
-      if (token) {
-        axios.get("http://localhost:8080/api/communities/moderating", {
-          headers: { Authorization: `Bearer ${token}` }
-        })
+      api.get("/communities/moderating")
           .then(res => {
             if (res.data && res.data.length > 0) {
               setIsModerator(true);
@@ -48,7 +42,7 @@ function Sidebar() {
             console.error("Failed to fetch moderating communities:", err);
             setIsModerator(false);
           });
-      }
+
     } else {
       setIsModerator(false);
     }

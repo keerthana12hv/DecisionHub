@@ -9,15 +9,13 @@ import {
   unpinDecision,
 } from "../../services/moderationService";
 import { useToast } from "../Toast";
-import axios from "axios";
+import api from "../../services/api.js"
 
-const API = "http://localhost:8080/api";
-const token = () =>
+
+  const token = () =>
   localStorage.getItem("token") ||
   localStorage.getItem("authToken") ||
   localStorage.getItem("jwt");
-const headers = () => ({ headers: { Authorization: `Bearer ${token()}` } });
-
 export default function DecisionModeration({ communityId }) {
   const { addToast } = useToast();
   const [decisions, setDecisions] = useState([]);
@@ -31,8 +29,8 @@ export default function DecisionModeration({ communityId }) {
   const fetchDecisions = async () => {
     try {
       setLoading(true);
-      const res = await axios.get(
-        `${API}/decisions?communityId=${communityId}`,
+      const res = await api.get(
+        `/decisions?communityId=${communityId}`,
         headers()
       );
       setDecisions(res.data);

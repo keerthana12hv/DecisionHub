@@ -1,17 +1,11 @@
 import { useEffect, useState } from "react";
-import axios from "axios";
+import api from "../services/api";
 import {
   FaPlusCircle,
   FaChartLine
 } from "react-icons/fa";
 import "../styles/Activity.css";
 
-const API = "http://localhost:8080/api";
-const token = () =>
-  localStorage.getItem("token") ||
-  localStorage.getItem("authToken") ||
-  localStorage.getItem("jwt");
-const headers = () => ({ headers: { Authorization: `Bearer ${token()}` } });
 
 function timeAgo(dateString) {
   const diffMs = Date.now() - new Date(dateString).getTime();
@@ -35,7 +29,7 @@ function Activity() {
   const fetchActivity = async () => {
     try {
       setLoading(true);
-      const res = await axios.get(`${API}/decisions`, headers());
+      const res = await api.get("/decisions");
       const sorted = [...res.data]
         .filter((d) => d.createdAt)
         .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))

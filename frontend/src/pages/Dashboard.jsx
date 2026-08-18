@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import axios from "axios";
 import Sidebar from "../components/Sidebar";
 import Navbar from "../components/Navbar";
 import StatCard from "../components/StatCard";
@@ -13,14 +12,13 @@ import { useAuth } from "../context/AuthContext";
 import { useToast } from "../components/Toast";
 import { getAdminPlatformOverview, getAdminDecisionStats } from "../services/analyticsService";
 import "../styles/Dashboard.css";
+import api from "../services/api";
 
-const API = "http://localhost:8080/api";
-const token = () =>
+
+  const token = () =>
   localStorage.getItem("token") ||
   localStorage.getItem("authToken") ||
   localStorage.getItem("jwt");
-const headers = () => ({ headers: { Authorization: `Bearer ${token()}` } });
-
 function Dashboard() {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -62,7 +60,7 @@ function Dashboard() {
           getAdminPlatformOverview(),
           getAdminDecisionStats()
         ]);
-        
+
         setAdminStats({
           usersCount: overviewRes?.totalUsers ?? 0,
           communitiesCount: overviewRes?.totalCommunities ?? 0,
@@ -71,9 +69,9 @@ function Dashboard() {
         });
       } else {
         const [decisionsRes, communitiesRes, moderatingRes] = await Promise.all([
-          axios.get(`${API}/decisions`, headers()),
-          axios.get(`${API}/communities/my`, headers()),
-          axios.get(`${API}/communities/moderating`, headers())
+          api.get("/decisions"),
+              api.get("/communities/my"),
+            api.get("/communities/moderating")
         ]);
 
         const decisions = decisionsRes.data;
@@ -136,7 +134,7 @@ function Dashboard() {
           <Navbar />
 
           <div className="dashboard-content animate-fade-in" style={{ padding: "1.25rem", display: "flex", flexDirection: "column", gap: "1.25rem" }}>
-            
+
             {/* Compact Welcome Section */}
             <div className="welcome-banner glass-panel animate-glow" style={{ padding: "1rem 1.5rem", marginBottom: "0", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
               <div className="welcome-text">
@@ -205,7 +203,7 @@ function Dashboard() {
         <div className="dashboard-main">
           <Navbar />
           <div className="dashboard-content animate-fade-in" style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
-            
+
             {/* Welcome banner */}
             <div className="welcome-banner glass-panel animate-glow" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "1.5rem 2rem", marginBottom: "0" }}>
               <div className="welcome-text">
@@ -259,7 +257,7 @@ function Dashboard() {
         <Navbar />
 
         <div className="dashboard-content animate-fade-in" style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
-          
+
           {/* Welcome Banner */}
           <div className="welcome-banner glass-panel animate-glow" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "1.5rem 2rem", marginBottom: "0" }}>
             <div className="welcome-text">
@@ -307,8 +305,8 @@ function Dashboard() {
 
           {/* View Analytics Shortcut Link */}
           <div style={{ display: "flex", justifyContent: "flex-start", marginTop: "-0.5rem" }}>
-            <button 
-              className="view-all-link-btn" 
+            <button
+              className="view-all-link-btn"
               onClick={() => navigate("/analytics")}
               style={{ fontSize: "0.9rem", display: "flex", alignItems: "center", gap: "6px" }}
             >

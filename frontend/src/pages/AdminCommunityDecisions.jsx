@@ -29,8 +29,8 @@ export default function AdminCommunityDecisions() {
     try {
       setLoading(true);
       const [commRes, decisionsRes] = await Promise.all([
-        api.get(`/api/communities/${communityId}`),
-        api.get(`/api/decisions?communityId=${communityId}`)
+        api.get(`/communities/${communityId}`),
+        api.get(`/decisions?communityId=${communityId}`)
       ]);
       setCommunity(commRes.data);
       const decisionsData = decisionsRes.data || [];
@@ -42,7 +42,7 @@ export default function AdminCommunityDecisions() {
       await Promise.all(
         decisionsData.map(async (d) => {
           try {
-            const pollRes = await api.get(`/api/decisions/${d.id}/poll`);
+            const pollRes = await api.get(`/decisions/${d.id}/poll`);
             const p = pollRes.data;
             const isExpired = p?.endTime ? (new Date() >= new Date(p.endTime)) : false;
             pollStatusesMap[d.id] = (p?.status === "OPEN" && !isExpired) ? "OPEN" : "CLOSED";
@@ -63,7 +63,7 @@ export default function AdminCommunityDecisions() {
   const handlePinToggle = async (decision) => {
     try {
       setActionLoading(true);
-      const endpoint = `/api/moderation/decisions/${decision.id}/${decision.pinned ? "unpin" : "pin"}`;
+      const endpoint = `/moderation/decisions/${decision.id}/${decision.pinned ? "unpin" : "pin"}`;
       await api.put(endpoint, {});
       addToast(decision.pinned ? "Decision unpinned" : "Decision pinned", "success");
 
@@ -84,7 +84,7 @@ export default function AdminCommunityDecisions() {
     if (!decisionToDelete) return;
     try {
       setActionLoading(true);
-      await api.delete(`/api/decisions/${decisionToDelete.id}`);
+      await api.delete(`/decisions/${decisionToDelete.id}`);
       addToast("Decision deleted successfully", "success");
       setDecisions((prev) => prev.filter((d) => d.id !== decisionToDelete.id));
       setDecisionToDelete(null);
@@ -99,7 +99,7 @@ export default function AdminCommunityDecisions() {
   const handleLockToggle = async (decision) => {
     try {
       setActionLoading(true);
-      const endpoint = `/api/moderation/decisions/${decision.id}/${decision.locked ? "unlock" : "lock"}`;
+      const endpoint = `/moderation/decisions/${decision.id}/${decision.locked ? "unlock" : "lock"}`;
       await api.put(endpoint, {});
       addToast(decision.locked ? "Discussion unlocked" : "Discussion locked", "success");
 
@@ -120,7 +120,7 @@ export default function AdminCommunityDecisions() {
     setViewLoading(true);
     setViewDetails(null);
     try {
-      const detailRes = await api.get(`/api/decisions/${decision.id}`);
+      const detailRes = await api.get(`/decisions/${decision.id}`);
       const d = detailRes.data;
 
       if (d && d.description) {
@@ -135,10 +135,10 @@ export default function AdminCommunityDecisions() {
       if (d.status !== "DRAFT") {
         try {
           if (d.votingType === "RATING_BASED") {
-            const rankingRes = await api.get(`/api/decisions/${decision.id}/ranking`);
+            const rankingRes = await api.get(`/decisions/${decision.id}/ranking`);
             results = rankingRes.data?.options || [];
           } else {
-            const distRes = await api.get(`/api/analytics/decisions/${decision.id}/distribution`);
+            const distRes = await api.get(`/analytics/decisions/${decision.id}/distribution`);
             results = distRes.data || [];
           }
         } catch (err) {

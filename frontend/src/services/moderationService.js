@@ -1,175 +1,161 @@
-import axios from "axios";
+import api from "./api";
 
-const API = "http://localhost:8080/api";
-const token = () =>
-  localStorage.getItem("token") ||
-  localStorage.getItem("authToken") ||
-  localStorage.getItem("jwt");
-const headers = () => ({ headers: { Authorization: `Bearer ${token()}` } });
-
-// ─── MY MODERATING COMMUNITIES ────────────────────────────────────────────────
+// MY MODERATING COMMUNITIES
 export const getModeratingCommunities = async () => {
-  const res = await axios.get(`${API}/communities/moderating`, headers());
+  const res = await api.get("/communities/moderating");
   return res.data;
 };
 
-// ─── JOIN REQUESTS (Private Communities) ──────────────────────────────────────
+// JOIN REQUESTS
 export const getJoinRequests = async (communityId) => {
-  const res = await axios.get(
-    `${API}/communities/${communityId}/requests`,
-    headers()
-  );
+  const res = await api.get(`/communities/${communityId}/requests`);
   return res.data;
 };
 
 export const approveRequest = async (communityId, memberId) => {
-  const res = await axios.put(
-    `${API}/communities/${communityId}/requests/${memberId}/approve`,
-    {},
-    headers()
+  const res = await api.put(
+      `/communities/${communityId}/requests/${memberId}/approve`,
+      {}
   );
   return res.data;
 };
 
 export const rejectRequest = async (communityId, memberId) => {
-  const res = await axios.put(
-    `${API}/communities/${communityId}/requests/${memberId}/reject`,
-    {},
-    headers()
+  const res = await api.put(
+      `/communities/${communityId}/requests/${memberId}/reject`,
+      {}
   );
   return res.data;
 };
 
-// ─── COMMUNITY MEMBERS ────────────────────────────────────────────────────────
+// COMMUNITY MEMBERS
 export const getCommunityMembers = async (communityId) => {
-  const res = await axios.get(
-    `${API}/communities/${communityId}/members`,
-    headers()
-  );
+  const res = await api.get(`/communities/${communityId}/members`);
   return res.data;
 };
 
 export const removeMember = async (communityId, memberId) => {
-  const res = await axios.delete(
-    `${API}/communities/${communityId}/members/${memberId}`,
-    headers()
+  const res = await api.delete(
+      `/communities/${communityId}/members/${memberId}`
   );
   return res.data;
 };
 
-// ─── COMMUNITY RULES ──────────────────────────────────────────────────────────
+// COMMUNITY RULES
 export const getCommunityRules = async (communityId) => {
-  const res = await axios.get(
-    `${API}/communities/${communityId}/rules`,
-    headers()
-  );
+  const res = await api.get(`/communities/${communityId}/rules`);
   return res.data;
 };
 
 export const addCommunityRule = async (communityId, ruleData) => {
-  const res = await axios.post(
-    `${API}/communities/${communityId}/rules`,
-    ruleData,
-    headers()
+  const res = await api.post(
+      `/communities/${communityId}/rules`,
+      ruleData
   );
   return res.data;
 };
 
-export const updateCommunityRule = async (communityId, ruleId, ruleData) => {
-  const res = await axios.put(
-    `${API}/communities/${communityId}/rules/${ruleId}`,
-    ruleData,
-    headers()
+export const updateCommunityRule = async (
+    communityId,
+    ruleId,
+    ruleData
+) => {
+  const res = await api.put(
+      `/communities/${communityId}/rules/${ruleId}`,
+      ruleData
   );
   return res.data;
 };
 
 export const deleteCommunityRule = async (communityId, ruleId) => {
-  const res = await axios.delete(
-    `${API}/communities/${communityId}/rules/${ruleId}`,
-    headers()
+  const res = await api.delete(
+      `/communities/${communityId}/rules/${ruleId}`
   );
   return res.data;
 };
 
-// ─── DECISION MODERATION ─────────────────────────────────────────────────────
+// DECISION MODERATION
 export const lockDecision = async (decisionId) => {
-  const res = await axios.put(
-    `${API}/moderation/decisions/${decisionId}/lock`,
-    {},
-    headers()
+  const res = await api.put(
+      `/moderation/decisions/${decisionId}/lock`,
+      {}
   );
   return res.data;
 };
 
 export const unlockDecision = async (decisionId) => {
-  const res = await axios.put(
-    `${API}/moderation/decisions/${decisionId}/unlock`,
-    {},
-    headers()
+  const res = await api.put(
+      `/moderation/decisions/${decisionId}/unlock`,
+      {}
   );
   return res.data;
 };
 
 export const pinDecision = async (decisionId) => {
-  const res = await axios.put(
-    `${API}/moderation/decisions/${decisionId}/pin`,
-    {},
-    headers()
+  const res = await api.put(
+      `/moderation/decisions/${decisionId}/pin`,
+      {}
   );
   return res.data;
 };
 
 export const unpinDecision = async (decisionId) => {
-  const res = await axios.put(
-    `${API}/moderation/decisions/${decisionId}/unpin`,
-    {},
-    headers()
+  const res = await api.put(
+      `/moderation/decisions/${decisionId}/unpin`,
+      {}
   );
   return res.data;
 };
 
 export const reportComment = async (commentId, reason) => {
-  const res = await axios.post(
-    `${API}/comments/${commentId}/report`,
-    { reason },
-    headers()
+  const res = await api.post(
+      `/comments/${commentId}/report`,
+      { reason }
   );
   return res.data;
 };
 
 export const closeDecision = async (decisionId) => {
-  const res = await axios.put(
-    `${API}/decisions/${decisionId}/close`,
-    {},
-    headers()
+  const res = await api.put(
+      `/decisions/${decisionId}/close`,
+      {}
   );
   return res.data;
 };
 
-// ─── COMMENT MODERATION (moderators only) ───────────────────────────────────
+// COMMENT MODERATION
 export const pinComment = async (commentId) => {
-  const res = await axios.put(`${API}/moderation/comments/${commentId}/pin`, {}, headers());
+  const res = await api.put(
+      `/moderation/comments/${commentId}/pin`,
+      {}
+  );
   return res.data;
 };
 
 export const unpinComment = async (commentId) => {
-  const res = await axios.put(`${API}/moderation/comments/${commentId}/unpin`, {}, headers());
+  const res = await api.put(
+      `/moderation/comments/${commentId}/unpin`,
+      {}
+  );
   return res.data;
 };
 
 export const modDeleteComment = async (commentId) => {
-  const res = await axios.delete(`${API}/moderation/comments/${commentId}`, headers());
+  const res = await api.delete(
+      `/moderation/comments/${commentId}`
+  );
   return res.data;
 };
 
-// ─── Report management (moderator) ───────────────────────────────────────────
+// REPORT MANAGEMENT
 export const getReportedComments = async () => {
-  const res = await axios.get(`${API}/moderation/reports`, headers());
+  const res = await api.get("/moderation/reports");
   return res.data;
 };
 
 export const deleteReport = async (reportId) => {
-  const res = await axios.delete(`${API}/moderation/reports/${reportId}`, headers());
+  const res = await api.delete(
+      `/moderation/reports/${reportId}`
+  );
   return res.data;
 };

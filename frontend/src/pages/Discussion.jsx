@@ -32,7 +32,7 @@ const Discussion = () => {
 
   useEffect(() => {
     api
-      .get(`/api/decisions/${decisionId}`)
+      .get(`/decisions/${decisionId}`)
       .then((res) => {
         setDecisionStatus(res.data.status);
         setDecisionLocked(!!res.data.locked);

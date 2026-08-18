@@ -1,16 +1,16 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import axios from "axios";
+import api from "../services/api";
+
 import { FaArrowRight, FaVoteYea, FaThumbtack, FaLock } from "react-icons/fa";
 import "../styles/RecentDecision.css";
 
-const API = "http://localhost:8080/api";
-const token = () =>
+
+
+  const token = () =>
   localStorage.getItem("token") ||
   localStorage.getItem("authToken") ||
   localStorage.getItem("jwt");
-const headers = () => ({ headers: { Authorization: `Bearer ${token()}` } });
-
 function RecentDecision() {
   const [decisions, setDecisions] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -23,7 +23,7 @@ function RecentDecision() {
   const fetchRecentDecisions = async () => {
     try {
       setLoading(true);
-      const res = await axios.get(`${API}/decisions`, headers());
+      const res = await api.get("/decisions")
       // Most recently created first, limit to 3
       const sorted = [...res.data].sort(
         (a, b) => new Date(b.createdAt) - new Date(a.createdAt)

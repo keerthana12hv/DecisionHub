@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useSearchParams, Link, useNavigate } from "react-router-dom";
-import axios from "axios";
+import api from "../services/api";
 import Sidebar from "../components/Sidebar";
 import Navbar from "../components/Navbar";
 import DeleteModal from "../components/DeleteModal";
@@ -20,13 +20,11 @@ import {
 import { getModeratingCommunities } from "../services/moderationService";
 import "../styles/DecisionList.css";
 
-const API = "http://localhost:8080/api";
-const token = () =>
+
+  const token = () =>
   localStorage.getItem("token") ||
   localStorage.getItem("authToken") ||
   localStorage.getItem("jwt");
-const headers = () => ({ headers: { Authorization: `Bearer ${token()}` } });
-
 function DecisionList() {
   const { addToast } = useToast();
   const { user } = useAuth();
@@ -68,7 +66,7 @@ function DecisionList() {
   const fetchDecisions = async () => {
     try {
       setLoading(true);
-      const res = await axios.get(`${API}/decisions`, headers());
+      const res = await api.get("/decisions");
       const parsed = (res.data || []).map((d) => {
         if (!d.description) return d;
         const match = d.description.match(/^\[Cat:([^\]]+)\]\s*(.*)/s);
@@ -92,7 +90,7 @@ function DecisionList() {
             return;
           }
           try {
-            const pollRes = await axios.get(`${API}/decisions/${d.id}/poll`, headers());
+            const pollRes = await api.get(`/decisions/${d.id}/poll`);
             const p = pollRes.data;
             const isExpired = p?.endTime ? (new Date() >= new Date(p.endTime)) : false;
             pollStatusesMap[d.id] = (p?.status === "OPEN" && !isExpired) ? "Active" : "Closed";
@@ -129,7 +127,7 @@ function DecisionList() {
   const handleDelete = async () => {
     if (!selectedDecision) return;
     try {
-      await axios.delete(`${API}/decisions/${selectedDecision.id}`, headers());
+      await api.delete(`/decisions/${selectedDecision.id}`);
       addToast("Decision deleted successfully!", "success");
       setShowDelete(false);
       setSelectedDecision(null);

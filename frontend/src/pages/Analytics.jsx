@@ -3,7 +3,7 @@ import Sidebar from "../components/Sidebar";
 import Navbar from "../components/Navbar";
 import { useToast } from "../components/Toast";
 import { useAuth } from "../context/AuthContext";
-import axios from "axios";
+import api from "../services/api";
 import { FaFileDownload, FaChartBar, FaShieldAlt, FaVoteYea } from "react-icons/fa";
 import { DecisionAnalyticsView } from "../components/analytics/DecisionAnalyticsView";
 import { CommunityAnalyticsView } from "../components/analytics/CommunityAnalyticsView";
@@ -26,9 +26,9 @@ function Analytics() {
     if (!t) return;
     
     // Fetch decisions for user selection
-    axios
-      .get("http://localhost:8080/api/decisions", {
-        headers: { Authorization: `Bearer ${t}` }
+    api
+        .get("/decisions", {
+          headers: { Authorization: `Bearer ${t}` }
       })
       .then((res) => {
         const list = res.data || [];
@@ -40,9 +40,9 @@ function Analytics() {
       .catch((err) => console.error("Error fetching decisions for dropdown:", err));
 
     // Fetch moderating communities for moderator selection
-    axios
-      .get("http://localhost:8080/api/communities/moderating", {
-        headers: { Authorization: `Bearer ${t}` }
+    api
+        .get("/communities/moderating", {
+          headers: { Authorization: `Bearer ${t}` }
       })
       .then((res) => {
         const list = res.data || [];

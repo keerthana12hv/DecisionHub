@@ -37,7 +37,7 @@ function CommentThread({ comment, decisionId, decisionStatus, onCommentUpdated, 
     }
     setLoadingReplies(true);
     try {
-      const res = await api.get(`/api/comments/${comment.id}/replies`);
+      const res = await api.get(`/comments/${comment.id}/replies`);
       setReplies(res.data);
       setRepliesLoaded(true);
       setRepliesVisible(true);
@@ -53,7 +53,7 @@ function CommentThread({ comment, decisionId, decisionStatus, onCommentUpdated, 
     if (!replyText.trim()) return;
     try {
       const res = await api.post(
-        `/api/decisions/${decisionId}/comments/${comment.id}/replies`,
+        `/decisions/${decisionId}/comments/${comment.id}/replies`,
         { content: replyText }
       );
       setReplies((prev) => [...prev, res.data]);
@@ -75,7 +75,7 @@ function CommentThread({ comment, decisionId, decisionStatus, onCommentUpdated, 
     e.preventDefault();
     if (!editText.trim()) return;
     try {
-      const res = await api.put(`/api/comments/${comment.id}`, {
+      const res = await api.put(`/comments/${comment.id}`, {
         content: editText,
       });
       onCommentUpdated(comment.id, { content: res.data.content });
@@ -107,7 +107,7 @@ function CommentThread({ comment, decisionId, decisionStatus, onCommentUpdated, 
 
   const handleDelete = async () => {
     try {
-      await api.delete(`/api/comments/${comment.id}`);
+      await api.delete(`/comments/${comment.id}`);
       onCommentDeleted(comment.id);
       addToast("Comment deleted.", "success");
     } catch (error) {
