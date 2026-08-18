@@ -50,7 +50,7 @@ function CreateDecision() {
     }
   };
 
-  // Categories now come from the backend (GET /api/categories) instead of a
+  // Categories now come from the backend (GET /categories) instead of a
   // hardcoded list, so this always matches whatever categories actually exist.
   const [categoryOptions, setCategoryOptions] = useState([]);
   const [category, setCategory] = useState("");

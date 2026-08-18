@@ -28,8 +28,8 @@ export default function AdminCommunityWorkspace() {
     try {
       setLoading(true);
       const [commRes, membersRes] = await Promise.all([
-        api.get(`/api/communities/${communityId}`),
-        api.get(`/api/communities/${communityId}/members`)
+        api.get(`/communities/${communityId}`),
+        api.get(`/communities/${communityId}/members`)
       ]);
       setCommunity(commRes.data);
       setMembers(membersRes.data || []);
@@ -44,7 +44,7 @@ export default function AdminCommunityWorkspace() {
   const handleDeleteCommunity = async () => {
     try {
       setActionLoading(true);
-      await api.delete(`/api/communities/${communityId}`);
+      await api.delete(`/communities/${communityId}`);
       addToast("Community deleted successfully", "success");
       setShowDeleteModal(false);
       navigate("/communities");
@@ -60,11 +60,11 @@ export default function AdminCommunityWorkspace() {
     if (!memberToRemove) return;
     try {
       setActionLoading(true);
-      await api.delete(`/api/communities/${communityId}/members/${memberToRemove.memberId}`);
+      await api.delete(`/communities/${communityId}/members/${memberToRemove.memberId}`);
       addToast("Member removed successfully", "success");
       setMemberToRemove(null);
       // Refresh member list
-      const membersRes = await api.get(`/api/communities/${communityId}/members`);
+      const membersRes = await api.get(`/communities/${communityId}/members`);
       setMembers(membersRes.data || []);
     } catch (err) {
       console.error("Failed to remove member:", err);
@@ -77,12 +77,12 @@ export default function AdminCommunityWorkspace() {
   const handleChangeRole = async (memberId, newRole) => {
     try {
       setActionLoading(true);
-      await api.put(`/api/communities/${communityId}/members/${memberId}/role`, {
+      await api.put(`/communities/${communityId}/members/${memberId}/role`, {
         role: newRole
       });
       addToast("Member role updated successfully", "success");
       // Refresh member list
-      const membersRes = await api.get(`/api/communities/${communityId}/members`);
+      const membersRes = await api.get(`/communities/${communityId}/members`);
       setMembers(membersRes.data || []);
     } catch (err) {
       console.error("Failed to update role:", err);

@@ -34,7 +34,7 @@ export default function AdminDecisionDiscussion() {
     }
     // Fallback: look up communityId by name
     try {
-      const res = await api.get("/api/communities");
+      const res = await api.get("/communities");
       const community = (res.data || []).find((c) => c.name === decision.communityName);
       if (community) {
         navigate(`/admin/communities/${community.id}/decisions`);
@@ -57,9 +57,9 @@ export default function AdminDecisionDiscussion() {
     try {
       setLoading(true);
       const [decisionRes, commentsRes, pinnedRes] = await Promise.all([
-        api.get(`/api/decisions/${decisionId}`),
-        api.get(`/api/decisions/${decisionId}/comments`),
-        api.get(`/api/moderation/decisions/${decisionId}/comments/pinned`).catch(() => null)
+        api.get(`/decisions/${decisionId}`),
+        api.get(`/decisions/${decisionId}/comments`),
+        api.get(`/moderation/decisions/${decisionId}/comments/pinned`).catch(() => null)
       ]);
 
       setDecision(decisionRes.data);
@@ -78,14 +78,14 @@ export default function AdminDecisionDiscussion() {
 
   const fetchReports = async (decisionData) => {
     try {
-      const reportsRes = await api.get("/api/moderation/reports");
+      const reportsRes = await api.get("/moderation/reports");
       const reports = reportsRes.data || [];
 
       const filtered = [];
       await Promise.all(
         reports.map(async (r) => {
           try {
-            const commentRes = await api.get(`/api/comments/${r.commentId}`);
+            const commentRes = await api.get(`/comments/${r.commentId}`);
             if (String(commentRes.data?.decisionId) === String(decisionId)) {
               filtered.push({
                 ...r,
@@ -111,7 +111,7 @@ export default function AdminDecisionDiscussion() {
 
     try {
       setActionLoading(true);
-      const res = await api.post(`/api/decisions/${decisionId}/comments`, {
+      const res = await api.post(`/decisions/${decisionId}/comments`, {
         content: newCommentText
       });
       addToast("Comment posted successfully", "success");
@@ -151,7 +151,7 @@ export default function AdminDecisionDiscussion() {
     if (!reportCommentToDelete) return;
     try {
       setActionLoading(true);
-      await api.delete(`/api/moderation/comments/${reportCommentToDelete.commentId}`);
+      await api.delete(`/moderation/comments/${reportCommentToDelete.commentId}`);
       addToast("Comment removed", "success");
       handleCommentDeleted(reportCommentToDelete.commentId);
       setReportCommentToDelete(null);
@@ -167,7 +167,7 @@ export default function AdminDecisionDiscussion() {
     if (!pinnedComment) return;
     try {
       setActionLoading(true);
-      await api.put(`/api/moderation/comments/${pinnedComment.id}/unpin`, {});
+      await api.put(`/moderation/comments/${pinnedComment.id}/unpin`, {});
       addToast("Comment unpinned", "success");
       handleCommentUpdated(pinnedComment.id, { pinned: false });
       setPinnedComment(null);
@@ -182,7 +182,7 @@ export default function AdminDecisionDiscussion() {
   const handleDismissReport = async (reportId) => {
     try {
       setActionLoading(true);
-      await api.delete(`/api/moderation/reports/${reportId}`);
+      await api.delete(`/moderation/reports/${reportId}`);
       addToast("Report dismissed", "success");
       if (decision) {
         fetchReports(decision);
@@ -454,7 +454,7 @@ function AdminCommentNode({
       return;
     }
     setLoadingReplies(true);
-    api.get(`/api/comments/${comment.id}/replies`)
+    api.get(`/comments/${comment.id}/replies`)
       .then((res) => {
         setReplies(res.data || []);
         setRepliesLoaded(true);
@@ -473,7 +473,7 @@ function AdminCommentNode({
 
     try {
       setActionLoading(true);
-      const res = await api.post(`/api/decisions/${decisionId}/comments/${comment.id}/replies`, {
+      const res = await api.post(`/decisions/${decisionId}/comments/${comment.id}/replies`, {
         content: replyText
       });
       addToast("Reply posted", "success");
@@ -499,7 +499,7 @@ function AdminCommentNode({
     setShowDeleteConfirm(false);
     try {
       setActionLoading(true);
-      await api.delete(`/api/moderation/comments/${comment.id}`);
+      await api.delete(`/moderation/comments/${comment.id}`);
       addToast("Comment deleted successfully", "success");
       onCommentDeleted(comment.id);
     } catch (err) {
@@ -514,12 +514,12 @@ function AdminCommentNode({
     try {
       setActionLoading(true);
       if (comment.pinned) {
-        await api.put(`/api/moderation/comments/${comment.id}/unpin`, {});
+        await api.put(`/moderation/comments/${comment.id}/unpin`, {});
         addToast("Comment unpinned", "success");
         onCommentUpdated(comment.id, { pinned: false });
         onPinComment(null);
       } else {
-        const res = await api.put(`/api/moderation/comments/${comment.id}/pin`, {});
+        const res = await api.put(`/moderation/comments/${comment.id}/pin`, {});
         addToast("Comment pinned", "success");
         onPinComment(res.data);
         onCommentUpdated(comment.id, { pinned: true });

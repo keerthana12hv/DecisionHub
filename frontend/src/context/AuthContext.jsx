@@ -2,6 +2,7 @@ import { createContext, useContext, useState, useEffect } from "react";
 import api from "../services/api";
 const AuthContext = createContext();
 
+
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -23,11 +24,12 @@ export const AuthProvider = ({ children }) => {
     try {
       const t = localStorage.getItem("token") || localStorage.getItem("authToken") || localStorage.getItem("jwt");
       if (t) {
-        const res = await fetch(`${API_URL}/api/auth/profile`, {
+        const res = await api.get("/auth/profile", {
           headers: { Authorization: `Bearer ${t}` }
         });
-        if (res.ok) {
-          const freshUser = await res.json();
+
+        if (res.status === 200) {
+          const freshUser = res.data;
           localStorage.setItem("decisionhub-session", JSON.stringify(freshUser));
           setUser(freshUser);
           return freshUser;
@@ -43,6 +45,7 @@ export const AuthProvider = ({ children }) => {
     localStorage.removeItem("decisionhub-session");
     setUser(null);
   };
+
 
   return (
     <AuthContext.Provider

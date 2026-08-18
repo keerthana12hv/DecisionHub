@@ -19,7 +19,7 @@ function CommentSection({ decisionId, decisionStatus }) {
   const fetchComments = async () => {
     setLoading(true);
     try {
-      const res = await api.get(`/api/decisions/${decisionId}/comments`);
+      const res = await api.get(`/decisions/${decisionId}/comments`);
       setComments(res.data);
     } catch (error) {
       addToast("Failed to load comments.", "error");
@@ -32,7 +32,7 @@ function CommentSection({ decisionId, decisionStatus }) {
     e.preventDefault();
     if (!newComment.trim()) return;
     try {
-      const res = await api.post(`/api/decisions/${decisionId}/comments`, {
+      const res = await api.post(`/decisions/${decisionId}/comments`, {
         content: newComment,
       });
       setComments((prev) => [...prev, res.data]);

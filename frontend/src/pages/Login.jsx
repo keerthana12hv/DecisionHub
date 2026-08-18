@@ -30,7 +30,7 @@ function Login() {
 
    try {
      // Login
-      const response = await api.post("/api/auth/login", {
+      const response = await api.post("/auth/login", {
         email,
         password,
         role,
@@ -41,7 +41,7 @@ function Login() {
      localStorage.setItem("token", token);
 
      // Get logged-in user profile
-     const profileResponse = await api.get("/api/auth/profile");
+     const profileResponse = await api.get("/auth/profile");
 
      const user = profileResponse.data;
 

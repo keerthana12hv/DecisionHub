@@ -27,7 +27,7 @@ export default function FeedbackDashboard() {
     setLoading(true);
     setError(null);
     try {
-      const res = await api.get("/api/admin/support");
+      const res = await api.get("/admin/support");
       const sortedSupport = (res.data || []).sort(
         (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
       );
@@ -51,7 +51,7 @@ export default function FeedbackDashboard() {
 
   const handleViewTicket = async (ticket) => {
     try {
-      const res = await api.get(`/api/admin/support/${ticket.id}`);
+      const res = await api.get(`/admin/support/${ticket.id}`);
       setSelectedTicket(res.data);
       setSelectedStatus(res.data.status || "OPEN");
       setTicketDetailsModalOpen(true);
@@ -63,7 +63,7 @@ export default function FeedbackDashboard() {
   const handleStatusChange = async (ticketId, newStatus) => {
     setUpdatingStatus(true);
     try {
-      const res = await api.patch(`/api/admin/support/${ticketId}/status`, {
+      const res = await api.patch(`/admin/support/${ticketId}/status`, {
         status: newStatus,
       });
       addToast(`Ticket status updated to ${newStatus} successfully!`, "success");

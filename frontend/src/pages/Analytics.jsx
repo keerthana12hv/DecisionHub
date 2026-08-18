@@ -26,8 +26,8 @@ function Analytics() {
     if (!t) return;
     
     // Fetch decisions for user selection
-    axios
-        .get(`${API_URL}/api/decisions`, {
+    api
+        .get("/decisions", {
           headers: { Authorization: `Bearer ${t}` }
       })
       .then((res) => {
@@ -40,8 +40,8 @@ function Analytics() {
       .catch((err) => console.error("Error fetching decisions for dropdown:", err));
 
     // Fetch moderating communities for moderator selection
-    axios
-        .get(`${API_URL}/api/communities/moderating`, {
+    api
+        .get("/communities/moderating", {
           headers: { Authorization: `Bearer ${t}` }
       })
       .then((res) => {

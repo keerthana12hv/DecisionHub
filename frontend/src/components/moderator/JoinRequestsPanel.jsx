@@ -1,36 +1,6 @@
 import { useEffect, useState, useCallback } from "react";
 import "./JoinRequestsPanel.css";
-import API_URL from "../../services/api";
-
-const API_BASE = API_URL;
-function getToken() {
-  return localStorage.getItem("token");
-}
-
-async function apiRequest(path, options = {}) {
-  const res = await fetch(`${API_BASE}${path}`, {
-    ...options,
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${getToken()}`,
-      ...(options.headers || {}),
-    },
-  });
-
-  if (!res.ok) {
-    let message = `Request failed (${res.status})`;
-    try {
-      const body = await res.json();
-      message = body.message || body.error || message;
-    } catch {
-      // response wasn't JSON, keep default message
-    }
-    throw new Error(message);
-  }
-
-  const text = await res.text();
-  return text ? JSON.parse(text) : null;
-}
+import api from "../../services/api";
 
 function getRequestId(req) {
   return req.memberId ?? req.id ?? req.userId;
@@ -95,8 +65,8 @@ export default function JoinRequestsPanel({ communityId }) {
     setLoading(true);
     setError(null);
     try {
-      const data = await apiRequest(`/api/communities/${communityId}/requests`);
-      setRequests(Array.isArray(data) ? data : []);
+      const response = await api.get(`/communities/${communityId}/requests`);
+      setRequests(Array.isArray(response.data) ? response.data : []);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -113,9 +83,8 @@ export default function JoinRequestsPanel({ communityId }) {
     setActingOnId(requestId);
     setError(null);
     try {
-      await apiRequest(
-        `/api/communities/${communityId}/requests/${requestId}/${decision}`,
-        { method: "PUT" }
+      await api.put(
+          `/communities/${communityId}/requests/${requestId}/${decision}`
       );
       setRequests((prev) => prev.filter((r) => getRequestId(r) !== requestId));
     } catch (err) {

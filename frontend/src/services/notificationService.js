@@ -31,45 +31,45 @@ export const getNotifications = async (page = 0, size = 20, unreadOnly = false) 
   // Sriram compatibility check: if page is a boolean (representing unreadOnly)
   if (typeof page === "boolean") {
     const unreadOnlyVal = page;
-    const response = await api.get(`/api/notifications?unreadOnly=${unreadOnlyVal}`);
+    const response = await api.get(`/notifications?unreadOnly=${unreadOnlyVal}`);
     const content = response.data.content || response.data;
     return content.map(mapNotification);
   }
-  const res = await api.get(`/api/notifications?page=${page}&size=${size}&unreadOnly=${unreadOnly}`);
+  const res = await api.get(`/notifications?page=${page}&size=${size}&unreadOnly=${unreadOnly}`);
   return res.data;
 };
 
 export const getUnreadCount = async () => {
-  const res = await api.get("/api/notifications/unread-count");
+  const res = await api.get("/notifications/unread-count");
   return res.data;
 };
 
 export const markNotificationAsRead = async (id) => {
-  return api.put(`/api/notifications/${id}/read`);
+  return api.put(`/notifications/${id}/read`);
 };
 
 export const markAllNotificationsAsRead = async () => {
-  return api.put("/api/notifications/read-all");
+  return api.put("/notifications/read-all");
 };
 
 export const deleteNotification = async (id) => {
-  return api.delete(`/api/notifications/${id}`);
+  return api.delete(`/notifications/${id}`);
 };
 
 export const deleteAllNotifications = async () => {
-  return api.delete("/api/notifications");
+  return api.delete("/notifications");
 };
 
 // Sriram compatibility exports
 export const markAsRead = async (id) => {
-  const response = await api.put(`/api/notifications/${id}/read`);
+  const response = await api.put(`/notifications/${id}/read`);
   return mapNotification(response.data);
 };
 
 export const markAllAsRead = async () => {
-  await api.put("/api/notifications/read-all");
+  await api.put("/notifications/read-all");
 };
 
 export const clearAllNotifications = async () => {
-  await api.delete("/api/notifications");
+  await api.delete("/notifications");
 };

@@ -47,7 +47,7 @@ export default function FeedbackPage() {
     setLoadingTickets(true);
     setTicketsError("");
     try {
-      const res = await api.get("/api/support/my");
+      const res = await api.get("/support/my");
       const sorted = (res.data || []).sort(
         (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
       );
@@ -67,7 +67,7 @@ export default function FeedbackPage() {
     }
     setSubmittingBug(true);
     try {
-      await api.post("/api/support", {
+      await api.post("/support", {
         type: "BUG_REPORT",
         subject: bugSubject.trim(),
         description: bugDescription.trim(),
@@ -96,7 +96,7 @@ export default function FeedbackPage() {
     }
     setSubmittingSuggest(true);
     try {
-      await api.post("/api/support", {
+      await api.post("/support", {
         type: "SUGGESTION",
         subject: suggestSubject.trim(),
         description: suggestDescription.trim(),
@@ -129,7 +129,7 @@ export default function FeedbackPage() {
     }
     setSubmittingGF(true);
     try {
-      await api.post("/api/support", {
+      await api.post("/support", {
         type: "GENERAL_FEEDBACK",
         rating: gfRating,
         description: gfDescription.trim(),

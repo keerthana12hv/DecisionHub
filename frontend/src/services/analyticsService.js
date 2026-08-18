@@ -4,37 +4,37 @@ import api from "./api";
 export const analyticsService = {
   // 1. DECISION ANALYTICS (USER/MODERATOR)
   getDecisionOverview: async (decisionId) => {
-    const res = await api.get(`/api/analytics/decisions/${decisionId}/overview`);
+    const res = await api.get(`/analytics/decisions/${decisionId}/overview`);
     return res.data;
   },
 
   getVoteStatistics: async (decisionId) => {
-    const res = await api.get(`/api/analytics/decisions/${decisionId}/votes`);
+    const res = await api.get(`/analytics/decisions/${decisionId}/votes`);
     return res.data;
   },
 
   getVoteDistribution: async (decisionId) => {
-    const res = await api.get(`/api/analytics/decisions/${decisionId}/distribution`);
+    const res = await api.get(`/analytics/decisions/${decisionId}/distribution`);
     return res.data;
   },
 
   getParticipation: async (decisionId) => {
-    const res = await api.get(`/api/analytics/decisions/${decisionId}/participation`);
+    const res = await api.get(`/analytics/decisions/${decisionId}/participation`);
     return res.data;
   },
 
   getDiscussion: async (decisionId) => {
-    const res = await api.get(`/api/analytics/decisions/${decisionId}/discussion`);
+    const res = await api.get(`/analytics/decisions/${decisionId}/discussion`);
     return res.data;
   },
 
   getRanking: async (decisionId) => {
-    const res = await api.get(`/api/analytics/decisions/${decisionId}/ranking`);
+    const res = await api.get(`/analytics/decisions/${decisionId}/ranking`);
     return res.data;
   },
 
   getFeedback: async (decisionId) => {
-    const res = await api.get(`/api/analytics/decisions/${decisionId}/feedback`);
+    const res = await api.get(`/analytics/decisions/${decisionId}/feedback`);
     return res.data;
   },
 
@@ -63,32 +63,32 @@ export const analyticsService = {
 
   // 2. COMMUNITY ANALYTICS (MODERATOR)
   getCommunityOverview: async (communityId) => {
-    const res = await api.get(`/api/analytics/communities/${communityId}/overview`);
+    const res = await api.get(`/analytics/communities/${communityId}/overview`);
     return res.data;
   },
 
   getCommunityDecisions: async (communityId) => {
-    const res = await api.get(`/api/analytics/communities/${communityId}/decisions`);
+    const res = await api.get(`/analytics/communities/${communityId}/decisions`);
     return res.data;
   },
 
   getCommunityVoting: async (communityId) => {
-    const res = await api.get(`/api/analytics/communities/${communityId}/voting`);
+    const res = await api.get(`/analytics/communities/${communityId}/voting`);
     return res.data;
   },
 
   getCommunityDiscussion: async (communityId) => {
-    const res = await api.get(`/api/analytics/communities/${communityId}/discussion`);
+    const res = await api.get(`/analytics/communities/${communityId}/discussion`);
     return res.data;
   },
 
   getCommunityActivity: async (communityId) => {
-    const res = await api.get(`/api/analytics/communities/${communityId}/activity`);
+    const res = await api.get(`/analytics/communities/${communityId}/activity`);
     return res.data;
   },
 
   getCommunityModeration: async (communityId) => {
-    const res = await api.get(`/api/analytics/communities/${communityId}/moderation`);
+    const res = await api.get(`/analytics/communities/${communityId}/moderation`);
     return res.data;
   },
 
@@ -115,37 +115,37 @@ export const analyticsService = {
 
   // 3. ADMIN ANALYTICS (PLATFORM ADMIN)
   getAdminDashboard: async () => {
-    const res = await api.get("/api/analytics/admin/dashboard");
+    const res = await api.get("/analytics/admin/dashboard");
     return res.data;
   },
 
   getAdminUsers: async () => {
-    const res = await api.get("/api/analytics/admin/users");
+    const res = await api.get("/analytics/admin/users");
     return res.data;
   },
 
   getAdminCommunities: async () => {
-    const res = await api.get("/api/analytics/admin/communities");
+    const res = await api.get("/analytics/admin/communities");
     return res.data;
   },
 
   getAdminDecisions: async () => {
-    const res = await api.get("/api/analytics/admin/decisions");
+    const res = await api.get("/analytics/admin/decisions");
     return res.data;
   },
 
   getAdminDiscussion: async () => {
-    const res = await api.get("/api/analytics/admin/discussion");
+    const res = await api.get("/analytics/admin/discussion");
     return res.data;
   },
 
   getAdminFeedback: async () => {
-    const res = await api.get("/api/analytics/admin/feedback");
+    const res = await api.get("/analytics/admin/feedback");
     return res.data;
   },
 
   getAdminUsersList: async (page = 0, size = 10) => {
-    const res = await api.get(`/api/analytics/admin/users-list?page=${page}&size=${size}`);
+    const res = await api.get(`/analytics/admin/users-list?page=${page}&size=${size}`);
     return res.data;
   },
 
@@ -175,36 +175,36 @@ export const analyticsService = {
 
 // Named Exports (for Sriram's pages)
 export const getUserAnalyticsOverview = async () => {
-  const response = await api.get("/api/analytics/overview");
+  const response = await api.get("/analytics/overview");
   return response.data;
 };
 
 export const getUserDecisionStats = async () => {
-  const response = await api.get("/api/analytics/decisions/statistics");
+  const response = await api.get("/analytics/decisions/statistics");
   return response.data;
 };
 
 export const getAdminPlatformOverview = async () => {
-  const response = await api.get("/api/analytics/admin/dashboard");
+  const response = await api.get("/analytics/admin/dashboard");
   return response.data;
 };
 
 export const getAdminDecisionStats = async () => {
-  const response = await api.get("/api/analytics/admin/decisions");
+  const response = await api.get("/analytics/admin/decisions");
   return response.data;
 };
 
 export const getAdminUserStats = async () => {
-  const response = await api.get("/api/analytics/admin/users");
+  const response = await api.get("/analytics/admin/users");
   return response.data;
 };
 
 export const getAdminCommunityStats = async () => {
-  const response = await api.get("/api/analytics/admin/communities");
+  const response = await api.get("/analytics/admin/communities");
   return response.data;
 };
 
 export const getAdminUsersList = async (page = 0, size = 10) => {
-  const response = await api.get(`/api/analytics/admin/users-list?page=${page}&size=${size}`);
+  const response = await api.get(`/analytics/admin/users-list?page=${page}&size=${size}`);
   return response.data;
 };
