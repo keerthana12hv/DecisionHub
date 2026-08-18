@@ -1,5 +1,6 @@
 package com.decisionhub.config;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -22,6 +23,7 @@ import org.springframework.security.config.Customizer;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+
 import java.util.List;
 
 @Configuration
@@ -33,39 +35,77 @@ public class SecurityConfig {
     private final CustomUserDetailsService customUserDetailsService;
     private final PasswordEncoder passwordEncoder;
 
+    @Value("${app.frontend.url:http://localhost:5173}")
+    private String frontendUrl;
+
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
+
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(List.of("http://localhost:5173", "http://localhost:5174"));
-        configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
+
+        configuration.setAllowedOrigins(List.of(
+                frontendUrl,
+                "http://localhost:5174"
+        ));
+
+        configuration.setAllowedMethods(List.of(
+                "GET",
+                "POST",
+                "PUT",
+                "PATCH",
+                "DELETE",
+                "OPTIONS"
+        ));
+
         configuration.setAllowedHeaders(List.of("*"));
         configuration.setAllowCredentials(true);
-        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+
+        UrlBasedCorsConfigurationSource source =
+                new UrlBasedCorsConfigurationSource();
+
         source.registerCorsConfiguration("/**", configuration);
+
         return source;
     }
 
     @Bean
     public AuthenticationProvider authenticationProvider() {
-        DaoAuthenticationProvider authProvider = new DaoAuthenticationProvider();
+
+        DaoAuthenticationProvider authProvider =
+                new DaoAuthenticationProvider();
+
         authProvider.setUserDetailsService(customUserDetailsService);
         authProvider.setPasswordEncoder(passwordEncoder);
+
         return authProvider;
     }
 
     @Bean
-    public AuthenticationManager authenticationManager(AuthenticationConfiguration config) throws Exception {
+    public AuthenticationManager authenticationManager(
+            AuthenticationConfiguration config
+    ) throws Exception {
+
         return config.getAuthenticationManager();
     }
 
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+    public SecurityFilterChain securityFilterChain(
+            HttpSecurity http
+    ) throws Exception {
 
         http.csrf(csrf -> csrf.disable())
+
                 .cors(Customizer.withDefaults())
 
-                .exceptionHandling(exception -> exception.authenticationEntryPoint((request, response,
-                        authException) -> response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Unauthorized")))
+                .exceptionHandling(exception ->
+                        exception.authenticationEntryPoint(
+                                (request, response, authException) ->
+                                        response.sendError(
+                                                HttpServletResponse.SC_UNAUTHORIZED,
+                                                "Unauthorized"
+                                        )
+                        )
+                )
 
                 .authorizeHttpRequests(auth -> auth
 
@@ -80,38 +120,86 @@ public class SecurityConfig {
                                 "/error"
                         ).permitAll()
 
-                        // 🔒 RESTRICTED: Only ADMINs can Create, Update, or Delete Categories
-                        .requestMatchers(HttpMethod.POST, "/api/categories/**").hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.PUT, "/api/categories/**").hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.DELETE, "/api/categories/**").hasRole("ADMIN")
+                        // Only ADMINs can create, update, or delete categories
+                        .requestMatchers(
+                                HttpMethod.POST,
+                                "/api/categories/**"
+                        ).hasRole("ADMIN")
 
-                        // 📖 OPEN: Any authenticated user can View Categories
-                        .requestMatchers(HttpMethod.GET, "/api/categories/**").authenticated()
+                        .requestMatchers(
+                                HttpMethod.PUT,
+                                "/api/categories/**"
+                        ).hasRole("ADMIN")
 
-                        // 🎟️ SUPPORT MODULE
-                        // USER or ADMIN can submit and view their own tickets
-                        .requestMatchers(HttpMethod.POST, "/api/support").hasAnyRole("USER", "MODERATOR", "ADMIN")
+                        .requestMatchers(
+                                HttpMethod.DELETE,
+                                "/api/categories/**"
+                        ).hasRole("ADMIN")
 
-                        .requestMatchers(HttpMethod.GET, "/api/support/my").hasAnyRole("USER", "MODERATOR", "ADMIN")
-                        // ONLY ADMIN can access all tickets and update statuses
-                        .requestMatchers("/api/admin/support/**").hasRole("ADMIN")
+                        // Any authenticated user can view categories
+                        .requestMatchers(
+                                HttpMethod.GET,
+                                "/api/categories/**"
+                        ).authenticated()
+
+                        // SUPPORT MODULE
+                        .requestMatchers(
+                                HttpMethod.POST,
+                                "/api/support"
+                        ).hasAnyRole(
+                                "USER",
+                                "MODERATOR",
+                                "ADMIN"
+                        )
+
+                        .requestMatchers(
+                                HttpMethod.GET,
+                                "/api/support/my"
+                        ).hasAnyRole(
+                                "USER",
+                                "MODERATOR",
+                                "ADMIN"
+                        )
+
+                        // Only ADMIN can access all tickets and update statuses
+                        .requestMatchers(
+                                "/api/admin/support/**"
+                        ).hasRole("ADMIN")
 
                         // USER or ADMIN
-                        .requestMatchers("/api/user/**").hasAnyRole("USER", "ADMIN")
+                        .requestMatchers(
+                                "/api/user/**"
+                        ).hasAnyRole(
+                                "USER",
+                                "ADMIN"
+                        )
 
-                        // 📊 ANALYTICS AUTHORIZATION
-                        .requestMatchers("/api/analytics/admin/**").hasRole("ADMIN")
-                        .requestMatchers("/api/analytics/**").authenticated()
+                        // ANALYTICS AUTHORIZATION
+                        .requestMatchers(
+                                "/api/analytics/admin/**"
+                        ).hasRole("ADMIN")
+
+                        .requestMatchers(
+                                "/api/analytics/**"
+                        ).authenticated()
 
                         // All other APIs require authentication
                         .anyRequest().authenticated()
                 )
 
-                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                
+                .sessionManagement(session ->
+                        session.sessionCreationPolicy(
+                                SessionCreationPolicy.STATELESS
+                        )
+                )
+
                 .authenticationProvider(authenticationProvider())
-                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
-                
+
+                .addFilterBefore(
+                        jwtAuthenticationFilter,
+                        UsernamePasswordAuthenticationFilter.class
+                );
+
         return http.build();
     }
 }
