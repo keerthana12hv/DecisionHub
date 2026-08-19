@@ -1,4 +1,3 @@
-import { useState, useEffect } from "react";
 import {
   FaHome,
   FaPlusCircle,
@@ -6,47 +5,44 @@ import {
   FaChartBar,
   FaBell,
   FaUser,
-  FaCog,
   FaSignOutAlt,
   FaUserShield,
   FaCommentDots,
   FaGavel
 } from "react-icons/fa";
 import { Link, useLocation } from "react-router-dom";
-import api from "../services/api";
 import { useAuth } from "../context/AuthContext";
 import "../styles/Sidebar.css";
 
 function Sidebar() {
   const location = useLocation();
   const { user, logout } = useAuth();
-  const [isModerator, setIsModerator] = useState(false);
+
+  const isModerator = user?.role === "MODERATOR";
+  const isAdmin = user?.role === "ADMIN";
 
   const isActive = (path) => {
     return location.pathname === path ? "active-link" : "";
   };
-
-  const isAdmin = user?.role === "ADMIN";
-
-  useEffect(() => {
-    if (user && user.role === "MODERATOR") {
-      api.get("/communities/moderating")
-          .then(res => {
-            if (res.data && res.data.length > 0) {
-              setIsModerator(true);
-            } else {
-              setIsModerator(false);
-            }
-          })
-          .catch(err => {
-            console.error("Failed to fetch moderating communities:", err);
-            setIsModerator(false);
-          });
-
-    } else {
-      setIsModerator(false);
-    }
-  }, [user]);
+  // useEffect(() => {
+  //   if (user && user.role === "MODERATOR") {
+  //     api.get("/communities/moderating")
+  //         .then(res => {
+  //           if (res.data && res.data.length > 0) {
+  //             setIsModerator(true);
+  //           } else {
+  //             setIsModerator(false);
+  //           }
+  //         })
+  //         .catch(err => {
+  //           console.error("Failed to fetch moderating communities:", err);
+  //           setIsModerator(false);
+  //         });
+  //
+  //   } else {
+  //     setIsModerator(false);
+  //   }
+  // }, [user]);
 
   return (
     <div className="sidebar glass-panel">
@@ -141,9 +137,17 @@ function Sidebar() {
             <span className="footer-username">{user.username}</span>
             <div className="footer-role-badge">
               {isAdmin ? (
-                <span className="badge-role badge-admin"><FaUserShield /> Admin</span>
+                  <span className="badge-role badge-admin">
+    <FaUserShield /> Admin
+  </span>
+              ) : isModerator ? (
+                  <span className="badge-role badge-admin">
+    <FaUserShield /> Moderator
+  </span>
               ) : (
-                <span className="badge-role badge-user"><FaUser /> User</span>
+                  <span className="badge-role badge-user">
+    <FaUser /> User
+  </span>
               )}
             </div>
           </div>
