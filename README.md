@@ -399,7 +399,7 @@ DecisionHub was developed collaboratively as a team project.
 
 | Team Member | GitHub |
 |---|---|
-| Keerthana J K | [@keerthana12hv](https://github.com/keerthana12hv) |
+| J Keerthana| [@keerthana12hv](https://github.com/keerthana12hv) |
 | Chirag B K | [@ChiragBK1012](https://github.com/ChiragBK1012) |
 | Jyothi | [@jyotihanagandj00-sketch](https://github.com/jyotihanagandj00-sketch) |
 | Kaviyaruba | [@Kaviyaruba110](https://github.com/Kaviyaruba110) |
@@ -409,19 +409,6 @@ DecisionHub was developed collaboratively as a team project.
 | Priyanka Patil | [@PriyaPatil25](https://github.com/PriyaPatil25) |
 | Sriram | [@sreeramslsd](https://github.com/sreeramslsd) |
 | Mythili Sunkisala | [@Sunkisala-2379](https://github.com/Sunkisala-2379) |
-
-### 💻 My Contribution
-
-As a team member, I contributed primarily to:
-
-- Backend development using Java and Spring Boot
-- Database and repository implementation
-- Community management functionality
-- Comment reporting and moderation workflow
-- Admin-side reported comment tracking
-- Notification integration for reported comments
-- Frontend/backend integration and testing
-- Git/GitHub collaboration and feature integration
 
 ### 💻 Team Collaboration
 
