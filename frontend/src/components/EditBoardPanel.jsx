@@ -113,8 +113,7 @@ export default function EditBoardPanel({ decision, onSaved, onCancel }) {
           );
         }
       }
-    }
-    ;
+    };
 
     const handlePublish = async () => {
       setPublishing(true);
