@@ -44,8 +44,9 @@ public class SecurityConfig {
         CorsConfiguration configuration = new CorsConfiguration();
 
         configuration.setAllowedOrigins(List.of(
-                frontendUrl,
-                "http://localhost:5174"
+            frontendUrl,
+            "http://localhost:5174",
+            "https://decisionhub-app.netlify.app"
         ));
 
         configuration.setAllowedMethods(List.of(
